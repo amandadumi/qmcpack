@@ -129,6 +129,7 @@ QMCGaussianParserBase::QMCGaussianParserBase(int argc, char** argv)
 
 void QMCGaussianParserBase::init()
 {
+  IonName[0]  = "X";
   IonName[1]  = "H";
   IonName[2]  = "He";
   IonName[3]  = "Li";
