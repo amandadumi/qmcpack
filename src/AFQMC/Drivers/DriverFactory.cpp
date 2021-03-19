@@ -34,7 +34,7 @@ bool DriverFactory::executeDriver(std::string title, int m_series, xmlNodePtr cu
   oAttrib.add(type, "type");
   oAttrib.put(cur);
 
-  if (type == "afqmc")
+  if (type == "afqmc" || type =="afqmc_cs")
   {
     return executeAFQMCDriver(title, m_series, cur);
   }
@@ -68,7 +68,13 @@ bool DriverFactory::executeAFQMCDriver(std::string title, int m_series, xmlNodeP
   oAttrib.add(ham_name, "ham");
   oAttrib.add(info, "info");
   oAttrib.put(cur);
-
+  // if afqmc_cs add another ham and wfn.
+  if afqmc_cs{
+    std::string ham_name("ham1");
+    std::string wfn_name("wfn1");
+    oAttrib.add(wfn_name1, "wfn");
+    oAttrib.add(ham_name1, "ham");
+  }
   if (InfoMap.find(info) == InfoMap.end())
   {
     app_error() << "ERROR: Undefined info in execute block. \n";
@@ -192,6 +198,10 @@ bool DriverFactory::executeAFQMCDriver(std::string title, int m_series, xmlNodeP
   // LATER: If missing, add a default block to the factory with the given name.
   if (WfnFac.getXML(wfn_name) == nullptr)
     APP_ABORT(" Error: Missing Wavefunction xml block. \n");
+  if afqmc_cs{
+      if (WfnFac.getXML(wfn_name1) == nullptr)
+    APP_ABORT(" Error: Missing Wavefunction xml block. \n");
+  }
   if (PropFac.getXML(prop_name) == nullptr)
     APP_ABORT(" Error: Missing Propagator xml block. \n");
   if (WSetFac.getXML(wset_name) == nullptr)
@@ -223,11 +233,21 @@ bool DriverFactory::executeAFQMCDriver(std::string title, int m_series, xmlNodeP
 
     // build wavefunction
     Wavefunction& wfn0 = WfnFac.getWavefunction(TGprop, TGwfn, wfn_name, walker_type, &ham0, cutvn, nWalkers);
+    if afqmc_cs{
+      // hamiltonian
+      Hamiltonian& ham1 = HamFac.getHamiltonian(gTG, ham_name);
+
+      // build wavefunction
+      Wavefunction& wfn1 = WfnFac.getWavefunction(TGprop, TGwfn, wfn_name, walker_type, &ham0, cutvn, nWalkers);
+    }
   }
 
   // wfn builder should not use Hamiltonian pointer now
   Wavefunction& wfn0 = WfnFac.getWavefunction(TGprop, TGwfn, wfn_name, walker_type, nullptr, cutvn, nWalkers);
-
+  if afqmc_cs{
+    // aed: not sure of the significance in the change to a null ptr is here. 
+      Wavefunction& wfn1 = WfnFac.getWavefunction(TGprop, TGwfn, wfn_name, walker_type, nullptr, cutvn, nWalkers);
+  }
   // propagator
   Propagator& prop0 = PropFac.getPropagator(TGprop, prop_name, wfn0, rng);
   bool hybrid       = prop0.hybrid_propagation();
@@ -237,9 +257,13 @@ bool DriverFactory::executeAFQMCDriver(std::string title, int m_series, xmlNodeP
   {
     restartFromHDF5(wset, nWalkers, hdf_read_restart, read, set_nWalker_target);
     wfn0.Energy(wset);
+    if afqmc_cs{
+      wfn1.Energy(wset);
+    }
   }
   else
   {
+    //aed: even in correlated sampling, we will need to build initial guess off of the first wavefunction only.
     auto initial_guess = WfnFac.getInitialGuess(wfn_name);
     wset.resize(nWalkers, initial_guess[0], initial_guess[1]({0, NMO}, {0, NAEB}));
     wfn0.Energy(wset);
@@ -265,6 +289,11 @@ bool DriverFactory::executeAFQMCDriver(std::string title, int m_series, xmlNodeP
   // estimator setup
   EstimatorHandler estim0(TGHandler, AFinfo, title, cur, wset, WfnFac, wfn0, prop0, walker_type, HamFac, ham_name, dt,
                           addEnergyEstim, !free_proj);
+  if afqmc_cs{
+    // second estimator setup for afqmc.
+    EstimatorHandler estim1(TGHandler, AFinfo, title, cur, wset, WfnFac, wfn1, prop0, walker_type, HamFac, ham_name, dt,
+                            addEnergyEstim, !free_proj);
+    }
 
   app_log() << "\n****************************************************\n"
             << "****************************************************\n"
@@ -276,7 +305,7 @@ bool DriverFactory::executeAFQMCDriver(std::string title, int m_series, xmlNodeP
             << std::endl;
 
   gTG.global_barrier();
-
+  //aed: not sure how to change this yet since this will need to accept the new wavefunction and estimator object.
   AFQMCDriver driver(gTG.Global(), AFinfo, title, m_series, block0, step0, Eshift, cur, wfn0, prop0, estim0);
 
   if (!driver.run(wset))
