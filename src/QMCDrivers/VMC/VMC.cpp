@@ -49,6 +49,9 @@ VMC::VMC(MCWalkerConfiguration& w, TrialWaveFunction& psi, QMCHamiltonian& h, Co
 
   prevSteps               = nSteps;
   prevStepsBetweenSamples = nStepsBetweenSamples;
+
+  NewTimer& gen_samples_timer;
+  gen_samples_timer(*timer_manager.createTimer(prefix + "GenSamples", timer_level_fine)),
 }
 
 bool VMC::run()
@@ -86,6 +89,8 @@ bool VMC::run()
         wClones[ip]->resetCollectables();
         bool recompute = (nBlocksBetweenRecompute && (step + 1) == nSteps &&
                           (1 + block) % nBlocksBetweenRecompute == 0 && qmc_driver_mode[QMC_UPDATE_MODE]);
+        // TODO add QMC TIMER Here for optimization
+
         Movers[ip]->advanceWalkers(wit, wit_end, recompute);
         if (has_collectables)
           wClones[ip]->Collectables *= cnorm;
