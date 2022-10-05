@@ -224,3 +224,9 @@ if(ENABLE_CUDA AND BUILD_MICRO_BENCHMARKS)
   target_include_directories(${UTEST_EXE} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
   add_unit_test(${UTEST_NAME} 1 1 $<TARGET_FILE:${UTEST_EXE}>)
 endif()
+
+if(LAMMPS_FOUND)
+  add_subdirectory(lammps)
+  message("adding Lammps tests")
+endif()
+
