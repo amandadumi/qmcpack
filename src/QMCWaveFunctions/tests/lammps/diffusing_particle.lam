@@ -1,0 +1,46 @@
+###############################################
+# LAMMPS script for a single particle
+###############################################
+
+###
+# Box and units  (use LJ units and periodic boundaries)
+###
+units metal                 # use lennard-jones (i.e. dimensionless) units
+atom_style atomic        # simplest point-like atom type
+boundary f f f            # all boundaries are periodic
+
+###
+# Pair interactions require lists of neighbours to be calculated
+###
+neighbor 1.9 bin
+neigh_modify every 1 delay 1 check yes 
+
+
+### 
+# READ "initial configuration" data file 
+###
+read_data initial_configuration.txt
+reset_timestep 0 
+group all type 1  #(atom type 1 is group 'all')
+
+
+###
+# Set up interaction potentials
+###
+# including pair potential from snap instead
+include Mo_Chen_PRM2017.snap
+
+# Settings
+velocity       all create 0 4928459 rot yes mom yes dist gaussian
+fix            ensemble all nve temp 0 298.15 100 tchain 1
+timestep       .01
+
+# Output
+thermo_style   one
+thermo         50
+
+# Run the simulation
+run            0
+
+
+
