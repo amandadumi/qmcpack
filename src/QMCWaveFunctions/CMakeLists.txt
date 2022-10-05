@@ -172,6 +172,21 @@ elseif(ENABLE_SYCL)
   target_link_libraries(qmcwfs PRIVATE qmcwfs_sycl)
 endif()
 
+####################################
+# add lammps link libraries.
+####################################
+if (LAMMPS_FOUND)
+  message(STATUS "LAMMPS found within Jastrow ${LAMMPS_EXTRA_DEFINITIONS}") # all the HIP and ROCm settings will be handled by ENABLE_ROCM
+  # target_include_directories(qmcwfs PUBLIC ${LAMMPS_INCLUDE_DIRS})
+  # target_include_directories(qmcwfs PUBLIC "/Users/aedumi/software/lammps/build/includes")
+  # add_definitions(${LAMMPS_EXTRA_DEFINITIONS})
+  target_link_libraries(qmcwfs PUBLIC Lammps::lammps)
+  # target_link_options(qmcwfs PUBLIC "${LAMMPS_LDFLAGS} ")
+  # target_compile_options(qmcwfs PUBLIC "${LAMMPS_CFLAGS}")
+  message(STATUS "LAMMPS library added within Jastrow") # all the HIP and ROCm settings will be handled by ENABLE_ROCM
+
+endif()
+
 if(BUILD_UNIT_TESTS)
   add_subdirectory(tests)
 endif()

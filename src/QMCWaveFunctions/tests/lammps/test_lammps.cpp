@@ -1,0 +1,221 @@
+//////////////////////////////////////////////////////////////////////////////////////
+// This file is distributed under the University of Illinois/NCSA Open Source License.
+// See LICENSE file in top directory for details.
+//
+// Copyright (c) 2016 Jeongnim Kim and QMCPACK developers.
+//
+// File developed by:  Mark Dewing, markdewing@gmail.com, University of Illinois at Urbana-Champaign
+//
+// File created by: Mark Dewing, markdewing@gmail.com, University of Illinois at Urbana-Champaign
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+#include "catch.hpp"
+#include "Particle/ParticleSet.h"
+#include "Particle/DistanceTable.h"
+//lammps libraries
+#include "lammps.h"
+#include "input.h"
+#include "atom.h"
+#include "pair.h"
+#include "pair_snap.h"
+#include "force.h"
+
+#include <stdio.h>
+#include <string>
+#include <cstring>
+
+using std::string;
+namespace qmcplusplus
+// namespace LAMMPS_NS{
+{
+TEST_CASE("simple_file_run", "[particle]")
+{
+  const char *lmpargv[] {"liblammps", "-log", "none"};
+  int lmpargc = sizeof(lmpargv)/sizeof(const char *);
+  LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
+  lmp->input->file("diffusing_particle.lam");
+  delete lmp;
+  //does it make sense to have a test just to make sure this doesn't fail? is there a REQUIRE to add?
+}
+
+TEST_CASE("lammps_one_command", "[particle]")
+{
+
+  const char *lmpargv[] {"liblammps", "-log", "none"};
+  int lmpargc = sizeof(lmpargv)/sizeof(const char *);
+  LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
+  lmp->input->one("units  metal");
+  delete lmp;
+
+}
+
+TEST_CASE("lammps_access_pair_class", "[particle]")
+{
+  const char *lmpargv[] {"liblammps", "-log", "none"};
+  int lmpargc = sizeof(lmpargv)/sizeof(const char *);
+  LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
+  lmp->input->file("diffusing_particle.lam");
+  void *a;
+  double* a_val;
+  int b;
+  const char *sc = "rcutmax";
+  a = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(sc,b); 
+  a_val = (double*)(a);   
+  std::cout << "accessing pair_snap object, rcutmax is " << *a_val << std::endl;
+  REQUIRE(*a_val == Approx(4.61586));
+
+  delete lmp;
+}
+
+TEST_CASE("lammps_update_pos", "[particle]")
+{
+  const char *lmpargv[] {"liblammps", "-log", "none"};
+  int lmpargc = sizeof(lmpargv)/sizeof(const char *);
+  LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
+  lmp->input->file("diffusing_particle.lam");
+  int b;
+  int natoms = static_cast<int> (lmp->atom->natoms);
+  void *pos = lmp->atom->x;
+  double **x = static_cast<double **> (pos);
+  std::cout <<"natom " << natoms << std::endl;
+  std::cout <<"positions" << std::endl;
+  // for (int i=0; i<2; i++){
+  //     for (int j=0; j<3; j++){
+  //       std::cout << "atom " <<i << "position "<< j << " " << (*x)[(3*i)+j] << std::endl;
+  //     }
+  //   }
+    REQUIRE((*x)[0] == Approx(0.0));
+    REQUIRE((*x)[5] == Approx(0.5));
+    (*x)[(3*1)+1] = 0.6;
+    void *pos_new = lmp->atom->x;
+    double **x_new = static_cast<double **> (pos);
+    
+    // for (int i=0; i<2; i++){
+    //     for (int j=0; j<3; j++){
+    //       std::cout << "atom " <<i << "new position but reaccessed "<< j << " " << (*x_new)[(3*i)+j] << std::endl;
+    //     }
+    // }
+  REQUIRE((*x)[0] == Approx(0.0));
+  REQUIRE((*x)[4] == Approx(0.6));
+  delete lmp;
+}
+
+
+TEST_CASE("pass_ions_to_lammps", "[particle]")
+{
+    const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell);
+
+  ions.create({2});
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.R[1][0] = 0.0;
+  ions.R[1][1] = 0.0;
+  ions.R[1][2] = 0.5;
+  const char *lmpargv[] {"liblammps", "-log", "none"};
+  int lmpargc = sizeof(lmpargv)/sizeof(const char *);
+  LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
+  lmp->input->one("units  metal");
+  lmp->input->one("atom_style  atomic");
+  lmp->input->one("boundary  f f f ");
+  lmp->input->one("neighbor 1.9 bin");
+  lmp->input->one("neigh_modify every 1 delay 1 check yes ");
+  lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
+  lmp->input->one("create_box 1 mybox");
+  std::string var = "create_atoms 1 single " + std::to_string(ions.R[0][0]) + "  " +std::to_string(ions.R[0][1])  + " " + std::to_string(ions.R[0][2]);  
+  lmp->input->one(var);
+  var = "create_atoms 1 single " + std::to_string(ions.R[1][0]) + "  " +std::to_string(ions.R[1][1])  + " " + std::to_string(ions.R[1][2]);  
+  lmp->input->one(var);
+  lmp->input->one("mass 1 4.02");
+  lmp->input->one("reset_timestep 0");
+  lmp->input->one("group ions type 1");
+  lmp->input->one("include Mo_Chen_PRM2017.snap");
+  lmp->input->one("velocity       all create 0 4928459 rot yes mom yes dist gaussian");
+  lmp->input->one("fix            ensemble all nve temp 0 298.15 100 tchain 1");
+  lmp->input->one("timestep       .01");
+
+  lmp->input->one("thermo_style   one");
+  lmp->input->one("thermo         50");
+  lmp->input->one("run            0");
+  void *pos = lmp->atom->x;
+  double **x = static_cast<double **> (pos);
+  REQUIRE((*x)[0] == Approx(0.0));
+  REQUIRE((*x)[5] == Approx(0.5));
+  // REQUIRE(*a_val == ValueApprox(4.61586));
+  double a;
+  a = static_cast<double>(lmp->force->pair->eng_vdwl);
+  REQUIRE(a == Approx(91.7483));
+  delete lmp;
+}
+
+TEST_CASE("pass_ions_and_electrons_to_lammps", "[particle]")
+{
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+
+  electrons.create({2});
+  electrons.R[0][0] = 0.1;
+  electrons.R[0][1] = 0.1;
+  electrons.R[0][2] = 0.1;
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1;
+  electrons.R[1][2] = 0.5;
+
+    ions.create({2});
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.R[1][0] = 0.0;
+  ions.R[1][1] = 0.0;
+  ions.R[1][2] = 0.5;
+  const char *lmpargv[] {"liblammps", "-log", "none"};
+  int lmpargc = sizeof(lmpargv)/sizeof(const char *);
+  LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
+  lmp->input->one("units  metal");
+  lmp->input->one("atom_style  atomic");
+  lmp->input->one("boundary  f f f ");
+  lmp->input->one("neighbor 1.9 bin");
+  lmp->input->one("neigh_modify every 1 delay 1 check yes ");
+  lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
+  lmp->input->one("create_box 2 mybox");
+  lmp->input->one("mass 1 4.02");
+  lmp->input->one("mass 2 2.01");
+  std::string var = "create_atoms 1 single " + std::to_string(ions.R[0][0]) + "  " +std::to_string(ions.R[0][1])  + " " + std::to_string(ions.R[0][2]);  
+  lmp->input->one(var);
+  var = "create_atoms 1 single " + std::to_string(ions.R[1][0]) + "  " +std::to_string(ions.R[1][1])  + " " + std::to_string(ions.R[1][2]);  
+  lmp->input->one(var);
+  void *pos = lmp->atom->x;
+  double **x = static_cast<double **> (pos);
+  REQUIRE((*x)[0] == Approx(0.0));
+  REQUIRE((*x)[5] == Approx(0.5));
+
+  var = "create_atoms 2 single " + std::to_string(electrons.R[0][0]) + "  " +std::to_string(electrons.R[0][1])  + " " + std::to_string(electrons.R[0][2]);  
+  lmp->input->one(var);
+  var = "create_atoms 2 single " + std::to_string(electrons.R[1][0]) + "  " +std::to_string(electrons.R[1][1])  + " " + std::to_string(electrons.R[1][2]);  
+  lmp->input->one(var);
+  lmp->input->one("reset_timestep 0");
+  lmp->input->one("group ions type 1");
+  lmp->input->one("group electrons type 2");
+  lmp->input->one("group all type 1 2");
+  lmp->input->one("include WBe_Wood_PRB2019.snap");
+  lmp->input->one("velocity       all create 298.15 4928459 rot yes mom yes dist gaussian");
+  lmp->input->one("fix            ensemble all nve temp 0 298.15 100 tchain 1");
+  lmp->input->one("timestep       .01");
+
+  lmp->input->one("thermo_style   one");
+  lmp->input->one("thermo         50");
+  lmp->input->one("run            0");
+  REQUIRE((*x)[(2*3)+0] == Approx(0.1)); //access the 3rd particles x-position
+  REQUIRE((*x)[(3*3)+2] == Approx(0.5)); //access the 4th particles z-position
+  //should also assert group is tracked 
+  // double a;
+  // a = static_cast<double>(lmp->force->pair->eng_vdwl);
+  }
+
+// } // namespace qmcplusplus
+
+
+}
+
