@@ -1253,22 +1253,25 @@ the tag is not added coefficients will not be saved.
 
   The rest of the optimization block remains the same.
 
-When running the optimization, the new coefficients will be stored in a ``*.sXXX.opt.h5`` file,  where XXX coressponds to the series number. The H5 file contains only the optimized coefficients. The corresponding ``*.sXXX.opt.xml`` will be updated for each optimization block as follows:
+When running the optimization, the new coefficients will be stored in a ``*.sXXX.vp.h5`` file,  where XXX coressponds to the series number.
+The file contains optimized parameters from the run, whether they be MSD coefficients and/or Jastrow factor parameters.
+The corresponding ``*.sXXX.opt.xml`` will be updated for each optimization block as follows:
 
 ::
 
-  <detlist size="1487" type="DETS" nca="0" ncb="0" nea="2" neb="2" nstates="85" cutoff="1e-2" href="../LiH.orbs.h5" opt_coeffs="LiH.s001.opt.h5"/>
-
+  <detlist size="1487" type="DETS" nca="0" ncb="0" nea="2" neb="2" nstates="85" cutoff="1e-2" href="../LiH.orbs.h5"/>
+  ...
+  <override_variational_parameters href="*.sXXX.vp.h5">
 The opt_coeffs tag will then reference where the new CI coefficients are
 stored.
 
 When restarting the run with the new optimized coeffs, you need to
 specify the previous hdf5 containing the basis set, orbitals, and MSD,
-as well as the new optimized coefficients. The code will read the
+as well as the new optimized coefficients in the `vp.h5` file. The code will read the
 previous data but will rewrite the coefficients that were optimized with
-the values found in the \*.sXXX.opt.h5 file. Be careful to keep the pair
-of optimized CI coefficients and Jastrow coefficients together to avoid
-inconsistencies.
+the values found in the \*.sXXX.vp.h5 file. 
+
+More details about the vp.h5 file can be found in the "Variational parameter storage" section of this documentation page.
 
 Parameter gradients
 ~~~~~~~~~~~~~~~~~~~
