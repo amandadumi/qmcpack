@@ -263,11 +263,9 @@ public:
    * @param d2psi_v_list the list of laplacian vector pointers in a walker batch
    */
   virtual void mw_evaluateVGL(const RefVectorWithLeader<SPOSet>& spo_list,
-                              const RefVectorWithLeader<ParticleSet>& P_list,
-                              int iat,
-                              const RefVector<ValueVector>& psi_v_list,
-                              const RefVector<GradVector>& dpsi_v_list,
-                              const RefVector<ValueVector>& d2psi_v_list) const;
+                      const RefVectorWithLeader<ParticleSet>& P_list,
+                      int iat,
+                      OffloadMWVGLArray& phi_vgl_v) const;
 
   /** evaluate the values, gradients and laplacians and spin gradient of this single-particle orbital sets of multiple walkers
    * @param spo_list the list of SPOSet pointers in a walker batch
@@ -296,12 +294,12 @@ public:
    * @param psi_ratio_grads_v determinant ratio and grads of all the walkers
    */
   virtual void mw_evaluateVGLandDetRatioGrads(const RefVectorWithLeader<SPOSet>& spo_list,
-                                              const RefVectorWithLeader<ParticleSet>& P_list,
-                                              int iat,
-                                              const std::vector<const ValueType*>& invRow_ptr_list,
-                                              OffloadMWVGLArray& phi_vgl_v,
-                                              std::vector<ValueType>& ratios,
-                                              std::vector<GradType>& grads) const;
+                                      const RefVectorWithLeader<ParticleSet>& P_list,
+                                      int iat,
+                                      const std::vector<const ValueType*>& invRow_ptr_list,
+                                      OffloadMWVGLArray& phi_vgl_v,
+                                      std::vector<ValueType>& ratios,
+                                      std::vector<GradType>& grads) const;
 
   /** evaluate the values, gradients and laplacians of this single-particle orbital sets and determinant ratio
    *  and grads of multiple walkers. Device data of phi_vgl_v must be up-to-date upon return.
