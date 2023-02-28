@@ -217,5 +217,40 @@ TEST_CASE("pass_ions_and_electrons_to_lammps", "[particle]")
 // } // namespace qmcplusplus
 
 
+TEST_CASE("get_dbi_drj", "[particle]")
+{
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+
+  electrons.create({2});
+  electrons.R[0][0] = 0.0;
+  electrons.R[0][1] = 0.0;
+  electrons.R[0][2] = 0.0;
+  electrons.R[1][0] = 0.0;
+  electrons.R[1][1] = 0.0;
+  electrons.R[1][2] = 0.5;
+
+
+  const char *lmpargv[] {"liblammps", "-log", "none"};
+  int lmpargc = sizeof(lmpargv)/sizeof(const char *);
+  LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
+  lmp->input->file("diffusing_particle.lam");
+  void *a;
+  double* a_val;
+  int b;
+  const char *sc = "dblist";
+  a = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(sc,b); 
+  a_val = (double**)(a);   
+  
+  std::cout << "made it to parsing object" << std::endl;
+  for (int i=0;i<2;i++){
+    for (in j = 0 ; j < 2; j++){
+      std::cout << (*a_dbdrlist_vals)[i+j] << std::endl;
+    }
+  }
+  delete lmp;
+
+  }
+
 }
 
