@@ -50,8 +50,10 @@ public:
     void calculate_gb();
 
 private:
-    const int d_aa_ID;
-    const int d_ei_ID;
+    const int d_aa_ID; // id of distance table for similar particles
+    const int d_ei_ID; // is of distance table for ions.
+    std::vector<int> h_ids_; // im guessing this is hamiltonian ids since each observable becomes a member of the hamiltonian
+    std::vector<int> p_ids_; // property id stored in history. 
     std::vector<std::vector<int>> walker_lengths_;
 };
 }

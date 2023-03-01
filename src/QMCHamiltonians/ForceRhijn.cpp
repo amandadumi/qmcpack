@@ -27,9 +27,33 @@ namespace qmcplusplus
 ForceRhijn::ForceRhijn(ParticleSet& ions, ParticleSet& elns)
 : ForceBase(ions, elns), d_aa_ID(ions.addTable(ions)), d_ei_ID(elns.addTable(ions))
 {
+    using WP = WalkerProperties::Indexes;
+
   // Defaults
   nstep = 10;
   ///////////////////////////////////////////////////////////////
-  
+# 
+
 }
+void ForceRhijn::calculate_gdd(){
+      std::vector<RealType>::iterator Vit = values_.begin();
+
+    int j       = 0;   // counts the steps for this walker to go back
+    int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;  // this is the current walkers index for a given property
+    while (j < walker_lengths_[i][1])
+    {
+        int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;
+    }
+void ForceRhijn::calculate_gdd(){
+
+    }
+
+void ForceRhijn::evaluate(ParticleSet& P){
+    // for the current walker
+    // find the id of the property of interest.
+    // loop over nstep configurations
+            // call to calc_gdd and calc_b 
+
+    }
+    
 }
