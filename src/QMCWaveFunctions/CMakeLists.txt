@@ -59,7 +59,7 @@ set(JASTROW_SRCS
     Jastrow/J1OrbitalSoA.cpp
     LatticeGaussianProduct.cpp
     LatticeGaussianProductBuilder.cpp
-    SNAPJastrow.cpp)
+    Jastrow/SNAPJastrow.cpp)
 set(JASTROW_OMPTARGET_SRCS
     Jastrow/TwoBodyJastrow.cpp
     Jastrow/BsplineFunctor.cpp)
