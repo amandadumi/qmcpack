@@ -42,16 +42,35 @@ void ForceRhijn::calculate_gdd(){
     int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;  // this is the current walkers index for a given property
     while (j < walker_lengths_[i][1])
     {
-        int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;
+        int FWi
+        ndex = t_walker_->PHindex[p_ids_[i]] - 1;
     }
 void ForceRhijn::calculate_gdd(){
 
     }
 
 void ForceRhijn::evaluate(ParticleSet& P){
+    int i = 0 //todo figure out which observable needs to be here for history point. forwardwalking.cpp line 68
+    t_walker_->addPropertyHistoryPoint(p_ids_[i], P.PropertyList[h_ids_[i]]);
     // for the current walker
-    // find the id of the property of interest.
-    // loop over nstep configurations
+    // find the id of the property of interest in property history
+    int j       = 0;   // counts the steps for this walker to go back
+    int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;  // this is the current walkers index for a given property
+    //create iterator for 
+    // loop over nstep configurations for this property
+    // while you are less than the recorded values and less than the desired number of steps in the past
+    while (j < walker_lengths_[i][1] & j != nstep){
+        // take a step back in history by blockfreq to get to next recored value
+        FWindex -= walker_lengths_[i][0];
+        if (FWindex < 0)
+            FWindex += walker_lengths_[i][2];  // is this trying to  exit the loop essentially? not sure.
+        (*Vit) = t_walker_->PropertyHistory[p_ids_[i]][FWindex]
+        j++;
+        Vit++;
+    }
+        
+    }
+
             // call to calc_gdd and calc_b 
 
     }
