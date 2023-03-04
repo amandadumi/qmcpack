@@ -2,7 +2,13 @@
 #define QMCPLUSPLUS_SNAPJASTROW
 #include "QMCWaveFunctions/WaveFunctionComponent.h"
 #include "Particle/DistanceTable.h"
-
+//lammps related headers needed.
+#include "lammps.h"
+#include "input.h"
+#include "atom.h"
+#include "pair.h"
+#include "pair_snap.h"
+#include "force.h"
 
 
 namespace qmcplusplus
@@ -44,13 +50,17 @@ public:
 
 
 /****** Evaluate E_L functions ******/
+    /** Calculate the ratio of proposed to current wave function element*/
     PsiValueType ratio(ParticleSet& P, int iat) override;
+    /** Calculate d/di U_SNap*/
     GradType evalGrad(ParticleSet& P, int iat) override;
+
     PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch);
+
 
 
 /******Checkout related functons******/
@@ -69,7 +79,10 @@ void evaluateDerivatives(ParticleSet& P,
                                    Vector<ValueType>& dhpsioverpsi) override;
 
 private:
-
+ LAMMPS_NS::LAMMPS *lmp;                  // pointer to lammps object
+ void* pointer_to_bispectrum_coeff;         // pointer to bispectrum coeffs.
+ void** pointer_to_dbidrj;                 // pointer to location in lammps object for derivative of bispectrum components with position
+ 
 };
 }
 #endif
