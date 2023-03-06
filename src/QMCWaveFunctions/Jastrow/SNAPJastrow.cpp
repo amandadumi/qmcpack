@@ -17,7 +17,9 @@ SNAPJastorw::initialize_lammps(ParticleSet& P){
     //TODO: what will box region be pased on QMC object. Cell?
     lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
 
-    int n_particle_types = 0;
+
+    
+    int n_particle_types = 0; // not sure how to access this yet. // this will be through distance table!
     for (int i =0; i <n_particle_types){
         n_this_particle_type = i.getTotalNum()
     }
