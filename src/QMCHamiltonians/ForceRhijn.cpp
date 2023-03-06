@@ -35,8 +35,34 @@ ForceRhijn::ForceRhijn(ParticleSet& ions, ParticleSet& elns)
 # 
 
 }
+
+bool ForceRhijn::putSpecial(xmlNodePtr cur, QMCHamiltonian& h, ParticleSet& P)
+    {   
+        using WP = WalkerProperties::Indexes;
+        first_hamiltonian_ = h.startIndex();
+        my_index_ = plist.size()
+
+        int numProps = P.PropertyList.Names.size();
+        int Hindex  = WP::LOCALPOTENTIAL;
+        std::string tagName = "LocPot";
+        std::vector<int> pms(3);
+        pms[0] = blockFreq;
+        pms[1] = numT;
+        pms[2] = blockSeries + 2;
+        walker_lengths_.push_back(pms);
+        int maxWsize = blockSeries + 2;
+        int pindx    = P.addPropertyHistory(maxWsize);
+        p_ids_.push_back(pindx);
+    }
+
+bool ForceRhijn::get(std::ostream& os) const
+    {
+    os << "ForceRhijn";
+    return true;
+    }
+
 void ForceRhijn::calculate_gdd(){
-      std::vector<RealType>::iterator Vit = values_.begin();
+    std::vector<RealType>::iterator Vit = values_.begin();
 
     int j       = 0;   // counts the steps for this walker to go back
     int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;  // this is the current walkers index for a given property
@@ -45,18 +71,27 @@ void ForceRhijn::calculate_gdd(){
         int FWi
         ndex = t_walker_->PHindex[p_ids_[i]] - 1;
     }
-void ForceRhijn::calculate_gdd(){
 
+void ForceRhijn::calculate_gb(){
+    //pv e^{1/2(E_L(R')+ E_L(R) + E_T))}
+
+    //E_L (R')
+    float locale_rprime = 0; 
+
+    //E_L(R)
+    float locale_r = 0;
+    getLocalEnergy
+    //E_T
+    trial_energy = Walker; 
     }
 
 void ForceRhijn::evaluate(ParticleSet& P){
-    int i = 0 //todo figure out which observable needs to be here for history point. forwardwalking.cpp line 68
-    t_walker_->addPropertyHistoryPoint(p_ids_[i], P.PropertyList[h_ids_[i]]);
+    int i = Hindex; // where observable of local energy is in hamiltonian.
+    t_walker_->addPropertyHistoryPoint(pindx, P.PropertyList[i]);
     // for the current walker
     // find the id of the property of interest in property history
     int j       = 0;   // counts the steps for this walker to go back
-    int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;  // this is the current walkers index for a given property
-    //create iterator for 
+    int FWindex = t_walker_->PHindex[pindx] - 1;  // this is the current walkers index for a given property (p_id[i])
     // loop over nstep configurations for this property
     // while you are less than the recorded values and less than the desired number of steps in the past
     while (j < walker_lengths_[i][1] & j != nstep){
@@ -64,15 +99,31 @@ void ForceRhijn::evaluate(ParticleSet& P){
         FWindex -= walker_lengths_[i][0];
         if (FWindex < 0)
             FWindex += walker_lengths_[i][2];  // is this trying to  exit the loop essentially? not sure.
-        (*Vit) = t_walker_->PropertyHistory[p_ids_[i]][FWindex]
+        (*Vit) = t_walker_->PropertyHistory[pindx][FWindex]
         j++;
         Vit++;
+        //accumulate forces here
+        forces_ = 
     }
-        
+    copy(values_.begin(), values_.end(), t_walker_->getPropertyBase() + first_hamiltonian_ + my_index_); //todo: change first_hamiltonian and my_index as these are taken straight from forward walking
     }
 
             // call to calc_gdd and calc_b 
 
+
+ForceRhijn::Return_t ForceRhijn::rejectedMove(ParticleSet& P)
+{
+  for (int i = 0; i < nobservables_; i++)
+  {
+    int lastindex = t_walker_->PHindex[p_ids_[i]] - 1;
+    if (lastindex < 0)
+      lastindex += walker_lengths_[i][2];
+    t_walker_->addPropertyHistoryPoint(p_ids_[i], t_walker_->PropertyHistory[p_ids_[i]][lastindex]);
+  }
+  calculate(P);
+  return 0.0;
+}
     }
     
 }
+
