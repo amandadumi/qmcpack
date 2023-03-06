@@ -37,6 +37,7 @@ public:
     std::unique_ptr<OperatorBase> makeClone(ParticleSet& qp, TrialWaveFunction& psi) final;
 
     bool put(xmlNodePtr cur) override;
+    bool putSpecial(xmlNodePtr cur, QMCHamiltonian& h, ParticleSet& P);
 
 
     /**
