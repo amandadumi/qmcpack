@@ -43,12 +43,12 @@ public:
     /**
      * implement evaluation of Pe^{-.5(E_L(R')+E_L(R)-E_T)}
     */
-    void calculate_gdd(); 
+    FullPrecRealType calculate_gdd(); 
     /**
      * implement evaluation of Pe^{(R'-R-2F)/2}
      * where F 2nablalnpsi v 
     */
-    void calculate_gb();
+    FullPrecRealType calculate_gb();
 
 private:
     const int d_aa_ID; // id of distance table for similar particles
