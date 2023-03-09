@@ -51,7 +51,13 @@ bool ForceRhijn::putSpecial(xmlNodePtr cur, QMCHamiltonian& h, ParticleSet& P)
         pms[2] = blockSeries + 2;
         walker_lengths_.push_back(pms);
         int maxWsize = blockSeries + 2;
+        // add property history for the two new things to track in this force estimation
+        // dlambdalnG
+        // Question, should we just make these the size of n_steps or should it be maxWsize and only fill partial? I think former.
         int pindx    = P.addPropertyHistory(maxWsize);
+        p_ids_.push_back(pindx);
+        pindx    = P.addPropertyHistory(maxWsize);
+        // F
         p_ids_.push_back(pindx);
     }
 
@@ -61,7 +67,9 @@ bool ForceRhijn::get(std::ostream& os) const
     return true;
     }
 
-void ForceRhijn::calculate_gdd(){
+FullPrecRealType ForceRhijn::calculate_gdd()
+    {
+    FullPrecRealType gdd=; 
     std::vector<RealType>::iterator Vit = values_.begin();
 
     int j       = 0;   // counts the steps for this walker to go back
@@ -71,8 +79,11 @@ void ForceRhijn::calculate_gdd(){
         int FWi
         ndex = t_walker_->PHindex[p_ids_[i]] - 1;
     }
+    return gdd
+    }
 
-void ForceRhijn::calculate_gb(){
+FullPrecRealType ForceRhijn::calculate_gb(){
+    FullPrecRealType gb = ;
     //pv e^{1/2(E_L(R')+ E_L(R) + E_T))}
 
     //E_L (R')
@@ -86,6 +97,7 @@ void ForceRhijn::calculate_gb(){
     }
 
 void ForceRhijn::evaluate(ParticleSet& P){
+
     int i = Hindex; // where observable of local energy is in hamiltonian.
     t_walker_->addPropertyHistoryPoint(pindx, P.PropertyList[i]);
     // for the current walker
@@ -102,8 +114,10 @@ void ForceRhijn::evaluate(ParticleSet& P){
         (*Vit) = t_walker_->PropertyHistory[pindx][FWindex]
         j++;
         Vit++;
+        for (iat=0;iat<n_nuc,iat++){
+            forces_[iat] *= gdd_val*gb_val}
         //accumulate forces here
-        forces_ = 
+         
     }
     copy(values_.begin(), values_.end(), t_walker_->getPropertyBase() + first_hamiltonian_ + my_index_); //todo: change first_hamiltonian and my_index as these are taken straight from forward walking
     }
