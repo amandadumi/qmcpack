@@ -12,20 +12,18 @@
 //////////////////////////////////////////////////////////////////////////////////////
 
 #include "ForceRhijn.h"
-#include "Particle/DistanceTable.h"
-#include "Message/Communicate.h"
-#include "Utilities/ProgressReportEngine.h"
-#include "Numerics/DeterminantOperators.h"
-#include "Numerics/MatrixOperators.h"
-#include "OhmmsData/ParameterSet.h"
-#include "OhmmsData/AttributeSet.h"
+#include "QMCHamiltonians/QMCHamiltonian.h"
+#include "QMCDrivers/WalkerProperties.h"
+#include <cstdlib>
+#include <set>
+#include <string>
 
 
 
 namespace qmcplusplus
 {
-ForceRhijn::ForceRhijn(ParticleSet& ions, ParticleSet& elns)
-: ForceBase(ions, elns), d_aa_ID(ions.addTable(ions)), d_ei_ID(elns.addTable(ions))
+
+ForceRhijn::ForceRhijn()
 {
     using WP = WalkerProperties::Indexes;
 
@@ -39,26 +37,16 @@ ForceRhijn::ForceRhijn(ParticleSet& ions, ParticleSet& elns)
 bool ForceRhijn::putSpecial(xmlNodePtr cur, QMCHamiltonian& h, ParticleSet& P)
     {   
         using WP = WalkerProperties::Indexes;
-        first_hamiltonian_ = h.startIndex();
-        my_index_ = plist.size()
+        // first_hamiltonian_ = h.startIndex();
 
         int numProps = P.PropertyList.Names.size();
-        int Hindex  = WP::LOCALPOTENTIAL;
-        std::string tagName = "LocPot";
-        std::vector<int> pms(3);
-        pms[0] = blockFreq;
-        pms[1] = numT;
-        pms[2] = blockSeries + 2;
-        walker_lengths_.push_back(pms);
-        int maxWsize = blockSeries + 2;
-        // add property history for the two new things to track in this force estimation
-        // dlambdalnG
-        // Question, should we just make these the size of n_steps or should it be maxWsize and only fill partial? I think former.
-        int pindx    = P.addPropertyHistory(maxWsize);
+        std::string tagName = "walker_history_hash";
+        walker_lengths_.push_back(nstep);
+        // add property history to record the id of each walker step
+        int pindx = P.addPropertyHistory(nstep);
         p_ids_.push_back(pindx);
-        pindx    = P.addPropertyHistory(maxWsize);
-        // F
-        p_ids_.push_back(pindx);
+        return true;
+
     }
 
 bool ForceRhijn::get(std::ostream& os) const
@@ -67,77 +55,58 @@ bool ForceRhijn::get(std::ostream& os) const
     return true;
     }
 
-FullPrecRealType ForceRhijn::calculate_gdd()
-    {
-    FullPrecRealType gdd=; 
+
+
+ForceRhijn::Return_t ForceRhijn::evaluate(ParticleSet& P)
+{
+    // have walker tracker be the size of this walkers id if not already in list.
     std::vector<RealType>::iterator Vit = values_.begin();
 
-    int j       = 0;   // counts the steps for this walker to go back
-    int FWindex = t_walker_->PHindex[p_ids_[i]] - 1;  // this is the current walkers index for a given property
-    while (j < walker_lengths_[i][1])
-    {
-        int FWi
-        ndex = t_walker_->PHindex[p_ids_[i]] - 1;
+    while (walker_tracker.size() < t_walker_->ID){
+        walker_tracker.push_back(0);
     }
-    return gdd
+    // increment the element by one since we are addint to property history for it.
+    walker_tracker[t_walker_->ID] += 1;
+    for int j=0; j < nsteps, j++){
+        int i = 0;
+        t_walker_->addPropertyHistoryPoint(p_ids_[i], walker_tracker[t_walker_->ID]);
     }
+    //the property will keep track of the column it needs to fill through phindex
+    // app_log() << "Not a valid H element(" << Hindex << ") Valid names are:";
 
-FullPrecRealType ForceRhijn::calculate_gb(){
-    FullPrecRealType gb = ;
-    //pv e^{1/2(E_L(R')+ E_L(R) + E_T))}
-
-    //E_L (R')
-    float locale_rprime = 0; 
-
-    //E_L(R)
-    float locale_r = 0;
-    getLocalEnergy
-    //E_T
-    trial_energy = Walker; 
-    }
-
-void ForceRhijn::evaluate(ParticleSet& P){
-
-    int i = Hindex; // where observable of local energy is in hamiltonian.
-    t_walker_->addPropertyHistoryPoint(pindx, P.PropertyList[i]);
-    // for the current walker
-    // find the id of the property of interest in property history
-    int j       = 0;   // counts the steps for this walker to go back
-    int FWindex = t_walker_->PHindex[pindx] - 1;  // this is the current walkers index for a given property (p_id[i])
-    // loop over nstep configurations for this property
-    // while you are less than the recorded values and less than the desired number of steps in the past
-    while (j < walker_lengths_[i][1] & j != nstep){
-        // take a step back in history by blockfreq to get to next recored value
-        FWindex -= walker_lengths_[i][0];
-        if (FWindex < 0)
-            FWindex += walker_lengths_[i][2];  // is this trying to  exit the loop essentially? not sure.
-        (*Vit) = t_walker_->PropertyHistory[pindx][FWindex]
-        j++;
-        Vit++;
-        for (iat=0;iat<n_nuc,iat++){
-            forces_[iat] *= gdd_val*gb_val}
-        //accumulate forces here
-         
-    }
-    copy(values_.begin(), values_.end(), t_walker_->getPropertyBase() + first_hamiltonian_ + my_index_); //todo: change first_hamiltonian and my_index as these are taken straight from forward walking
-    }
-
-            // call to calc_gdd and calc_b 
+    return 0.0;
+}
 
 
-ForceRhijn::Return_t ForceRhijn::rejectedMove(ParticleSet& P)
+ForceRhijn::Return_t ForceRhijn::rejectedMove(ParticleSet& P){return 0.0;}
+
+
+void ForceRhijn::addObservables(PropertySetType& plist)
 {
-  for (int i = 0; i < nobservables_; i++)
-  {
-    int lastindex = t_walker_->PHindex[p_ids_[i]] - 1;
-    if (lastindex < 0)
-      lastindex += walker_lengths_[i][2];
-    t_walker_->addPropertyHistoryPoint(p_ids_[i], t_walker_->PropertyHistory[p_ids_[i]][lastindex]);
-  }
-  calculate(P);
-  return 0.0;
-}
-    }
-    
+  //not used
 }
 
+void ForceRhijn::addObservables(PropertySetType& plist, BufferType& collectables)
+{
+  my_index_ = plist.size();
+  int nc    = 0;
+    for (int j = 0; j < nstep; ++j)
+    {
+      std::stringstream sstr;
+      sstr << "FR_" << "property_history" << "_" << j;
+      int id = plist.add(sstr.str());
+    }
+  app_log() << "ForceRhijn::Observables [" << my_index_ << ", " << my_index_ + nstep << ")" << std::endl;
+}
+
+
+void ForceRhijn::setObservables(PropertySetType& plist)
+{
+  copy(values_.begin(), values_.end(), plist.begin() + my_index_);
+}
+
+void ForceRhijn::setParticlePropertyList(PropertySetType& plist, int offset)
+{
+  copy(values_.begin(), values_.end(), plist.begin() + my_index_ + offset);
+}
+}
