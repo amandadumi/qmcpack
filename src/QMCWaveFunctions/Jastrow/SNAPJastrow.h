@@ -1,7 +1,6 @@
 #ifndef QMCPLUSPLUS_SNAPJASTROW
 #define QMCPLUSPLUS_SNAPJASTROW
 #include "QMCWaveFunctions/WaveFunctionComponent.h"
-#include "Particle/DistanceTable.h"
 //lammps related headers needed.
 #include "lammps.h"
 #include "input.h"
@@ -15,10 +14,16 @@ namespace qmcplusplus
 {
 class SNAPJastrow : public WaveFunctionComponent
 {
-
 public:
 
-    SNAPJastrow();
+    SNAPJastrow(const ParticleSet& ions, ParticleSet& els);
+        ions_(ions),
+        elecs_(els),
+        my_table_ee_idx_(els.addTable(els, DTModes::NEED_TEMP_DATA_ON_HOST | DTModes::NEED_VP_FULL_TABLE_ON_HOST)),
+        my_table_ei_idx_(els.addTable(ions, DTModes::NEED_VP_FULL_TABLE_ON_HOST)){};
+
+
+    using PtclGrpIndexes   = QMCTraits::PtclGrpIndexes;
 
     ~SNAPJastrow();
 
@@ -61,7 +66,7 @@ public:
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch);
 
-
+    void bispectrum_Laplacian_finite_diff();
 
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
