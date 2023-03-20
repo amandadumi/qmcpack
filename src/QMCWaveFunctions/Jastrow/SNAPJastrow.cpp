@@ -45,35 +45,57 @@ SNAPJastorw::initialize_lammps(){
 
 }
 
-SNAPJastorw::access_dbidrj(){
+SNAPJastorw::compute_dbidrj(){
 
     void *pointer_to_bispectrum_coeff;
     int b;
     const char *sc = "dblist";
     pointer_to_bispectrum_coeff = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(sc,b); 
+    lmp->input->one("compute ID group-ID sna/atom");
 }
 
 SNAPJastorw::bispectrum_Hessian_finite_diff(ParticleSet& P, int iat){
     RealType delta = 0.1; // TODO: find units
-    
+    x = new double[OHMMS_DIM*natoms];
+    // arge: lammps object, property name x is position, type 0 int 1 double, number of values per atom, data container of correct length
+    // (from library.cpp line 2079)
+
     int nelec = P.getTotalNum();
    for (int ig = 0; ig < P.groups(); ig++) {
-        for (int iel = P.first(ig); iel < P.last(ig); iel++) { // loop over elements in each group
+        ids = (0,1,2,3)??? not sure how to get this....
+        lammps_gather_atoms_subset(lmp,(char *) "x",1,3,P.groupsize(ig),ids,x);
+        for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
             // loop over elecs in each group
             for (int dim = 0; dim < OHMMS_DIM; dim++){
-            RealType r0 = P.R[iel][dim];
-            RealType rp   = r0 + delta;
-            P.R[iel][dim] = rp;
-            //update lammps position
+                //forward direction
+                RealType r0 = P.R[iel][dim];
+                RealType rp   = r0 + delta;
+                P.R[iel][dim] = rp;
+                P.update();
+                //update lammps position
+                x[iel+dim] = P.R[iel][dim];
+                // recalculate bispectrum stuff
+                ep = evaluate();
 
+                //backward direction
+                RealType r0 = P.R[iel][dim];
+                RealType rm   = r0 - delta;
+                P.R[iel][dim] = rm;
+                P.update();
+                //update lammps position
+                x[iel+dim] = P.R[iel][dim];
+                // recalculate bispectrum stuff
+                ep = evaluate(); // here is where we need u value out
+            }
         }
     }
+    lammps_scatter_atoms(lmp,(char *) "x",1,3,x); // this probably needs to happen elsewehere.
+
+
+
 }
 
-
-}
-
-SNAPJastorw::bispectrum_Laplacian_finite_diff(ParticleSet& P, int iat){
+SNAPJastorw::bispectrum_laplacian_finite_diff(ParticleSet& P, int iat){
 
 
 

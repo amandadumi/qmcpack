@@ -8,6 +8,7 @@
 #include "pair.h"
 #include "pair_snap.h"
 #include "force.h"
+#include "library.h"
 
 
 namespace qmcplusplus
