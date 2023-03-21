@@ -67,6 +67,10 @@ public:
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch);
 
+    LogValueType evaluateLog(const ParticleSet& P,
+    ParticleSet::ParticleGradient& G,
+    ParticleSet::ParticleLaplacian& L);
+
     void bispectrum_Laplacian_finite_diff();
 
 /******Checkout related functons******/
