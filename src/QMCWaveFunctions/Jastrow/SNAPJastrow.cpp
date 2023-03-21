@@ -32,10 +32,9 @@ SNAPJastorw::initialize_lammps(){
             }
         }
     }
-
     lmp->input->one("reset_timestep 0");
     lmp->input->one("group all type 1 2");
-    lmp->input->one("include WBe_Wood_PRB2019.snap");
+
     lmp->input->one("velocity       all create 298.15 4928459 rot yes mom yes dist gaussian");
     lmp->input->one("fix            ensemble all nve temp 0 298.15 100 tchain 1");
     lmp->input->one("timestep       .01");
@@ -43,23 +42,26 @@ SNAPJastorw::initialize_lammps(){
     lmp->input->one("thermo         50");
     lmp->input->one("run            0");
 
-}
 
-SNAPJastorw::compute_dbidrj(){
-
-    void *pointer_to_bispectrum_coeff;
     int b;
     const char *sc = "dblist";
-    pointer_to_bispectrum_coeff = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(sc,b); 
-    lmp->input->one("compute ID group-ID sna/atom");
+    pointer_to_bispectrum_deriv = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(sc,b); 
 }
 
-SNAPJastorw::bispectrum_Hessian_finite_diff(ParticleSet& P, int iat){
+
+
+SNAPJastorw::evaluateGL(ParticleSet& P,
+                        ParticleSet::ParticleGradient& G,
+                        ParticleSet::ParticleLaplacian& L,){
     RealType delta = 0.1; // TODO: find units
     x = new double[OHMMS_DIM*natoms];
     // arge: lammps object, property name x is position, type 0 int 1 double, number of values per atom, data container of correct length
     // (from library.cpp line 2079)
-
+    // compute gradient
+        // i.e. pull gradient out from lammps.
+    Vector<ValueType> grad;
+    lmp->modify->get_compute_by_id()
+    
     int nelec = P.getTotalNum();
    for (int ig = 0; ig < P.groups(); ig++) {
         ids = (0,1,2,3)??? not sure how to get this....
@@ -90,16 +92,14 @@ SNAPJastorw::bispectrum_Hessian_finite_diff(ParticleSet& P, int iat){
         }
     }
     lammps_scatter_atoms(lmp,(char *) "x",1,3,x); // this probably needs to happen elsewehere.
-
-
-
 }
 
-SNAPJastorw::bispectrum_laplacian_finite_diff(ParticleSet& P, int iat){
+SNAPJastorw::evaluatelog(const ParticleSet& P,
+                                  ParticleSet::ParticleGradient& G,
+                                  ParticleSet::ParticleLaplacian& L,
+                                  bool fromscratch){
 
-
-
-}
+                                  }
 
 }
 
