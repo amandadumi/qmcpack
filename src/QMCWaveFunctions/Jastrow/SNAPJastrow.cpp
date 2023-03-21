@@ -311,6 +311,10 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
         calculate_ddc_gradlap_lammps(P, dist_delta, coeff_delta, fd_coeff, bd_coeff, coeff_idx);
     }
 
+SNAPJastorw::evaluatelog(const ParticleSet& P,
+                                  ParticleSet::ParticleGradient& G,
+                                  ParticleSet::ParticleLaplacian& L,
+                                  bool fromscratch){
 
 
   void SNAPJastrow::calculate_ddc_gradlap_lammps(ParticleSet& P,RealType dist_delta, RealType coeff_delta, std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val){
