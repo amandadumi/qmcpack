@@ -21,27 +21,21 @@ SNAPJastorw::initialize_lammps(){
     lmp->input->one(temp_command);
     lmp->input->one("group all type 1 2");
     // add atoms to the groups
-    for (P in {ions_,elecs_}){
+    char ptype_snap_id; // the initial coeffs (with label from *.snapcoeff file) to use for each group of particle group
+    for (P in {elecs_,ions_}){
          for (int ig = 0; ig < P.groups(); ig++) { // loop over groups
             // label groups in lamps
             lmp->input->one("group electrons type 2");
             for (int iat = P.first(ig); iat < P.last(ig); iat++) { // loop over elements in each group
                 // place atom in boxes according to their group.
-                temp_command = "create_atoms" + std::string(ig)+1 + "single " + std::to_string(P.R[iat][0]) + "  " +std::to_string(P.R[iat][1])  + " " + std::to_string(P.R[iat][2]);  
+                temp_command = "create_atoms" + std::string(ig+1) + "single " + std::to_string(P.R[iat][0]) + "  " +std::to_string(P.R[iat][1])  + " " + std::to_string(P.R[iat][2]);  
                 lmp->input->one(temp_command);
             }
         }
     }
-    lmp->input->one("reset_timestep 0");
-    lmp->input->one("group all type 1 2");
-
-    lmp->input->one("velocity       all create 298.15 4928459 rot yes mom yes dist gaussian");
-    lmp->input->one("fix            ensemble all nve temp 0 298.15 100 tchain 1");
-    lmp->input->one("timestep       .01");
-    lmp->input->one("thermo_style   one");
-    lmp->input->one("thermo         50");
+    lmp->input->one("pair_style snap")
+    lmp->input->one("pair_coeff * * coeff.snapcoeff param.snapparam snap e_u e_d ion" );
     lmp->input->one("run            0");
-
 
     int b;
     const char *sc = "dblist";
@@ -50,7 +44,7 @@ SNAPJastorw::initialize_lammps(){
 
 
 
-SNAPJastorw::evaluateGL(ParticleSet& P,
+SNAPJastrow::evaluateGL(ParticleSet& P,
                         ParticleSet::ParticleGradient& G,
                         ParticleSet::ParticleLaplacian& L,){
     RealType delta = 0.1; // TODO: find units
@@ -59,16 +53,17 @@ SNAPJastorw::evaluateGL(ParticleSet& P,
     // (from library.cpp line 2079)
     // compute gradient
         // i.e. pull gradient out from lammps.
-    Vector<ValueType> grad;
-    lmp->modify->get_compute_by_id()
+    db = lmp->modify->get_compute_by_id('db')
     
-    int nelec = P.getTotalNum();
+   int nelec = P.getTotalNum();
    for (int ig = 0; ig < P.groups(); ig++) {
         ids = (0,1,2,3)??? not sure how to get this....
         lammps_gather_atoms_subset(lmp,(char *) "x",1,3,P.groupsize(ig),ids,x);
         for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
             // loop over elecs in each group
             for (int dim = 0; dim < OHMMS_DIM; dim++){
+                //G[iel][dim] = lammps_object
+                G[iati] += db[iel][dim]
                 //forward direction
                 RealType r0 = P.R[iel][dim];
                 RealType rp   = r0 + delta;
@@ -77,8 +72,7 @@ SNAPJastorw::evaluateGL(ParticleSet& P,
                 //update lammps position
                 x[iel+dim] = P.R[iel][dim];
                 // recalculate bispectrum stuff
-                ep = evaluate();
-
+                //gradient
                 //backward direction
                 RealType r0 = P.R[iel][dim];
                 RealType rm   = r0 - delta;
@@ -87,14 +81,17 @@ SNAPJastorw::evaluateGL(ParticleSet& P,
                 //update lammps position
                 x[iel+dim] = P.R[iel][dim];
                 // recalculate bispectrum stuff
-                ep = evaluate(); // here is where we need u value out
+                double finit_diff_lap;
+                finite_diff_lap
+                //fill L
+                L[iel][dim] -=  
             }
         }
     }
     lammps_scatter_atoms(lmp,(char *) "x",1,3,x); // this probably needs to happen elsewehere.
 }
 
-SNAPJastorw::evaluatelog(const ParticleSet& P,
+SNAPJastow::evaluatelog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch){
