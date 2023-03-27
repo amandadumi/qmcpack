@@ -49,6 +49,8 @@ SNAPJastrow::evaluateGL(ParticleSet& P,
                         ParticleSet::ParticleLaplacian& L,){
     RealType delta = 0.1; // TODO: find units
     x = new double[OHMMS_DIM*natoms];
+    double G_finite_diff_forward;
+    double G_finite_diff_back;
     // arge: lammps object, property name x is position, type 0 int 1 double, number of values per atom, data container of correct length
     // (from library.cpp line 2079)
     // compute gradient
@@ -63,39 +65,41 @@ SNAPJastrow::evaluateGL(ParticleSet& P,
             // loop over elecs in each group
             for (int dim = 0; dim < OHMMS_DIM; dim++){
                 //G[iel][dim] = lammps_object
-                G[iati] += db[iel][dim]
+                G[iat][dim] += db[iel][dim]
                 //forward direction
                 RealType r0 = P.R[iel][dim];
-                RealType rp   = r0 + delta;
+                RealType rp   = r0 + (delta/2);
                 P.R[iel][dim] = rp;
                 P.update();
                 //update lammps position
                 x[iel+dim] = P.R[iel][dim];
                 // recalculate bispectrum stuff
+                db -> compute_per_atom()
+                G_finite_diff_forwared = db[iel][dim]
                 //gradient
                 //backward direction
                 RealType r0 = P.R[iel][dim];
-                RealType rm   = r0 - delta;
+                RealType rm   = r0 - (delta/2);
                 P.R[iel][dim] = rm;
                 P.update();
                 //update lammps position
                 x[iel+dim] = P.R[iel][dim];
                 // recalculate bispectrum stuff
-                double finit_diff_lap;
-                finite_diff_lap
+                double finit_diff_lap = (G_finite_diff_front - G_finite_diff_back)/delta;
                 //fill L
-                L[iel][dim] -=  
+                L[iel][dim] -=  finite_diff_lap;
             }
         }
     }
-    lammps_scatter_atoms(lmp,(char *) "x",1,3,x); // this probably needs to happen elsewehere.
 }
 
 SNAPJastow::evaluatelog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch){
-
+                    for (int icoeff=0; icoeff < ncoeff; icoeff ++){
+                        snap_compute[i][icoeff]
+                    }
                                   }
 
 }
