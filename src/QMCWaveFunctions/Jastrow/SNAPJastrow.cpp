@@ -3,11 +3,16 @@
 
 namespace qmcplusplus
 {
-SNAPJastorw::SNAPJastrow(ParticleSet& target) :  targetPtcl(target) {}
+SNAPJastrow::SNAPJastrow(ParticleSet& target) :  targetPtcl(target) {}
 
-~SNAPJastorw::SNAPJastrow() = default;
+~SNAPJastrow::SNAPJastrow(const ParticleSet& ions, Particleset& els){
+    Nelec = els.getTotalNum();
+    Ions(ions);
+    Nions = Ions.getTotalNum();
+    NIonGroups = ions.groups() ;
+}
 
-SNAPJastorw::initialize_lammps(){
+SNAPJastrow::initialize_lammps(){
     lmp->input->one("units  metal");
     lmp->input->one("atom_style  atomic");
     // TODO: will this be set by a qmc box? probably.
@@ -56,15 +61,16 @@ SNAPJastorw::initialize_lammps(){
 
 SNAPJastrow::evaluateGL(ParticleSet& P,
                         ParticleSet::ParticleGradient& G,
-                        ParticleSet::ParticleLaplacian& L,){
+                        ParticleSet::ParticleLaplacian& L,
+                        bool fromscratch){
     RealType delta = 0.1; // TODO: find units
     x = new double[OHMMS_DIM*natoms];
     double G_finite_diff_forward;
     double G_finite_diff_back;
     // compute gradient
         // i.e. pull gradient out from lammps.
-    auto db = lmp->modify->get_compute_by_id('db')
-    auto sna_global = lmp->modify->get_compute_by_id('snap')
+    auto db = lmp->modify->get_compute_by_id("db")
+    auto sna_global = lmp->modify->get_compute_by_id("snap")
     
    int nelec = P.getTotalNum();
    for (int ig = 0; ig < P.groups(); ig++) {
@@ -100,7 +106,7 @@ SNAPJastrow::evaluateGL(ParticleSet& P,
     }
 }
 
-SNAPJastow::evaluatelog(const ParticleSet& P,
+SNAPJastow::evaluateLog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch){
