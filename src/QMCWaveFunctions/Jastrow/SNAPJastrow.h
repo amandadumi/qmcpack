@@ -18,13 +18,8 @@ class SNAPJastrow : public WaveFunctionComponent
 public:
 
     SNAPJastrow(const ParticleSet& ions, ParticleSet& els);
-        ions_(ions),
-        elecs_(els),
-        my_table_ee_idx_(els.addTable(els, DTModes::NEED_TEMP_DATA_ON_HOST | DTModes::NEED_VP_FULL_TABLE_ON_HOST)),
-        my_table_ei_idx_(els.addTable(ions, DTModes::NEED_VP_FULL_TABLE_ON_HOST)){};
 
 
-    using PtclGrpIndexes   = QMCTraits::PtclGrpIndexes;
 
     ~SNAPJastrow();
 
@@ -69,7 +64,7 @@ public:
 
     LogValueType evaluateLog(const ParticleSet& P,
     ParticleSet::ParticleGradient& G,
-    ParticleSet::ParticleLaplacian& L);
+    ParticleSet::ParticleLaplacian& L) override;
 
     void bispectrum_Laplacian_finite_diff();
 
@@ -79,7 +74,18 @@ public:
     LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
 
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
+    
 
+    //variables
+    const int Nions;
+    const int Nelec;
+    const int NIonGroups;
+    const ParticleSet& Ions;
+    opt_variables_type myVars;
+    using valT = typename FT::real_type;
+
+    Vector<valT> Vat;
+    
 
 
 
