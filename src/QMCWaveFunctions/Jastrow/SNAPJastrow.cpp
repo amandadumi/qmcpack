@@ -17,29 +17,39 @@ SNAPJastorw::initialize_lammps(){
     //TODO: what will box region be pased on QMC object. Cell?
     lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
     // create a box that will contain the number of species equal to the number of groups.
-    std::string temp_command = "create_box" + P.groups() +  "mybox";
+    std::string temp_command = "create_box" + 3 +  "mybox";
     lmp->input->one(temp_command);
-    lmp->input->one("group all type 1 2");
     // add atoms to the groups
     char ptype_snap_id; // the initial coeffs (with label from *.snapcoeff file) to use for each group of particle group
-    for (P in {elecs_,ions_}){
-         for (int ig = 0; ig < P.groups(); ig++) { // loop over groups
-            // label groups in lamps
-            lmp->input->one("group electrons type 2");
-            for (int iat = P.first(ig); iat < P.last(ig); iat++) { // loop over elements in each group
-                // place atom in boxes according to their group.
-                temp_command = "create_atoms" + std::string(ig+1) + "single " + std::to_string(P.R[iat][0]) + "  " +std::to_string(P.R[iat][1])  + " " + std::to_string(P.R[iat][2]);  
-                lmp->input->one(temp_command);
-            }
-        }
+    lmp->input->one("group e_u type 1");
+    lmp->input->one("group e_d type 2");
+    lmp->input->one("group i type 3");
+    lmp->input->one("group elecs type 1 2");
+    lmp->input->one("group all type 1 2 3");
+    for (int ig = 0; ig < elecs_.groups(); ig++) { // loop over groups
+        // label groups in lamps
+        for (int iat = elecs_.first(ig); iat < elecs_.last(ig); iat++) { // loop over elements in each group
+           // place atom in boxes according to their group.
+           temp_command = "create_atoms " + std::string(ig+1) + " single " + std::to_string(elecs_.R[iat][0]) + "  " +std::to_string(elecs_.R[iat][1])  + " " + std::to_string(elecs_.R[iat][2]);  
+           lmp->input->one(temp_command);
+         }
+     }
+    
+    for (int iat = ions_.first(ig); iat < ions_.last(ig); iat++) { // loop over elements in each group
+        temp_command = "create_atoms 3 single " + std::to_string(ions_.R[iat][0]) + "  " +std::to_string(ions_.R[iat][1])  + " " + std::to_string(ions_.R[iat][2]);  
+        lmp->input->one(temp_command);
+    
+    }
     }
     lmp->input->one("pair_style snap")
-    lmp->input->one("pair_coeff * * coeff.snapcoeff param.snapparam snap e_u e_d ion" );
+    lmp->input->one("pair_coeff * * coeff.snapcoeff param.snapparam snap e_u e_d i" );
+    lmp->input->one("compute snap all snap")
+    lmp->input->one("compute snap_elec elecs snap")
+    lmp->input->one("compute db elecs")
     lmp->input->one("run            0");
 
-    int b;
-    const char *sc = "dblist";
-    pointer_to_bispectrum_deriv = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(sc,b); 
+    lmp_pos_pntr =; 
+
 }
 
 
@@ -51,16 +61,13 @@ SNAPJastrow::evaluateGL(ParticleSet& P,
     x = new double[OHMMS_DIM*natoms];
     double G_finite_diff_forward;
     double G_finite_diff_back;
-    // arge: lammps object, property name x is position, type 0 int 1 double, number of values per atom, data container of correct length
-    // (from library.cpp line 2079)
     // compute gradient
         // i.e. pull gradient out from lammps.
-    db = lmp->modify->get_compute_by_id('db')
+    auto db = lmp->modify->get_compute_by_id('db')
+    auto sna_global = lmp->modify->get_compute_by_id('snap')
     
    int nelec = P.getTotalNum();
    for (int ig = 0; ig < P.groups(); ig++) {
-        ids = (0,1,2,3)??? not sure how to get this....
-        lammps_gather_atoms_subset(lmp,(char *) "x",1,3,P.groupsize(ig),ids,x);
         for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
             // loop over elecs in each group
             for (int dim = 0; dim < OHMMS_DIM; dim++){
@@ -97,8 +104,7 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch){
-                    for (int icoeff=0; icoeff < ncoeff; icoeff ++){
-                        snap_compute[i][icoeff]
+
                     }
                                   }
 
