@@ -3,16 +3,16 @@
 
 namespace qmcplusplus
 {
-SNAPJastrow::SNAPJastrow(ParticleSet& target) :  targetPtcl(target) {}
 
-~SNAPJastrow::SNAPJastrow(const ParticleSet& ions, Particleset& els){
+SNAPJastrow::SNAPJastrow(const ParticleSet& ions, ParticleSet& els){
     Nelec = els.getTotalNum();
-    Ions(ions);
-    Nions = Ions.getTotalNum();
+    Nions = ions.getTotalNum();
     NIonGroups = ions.groups() ;
 }
 
-SNAPJastrow::initialize_lammps(){
+SNAPJastrow::~SNAPJastrow(){}
+
+void SNAPJastrow::initialize_lammps(const ParticleSet& ions, ParticleSet& els){
     lmp->input->one("units  metal");
     lmp->input->one("atom_style  atomic");
     // TODO: will this be set by a qmc box? probably.
@@ -22,7 +22,7 @@ SNAPJastrow::initialize_lammps(){
     //TODO: what will box region be pased on QMC object. Cell?
     lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
     // create a box that will contain the number of species equal to the number of groups.
-    std::string temp_command = "create_box" + 3 +  "mybox";
+    std::string temp_command = std::string("create_box") + std::to_string(3) +  "mybox";
     lmp->input->one(temp_command);
     // add atoms to the groups
     char ptype_snap_id; // the initial coeffs (with label from *.snapcoeff file) to use for each group of particle group
@@ -31,35 +31,34 @@ SNAPJastrow::initialize_lammps(){
     lmp->input->one("group i type 3");
     lmp->input->one("group elecs type 1 2");
     lmp->input->one("group all type 1 2 3");
-    for (int ig = 0; ig < elecs_.groups(); ig++) { // loop over groups
+    for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
         // label groups in lamps
-        for (int iat = elecs_.first(ig); iat < elecs_.last(ig); iat++) { // loop over elements in each group
+        for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
            // place atom in boxes according to their group.
-           temp_command = "create_atoms " + std::string(ig+1) + " single " + std::to_string(elecs_.R[iat][0]) + "  " +std::to_string(elecs_.R[iat][1])  + " " + std::to_string(elecs_.R[iat][2]);  
+           temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string(els.R[iat][0]) + "  " + std::to_string(els.R[iat][1])  + " " + std::to_string(els.R[iat][2]);  
            lmp->input->one(temp_command);
          }
      }
     
-    for (int iat = ions_.first(ig); iat < ions_.last(ig); iat++) { // loop over elements in each group
-        temp_command = "create_atoms 3 single " + std::to_string(ions_.R[iat][0]) + "  " +std::to_string(ions_.R[iat][1])  + " " + std::to_string(ions_.R[iat][2]);  
+    for (int ig = 0; ig < ions.groups(); ig++) { // loop over groups
+      for (int iat = ions.first(ig); iat < ions.last(ig); iat++) { // loop over elements in each group
+        temp_command = std::string("create_atoms 3 single ") + std::to_string(ions.R[iat][0]) + "  " + std::to_string(ions.R[iat][1])  + " " + std::to_string(ions.R[iat][2]);  
         lmp->input->one(temp_command);
-    
+      }
     }
-    }
-    lmp->input->one("pair_style snap")
+    lmp->input->one("pair_style snap");
     lmp->input->one("pair_coeff * * coeff.snapcoeff param.snapparam snap e_u e_d i" );
-    lmp->input->one("compute snap all snap")
-    lmp->input->one("compute snap_elec elecs snap")
-    lmp->input->one("compute db elecs")
+    lmp->input->one("compute snap all snap");
+    lmp->input->one("compute snap_elec elecs snap");
+    lmp->input->one("compute db elecs");
     lmp->input->one("run            0");
 
-    lmp_pos_pntr =; 
 
 }
 
 
 
-SNAPJastrow::evaluateGL(ParticleSet& P,
+LogValueType SNAPJastrow::evaluateGL(ParticleSet& P,
                         ParticleSet::ParticleGradient& G,
                         ParticleSet::ParticleLaplacian& L,
                         bool fromscratch){
@@ -104,9 +103,11 @@ SNAPJastrow::evaluateGL(ParticleSet& P,
             }
         }
     }
+   log_value_ = evaluateLog(P,G,L);
+   return log_value_;
 }
 
-SNAPJastow::evaluateLog(const ParticleSet& P,
+LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch){
