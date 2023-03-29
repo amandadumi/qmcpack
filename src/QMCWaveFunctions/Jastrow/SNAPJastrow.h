@@ -15,6 +15,7 @@ namespace qmcplusplus
 {
 class SNAPJastrow : public WaveFunctionComponent
 {
+
 public:
 
     SNAPJastrow(const ParticleSet& ions, ParticleSet& els);
@@ -28,7 +29,7 @@ public:
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
     | */
-    void initialize_lammps();
+    void initialize_lammps(const ParticleSet& ions, ParticleSet& els);
 
 /******MC step related functions******/
 
@@ -60,7 +61,7 @@ public:
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
-                                  bool fromscratch);
+                                  bool fromscratch) override;
 
     LogValueType evaluateLog(const ParticleSet& P,
     ParticleSet::ParticleGradient& G,
@@ -77,19 +78,17 @@ public:
     
 
     //variables
-    const int Nions;
-    const int Nelec;
-    const int NIonGroups;
-    const ParticleSet& Ions;
+    int Nions;
+    int Nelec;
+    int NIonGroups;
     opt_variables_type myVars;
-    using valT = typename FT::real_type;
 
-    Vector<valT> Vat;
+    Vector<double> Vat;
     
 
 
 
-void evaluateDerivatives(ParticleSet& P,
+    void evaluateDerivatives(ParticleSet& P,
                                    const opt_variables_type& optvars,
                                    Vector<ValueType>& dlogpsi,
                                    Vector<ValueType>& dhpsioverpsi) override;
