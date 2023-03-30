@@ -50,7 +50,7 @@ void SNAPJastrow::initialize_lammps(const ParticleSet& ions, ParticleSet& els){
     lmp->input->one("pair_coeff * * coeff.snapcoeff param.snapparam snap e_u e_d i" );
     lmp->input->one("compute snap all snap");
     lmp->input->one("compute snap_elec elecs snap");
-    lmp->input->one("compute db elecs");
+    lmp->input->one("compute db elecs snad/atom");
     lmp->input->one("run            0");
 
 
@@ -58,7 +58,7 @@ void SNAPJastrow::initialize_lammps(const ParticleSet& ions, ParticleSet& els){
 
 
 
-LogValueType SNAPJastrow::evaluateGL(ParticleSet& P,
+SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
                         ParticleSet::ParticleGradient& G,
                         ParticleSet::ParticleLaplacian& L,
                         bool fromscratch){
@@ -107,13 +107,11 @@ LogValueType SNAPJastrow::evaluateGL(ParticleSet& P,
    return log_value_;
 }
 
-LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
+SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch){
-
-                    }
-                                  }
-
+                         return log_value_;
+                   }
 }
 
