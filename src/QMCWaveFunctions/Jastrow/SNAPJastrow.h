@@ -15,12 +15,9 @@ namespace qmcplusplus
 {
 class SNAPJastrow : public WaveFunctionComponent
 {
-
 public:
 
     SNAPJastrow(const ParticleSet& ions, ParticleSet& els);
-
-
 
     ~SNAPJastrow();
 
@@ -58,6 +55,7 @@ public:
     GradType evalGrad(ParticleSet& P, int iat) override;
 
     PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
+    
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
