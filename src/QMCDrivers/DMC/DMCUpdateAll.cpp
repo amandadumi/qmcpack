@@ -169,6 +169,7 @@ void DMCUpdateAllWithKill::advanceWalker(Walker_t& thisWalker, bool recompute)
   bool accepted        = false;
   RealType rr_accepted = 0.0;
   nodecorr             = 0.0;
+  RealType prob = 0; 
   if (branchEngine->phaseChanged(Psi.getPhaseDiff()))
   {
     thisWalker.Age++;
@@ -183,7 +184,7 @@ void DMCUpdateAllWithKill::advanceWalker(Walker_t& thisWalker, bool recompute)
     deltaR         = thisWalker.R - W.R - drift;
     RealType logGb = logBackwardGF(deltaR);
     //RealType logGb = -m_oneover2tau*Dot(deltaR,deltaR);
-    RealType prob = std::min(std::exp(logGb - logGf + 2.0 * (logpsi - thisWalker.Properties(WP::LOGPSI))), 1.0);
+    prob = std::min(std::exp(logGb - logGf + 2.0 * (logpsi - thisWalker.Properties(WP::LOGPSI))), 1.0);
     //calculate rr_proposed here
     deltaR               = W.R - thisWalker.R;
     RealType rr_proposed = Dot(deltaR, deltaR);
@@ -200,6 +201,10 @@ void DMCUpdateAllWithKill::advanceWalker(Walker_t& thisWalker, bool recompute)
       thisWalker.Age = 0;
       accepted       = true;
       W.saveWalker(thisWalker);
+      int index_for_gr;
+      RealType grvalue = calculate_greens_function(bool accepted, RealType prob);
+      
+      thisWalker.addPropertyHistoryPoint(index_for_gr,grvalue)
       rr_accepted = rr_proposed;
       thisWalker.resetProperty(logpsi, Psi.getPhase(), enew, rr_accepted, rr_proposed, nodecorr);
       H.auxHevaluate(W, thisWalker);
@@ -215,4 +220,27 @@ void DMCUpdateAllWithKill::advanceWalker(Walker_t& thisWalker, bool recompute)
 
   setMultiplicity(thisWalker);
 }
+
+//a function to do all the work for the observable without using existing code. will probably be able to clean and resuse previously calculated things
+//accepted: boolean if move was accepted or not.
+// prob: probaility that move would be accepted/rejected
+return_t calculate_greens_function(bool accepted, RealType prob, ParticleGradient& G){
+  RealType gf //greens function
+  RealType  T // transition probability
+  RealType  W // branching factor.
+  RealType  V // deltalnPsi in ACFOrce this was passed as a ParticleGradient G
+  RealType  F // dampinf factor of volcities divergence
+  RealType  S  // term for branchind depending on current energy estimate E_L  by F
+  //Calculate T:
+  // this can benefit from log Gb and logGf
+  if accepted{
+    gf = T*prob*W
+  }
+  else{
+    gf = T*(1-prob)*W
+  }
+
+}
+
+
 } // namespace qmcplusplus
