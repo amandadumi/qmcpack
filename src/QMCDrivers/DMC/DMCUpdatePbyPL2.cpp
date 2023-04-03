@@ -187,6 +187,11 @@ void DMCUpdatePbyPL2::advanceWalker(Walker_t& thisWalker, bool recompute)
             ++nAcceptTemp;
             Psi.acceptMove(W, iat, true);
             rr_accepted += rr;
+            // calculate shared observable here for new and old positions. 
+            ValueType gr_rp;
+            ValueType
+            gr_rp = calculate_greens_function();
+            thisWalker.addPropertyHistoryPoint()
           }
           else
           {
@@ -255,6 +260,40 @@ void DMCUpdatePbyPL2::advanceWalker(Walker_t& thisWalker, bool recompute)
   nReject += nRejectTemp;
 
   setMultiplicity(thisWalker);
+}
+
+
+//a function to do all the work for the observable without using existing code. will probably be able to clean and resuse previously calculated things
+//accepted: boolean if move was accepted or not.
+// prob: probaility that move would be accepted/rejected
+
+return_t calculate_greens_function(bool accepted, RealType prob, ParticleGradient& G, R_curr_,R_old){
+  RealType gf //greens function
+  RealType  T // transition probability
+  RealType  W // branching factor.
+  RealType  V // deltalnPsi in ACFOrce this was passed as a ParticleGradient G
+  RealType  F // dampinf factor of volcities divergence
+  RealType  S  // term for branchind depending on current energy estimate E_L  by F
+  //Calculate T:
+  // this can benefit from log Gb and logGf
+  T = e^[-R -R -F(R)V(R)*tau]
+  // Calculate W and components.
+  //Calculate W
+
+  //Calculate V 
+  
+  //calculate F
+
+  //calculate S
+  
+  //Calculate W
+  if accepted{
+    gf = T*prob*W
+  }
+  else{
+    gf = T*(1-prob)*W
+  }
+
 }
 
 } // namespace qmcplusplus
