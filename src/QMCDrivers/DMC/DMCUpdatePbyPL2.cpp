@@ -265,8 +265,10 @@ void DMCUpdatePbyPL2::advanceWalker(Walker_t& thisWalker, bool recompute)
 
 //a function to do all the work for the observable without using existing code. will probably be able to clean and resuse previously calculated things
 //accepted: boolean if move was accepted or not.
+// parameters:
 // prob: probaility that move would be accepted/rejected
-
+//
+//TODO: move this into observable class that ill be wrapped by forward walking, but called here. 
 return_t calculate_greens_function(bool accepted, RealType prob, ParticleGradient& G, R_curr_,R_old){
   RealType gf //greens function
   RealType  T // transition probability
@@ -274,25 +276,57 @@ return_t calculate_greens_function(bool accepted, RealType prob, ParticleGradien
   RealType  V // deltalnPsi in ACFOrce this was passed as a ParticleGradient G
   RealType  F // dampinf factor of volcities divergence
   RealType  S  // term for branchind depending on current energy estimate E_L  by F
+  //TODO:  may need to loop over dim or understand what the pos data type is.  
+  // calculate V
+  V = G[iat];
+
+  // calculate F
+  F = sqrt((2*V*V*tau)-1)/(V*V*t);
+
   //Calculate T:
-  // this can benefit from log Gb and logGf
-  T = e^[-R -R -F(R)V(R)*tau]
+  //TODO: this can benefit from log Gb and logGf, maybe?
+
+  T = e^[-R -R -F(R)V(R)*tau];
+  
   // Calculate W and components.
+  // TODO: E_L_R definitely exits within Walker Properties so can pull ou tthere and pass R' values from above calc.
+  //TODO: E_est is current best esitmate of the energy, which must exists within this driver for R, not sure how to do that for R' 
+  //Calculate S
+  Realtype E_est_R;
+  Realtype E_L_R;
+  Realtype E_est_R_prime;
+  Realtype E_L_R_prime;
+  int N_curr;
+  int N_target;
+
+  S_R = (E_est_R - E_L_R)*F=ln(N_curr/N_target);
+  S_R_prime = (E_est_R_prime -E_L_R_prime)*F
+
   //Calculate W
-
-  //Calculate V 
+  W = exp((S_R_prime + S_R)*tau/2);
   
-  //calculate F
 
-  //calculate S
-  
   //Calculate W
   if accepted{
-    gf = T*prob*W
+    gf = T*prob*W;
   }
   else{
-    gf = T*(1-prob)*W
+    gf = T*(1-prob)*W;
   }
+
+  // actual expressions to store in property history:
+  RealType dlambda_E_L = 0;
+  RealType dlambda_G = 0;
+  dlambda_E_zero = ;
+  dlambda_E_L = ;
+
+  int dlambda_E_L_prop_id;
+  int dlambda_G_prop_id;
+  thisWalker.addPropertyHistoryPoint(dlambda_E_L_prop_id, dlambda_E_L);
+  thisWalker.addPropertyHistoryPoint(dlambda_G_prop_id,dlambda_G);
+
+
+
 
 }
 
