@@ -50,6 +50,8 @@ public:
     */
     FullPrecRealType calculate_gb();
 
+
+    void calculate_forces();
 private:
     const int d_aa_ID; // id of distance table for similar particles
     const int d_ei_ID; // is of distance table for ions.
