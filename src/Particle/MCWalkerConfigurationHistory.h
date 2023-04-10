@@ -52,19 +52,20 @@ class MCWalkerConfigurationHistory : public QMCTraits
   
 
   MCWalkerConfiguration& w;
-  WalkerIter_t timestep_start, timestep_end;
+  WalkerIter_t prev_timestep_start, prev_timestep_end;
+  WalkerIter_t curr_timestep_start;
   IndexType timeindex;
   Walker_t* currentfirstwalker; // the firs walker in the set at the current timestep. 
+  IndexType curr_timestep; //can we get this from the size of walker configuration?
 
   inline History(MCWalkerConfiguration& W, WalkerIter_t start, WalkerIter_t end)
       : w(W),
         timestep_start(start),
         timestep_end(end),
-        direction(1),
-        headindex(0),
         prophead(0) //, r2prop(0.0), r2accept(0.0),tau(0.0)
   {
-    
+    //TODO: find out if you can store a position as a walker property. 
+    // actually this is still wrong because it will be single x value intead of vector for each particle. hm.
     RejectedPos[0] = w.addProperty("RejectedPos_x");
     RejectedPos[1] = w.addProperty("RejectedPos_y");
     RejectedPos[2] = w.addProperty("RejectedPos_z");
@@ -76,115 +77,42 @@ class MCWalkerConfigurationHistory : public QMCTraits
   // return the number of timesteps back in history that will be recorded
   inline IndexType size() { return nhist; }
   // returns a walker from the array
-  inline Walker_t& operator[](IndexType i) { return getWalker(getBeadIndex(i)); }
+  inline Walker_t& operator[](IndexType i) { return getWalker(getwalkeratcurrtimeIndex(i)); }
 
   inline IndexType wrapIndex(IndexType repindex) { return (repindex % nbeads + nbeads) % nbeads; }
 
   inline Walker_t& getWalker(IndexType i)
   {
-    WalkerIter_t bead = repstart + wrapIndex(i);
-    return **bead;
+    WalkerIter_t walker = curr_timestep + i;
+    return **walker;
   }
   //get a walker at a current time step?
-  IndexType curr_timestep; //can we get this from the size of walker configuration?
-  inline IndexType gettimestep(IndexType i) { return wrapIndex(curr_timestep + i); }
-  inline IndexType getcurwalkeridx(IndexType i) { return wrapIndex(curr_timestep + i); }
-  inline Walker_t& getwalker(IndexType i) { return getWalker(getcurwalkeridx(i)); }
-  inline Walker_t& getHead() { return getWalker(getBeadIndex(0)); }
-  inline Walker_t& getTail() { return getWalker(getBeadIndex(nbeads - 1)); }
-  inline Walker_t& getNext() { return getWalker(getBeadIndex(nbeads - 2)); }
-  //inline void setProposedHead(){
-
-  inline void flip()
-  {
-    // direction*=-1;
-    // headindex = getBeadIndex(nbeads-1);
-    headindex = wrapIndex(headindex - direction);
-    direction *= -1;
+  IndexType curr_timestep; // current time step in regards to place in nhist, not place globally
+  inline void update_timestep_counter(){
+    if curr_timestep == nhist{
+      curr_timestep = 0;
+    }
+    else{curr_timestep++;}
   }
 
-  inline void setDirection(IndexType dir) { direction = dir; }
+  inline IndexType getcurrtimestepIdx() { return walkers_per_step*curr_timestep); }
+  inline IndexType getprevioustimestepIdx(int nsteps_back) { return walkers_per_step*(curr_timestep-nsteps_back)); }
+  inline IndexType getwalkeratcurrtimeIndex(IndexType i) { return getcurrtimestepIdx()*numwalkersperstep + i); }
+  inline Walker_t& getwalkeratprevtimeIndex(IndexType i, Indextype nsteps_back) { return getprevioustimestepIdx(nsteps_back)*numwalkerperstep +i); }
 
-  inline void setBead(Walker_t& walker, IndexType i)
-  {
-    IndexType index = getBeadIndex(i);
-    Walker_t& newbead(getWalker(index));
-    newbead = walker; //This should be a hard copy
-  }
-
-  inline void setHead(Walker_t& overwrite)
-  {
-    //overwrite last element.
-    headindex = getBeadIndex(nbeads - 1); //sets to position of tail.
-    Walker_t& newhead(getBead(0));
-    newhead = overwrite;
-  }
-  //This function does two things:  1.)  Moves the reptile forward 1 step.  2.) Returns the new head.
-  inline Walker_t& getNewHead()
-  {
-    //overwrite last element.
-    headindex = getBeadIndex(nbeads - 1); //sets to position of tail.
-    return getWalker(headindex);
-  }
-
-  void saveAction(Walker_t& walker, IndexType d, RealType val, IndexType nPsi = 0)
-  {
-    //IndexType repdirection=circbuffer.get_direction();
-    IndexType actionindex = 2;
-    if (direction != 0)
-      actionindex = (1 - d * direction) / 2;
-    walker.Properties(nPsi, Action[actionindex]) = val;
-  }
-
-  RealType getDirectionalAction(Walker_t& walker, IndexType d, IndexType nPsi = 0)
-  {
-    //IndexType repdirection=circbuffer.get_direction();
-    IndexType actionindex = 2;
-    if (d != 0)
-      actionindex = (1 - direction * d) / 2;
-
-    return walker.Properties(nPsi, Action[actionindex]);
-  }
-
-  RealType getLinkAction(Walker_t& new_walker, Walker_t& old_walker, IndexType d, IndexType nPsi = 0)
-  {
-    RealType af = getDirectionalAction(old_walker, +1, nPsi);
-    RealType ab = getDirectionalAction(new_walker, -1, nPsi);
-    RealType a0 = getDirectionalAction(old_walker, 0, nPsi) + getDirectionalAction(new_walker, 0, nPsi);
-    return af + ab + a0;
-  }
-
-  void saveTransProb(Walker_t& walker, IndexType d, RealType val, IndexType nPsi = 0)
-  {
-    //IndexType repdirection=circbuffer.get_direction();
-    IndexType transindex                           = (1 - d * direction) / 2;
-    walker.Properties(nPsi, TransProb[transindex]) = val;
-  }
-
-  void saveTransProb(ParticleSet& W, IndexType d, RealType val, IndexType nPsi = 0)
-  {
-    //IndexType repdirection=circbuffer.get_direction();
-    IndexType transindex                      = (1 - d * direction) / 2;
-    W.Properties(nPsi, TransProb[transindex]) = val;
-  }
-  RealType getTransProb(Walker_t& walker, IndexType d, RealType nPsi = 0)
-  {
-    //IndexType repdirection=circbuffer.get_direction();
-    IndexType transindex = (1 - d * direction) / 2;
-    return walker.Properties(nPsi, TransProb[transindex]);
-  }
-  RealType getTransProb(ParticleSet& W, IndexType d, RealType nPsi = 0)
-  {
-    //IndexType repdirection=circbuffer.get_direction();
-    IndexType transindex = (1 - d * direction) / 2;
-    return W.Properties(nPsi, TransProb[transindex]);
+  // for a step copyt the current walkers as the beginning of next step. 
+  inline Walker_t& set_initial_walker_state(){
+    //if first create walkers
+     
+    // if not first add walkers?
+    //todo where are iterators set?
+    curr_timestep_start = curr_timestep*walkers_per_step
+    W.copyWalkers(prev_timestep_start, prev_timestep_end,curr_timestep_start);
   }
 
   inline void printState()
   {
-    app_log() << "********PRINT REPTILE STATE*********\n";
-    app_log() << "Direction=" << direction << "  Headindex=" << headindex << "  tail=" << getBeadIndex(nbeads - 1)
-              << "\n  next=" << getBeadIndex(nbeads - 2) << "  nbeads=" << nbeads << std::endl;
+    app_log() << "********PRINT WALKER HISTORY INFORMATION*********\n";
     app_log() << "BeadIndex\tWrapIndex\tEnergy\tAction[0]\tAction[1]\tAction[2]\t\n";
     for (int i = 0; i < nbeads; i++)
     {
