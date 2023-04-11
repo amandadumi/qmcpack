@@ -57,6 +57,7 @@ set(QMCDRIVERS
     VMC/SOVMCUpdatePbyP.cpp
     VMC/SOVMCUpdateAll.cpp
     DMC/DMC.cpp
+    DMC/DMCWithHistory.cpp
     DMC/DMCUpdateAll.cpp
     DMC/DMCUpdatePbyPFast.cpp
     DMC/DMCUpdatePbyPL2.cpp

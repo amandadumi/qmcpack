@@ -69,7 +69,7 @@ QMCDriverFactory::DriverAssemblyState QMCDriverFactory::readSection(xmlNodePtr c
   std::string profiling_tag("no");
   OhmmsAttributeSet aAttrib;
   aAttrib.add(qmc_mode, "method",
-              {"", "vmc", "vmc_batch", "dmc", "dmc_batch", "csvmc", "rmc", "linear", "linear_batch", "wftest"});
+              {"", "vmc", "vmc_batch", "dmc", "dmc_batch", "dmc_with_history" "csvmc", "rmc", "linear", "linear_batch", "wftest"});
   aAttrib.add(update_mode, "move");
   aAttrib.add(multi_tag, "multiple");
   aAttrib.add(warp_tag, "warp");
@@ -129,6 +129,8 @@ QMCDriverFactory::DriverAssemblyState QMCDriverFactory::readSection(xmlNodePtr c
         das.new_run_type = QMCRunType::DMC_BATCH;
       else if (qmc_mode.find("dmc") < nchars)
         das.new_run_type = QMCRunType::DMC;
+      else if (qmc_mode.find("dmc_with_history") < nchars)
+        das.new_run_type = QMCRunType::DMC_WITH_HISTORY;
       else if (qmc_mode == "wftest")
         das.new_run_type = QMCRunType::WF_TEST;
       else
