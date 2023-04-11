@@ -65,6 +65,8 @@ private:
   std::string UseFastGrad;
   ///input to control maximum age allowed for walkers.
   IndexType mover_MaxAge;
+  ///input to control number of points in history to store walker information for
+  IndexType Nhist;
 
   void resetUpdateEngines();
   /// Copy Constructor (disabled)

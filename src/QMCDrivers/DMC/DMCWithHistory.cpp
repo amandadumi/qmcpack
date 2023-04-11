@@ -52,7 +52,8 @@ DMCWithHistory::DMCWithHistory(const ProjectData& project_data,
       BranchInterval(-1),
       L2("no"),
       Reconfiguration("no"),
-      mover_MaxAge(-1)
+      mover_MaxAge(-1),
+      Nhist(10)
 {
   RootName = "dmc_with_history";
   qmc_driver_mode.set(QMC_UPDATE_MODE, 1);
