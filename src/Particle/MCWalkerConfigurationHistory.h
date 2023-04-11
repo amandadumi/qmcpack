@@ -97,107 +97,41 @@ class MCWalkerConfigurationHistory : public QMCTraits
 
   inline IndexType getcurrtimestepIdx() { return walkers_per_step*curr_timestep); }
   inline IndexType getprevioustimestepIdx(int nsteps_back) { return walkers_per_step*(curr_timestep-nsteps_back)); }
-  inline IndexType getwalkeratcurrtimeIndex(IndexType i) { return getcurrtimestepIdx()*numwalkersperstep + i); }
+  inline Walker_t& getwalkeratcurrtimeIndex(IndexType i) { return getcurrtimestepIdx()*numwalkersperstep + i); }
   inline Walker_t& getwalkeratprevtimeIndex(IndexType i, Indextype nsteps_back) { return getprevioustimestepIdx(nsteps_back)*numwalkerperstep +i); }
 
-  // for a step copyt the current walkers as the beginning of next step. 
-  inline Walker_t& set_initial_walker_state(){
+  // for a step copy the current walkers as the beginning of next step.
+  // 
+  inline Walker_t& set_timestep_initial_walker_state(){
     //if first create walkers
      
     // if not first add walkers?
     //todo where are iterators set?
-    curr_timestep_start = curr_timestep*walkers_per_step
+    curr_timestep_start = curr_timestep*walkers_per_step;
     W.copyWalkers(prev_timestep_start, prev_timestep_end,curr_timestep_start);
+    prev_timestep_start = curr_timestep_start;
+    prev_timetep_end = prev_timestep_start + walkers_per_step;
   }
 
   inline void printState()
   {
     app_log() << "********PRINT WALKER HISTORY INFORMATION*********\n";
-    app_log() << "BeadIndex\tWrapIndex\tEnergy\tAction[0]\tAction[1]\tAction[2]\t\n";
-    for (int i = 0; i < nbeads; i++)
-    {
-      app_log() << i << "\t" << getBeadIndex(i) << "\t" << getBead(i).Properties(WP::LOCALENERGY) << "\t"
-                << getBead(i).Properties(Action[0]) << "\t" << getBead(i).Properties(Action[1]) << "\t"
-                << getBead(i).Properties(Action[2]) << "\n";
-    }
-    app_log() << "POSITIONS===============:\n";
-    for (int i = 0; i < nbeads; i++)
-    {
-      //  app_log()<<i<<"\t1"<<1<<"\t"<<getBead(i).R[0]<<"\n";
-      //  app_log()<<i<<"\t2"<<2<<"\t"<<getBead(i).R[1]<<"\n";
-      app_log() << "BEAD #" << i << " tau = " << tau * i << std::endl;
-      app_log() << getBead(i).R << std::endl;
-    }
-    app_log() << "GVECS===============:\n";
-    for (int i = 0; i < nbeads; i++)
-    {
-      //      app_log()<<i<<"\t1"<<1<<"\t"<<getBead(i).G[0]<<"\n";
-      //      app_log()<<i<<"\t2"<<2<<"\t"<<getBead(i).G[1]<<"\n";
-      app_log() << "BEAD #" << i << " tau = " << tau * i << std::endl;
-      app_log() << getBead(i).G << std::endl;
-    }
+    app_log() <<"number of history points to store, nhist: "  << nhist << std::endl;
+    app_log() <<" curr timestep\n"  << curr_timestep <<  std::endl;
     app_log() << "************************************\n";
   }
-  inline RealType getTau() { return tau; }
-  inline void setTau(RealType t) { tau = t; }
+
+// what analysis tools will we need?
 
 
-  //This takes a value of imaginary time "t" and returns a 3N particle position vector, corresponding to a time slice extrapolated
-  // from the current reptile.  If t>length of reptile, then return the last bead.  if t<0; return the first bead.
-  inline Walker_t::ParticlePos linearInterp(RealType t)
-  {
-    IndexType nbead =
-        IndexType(t / tau); //Calculate the lower bound on the timeslice.  t is between binnum*Tau and (binnum+1)Tau
-    RealType beadfrac = t / tau - nbead; //the fractional coordinate between n and n+1 bead
-    if (nbead <= 0)
-    {
-      ParticleSet::ParticlePos result = getHead().R;
-      return result;
-    }
-    else if (nbead >= nbeads - 1)
-    {
-      ParticleSet::ParticlePos result = getTail().R;
-      return result;
-    }
+//returns if this walker had a proposed move that was rejected
+// not responsible for time step index/
+inline bool checkifRejected(IndexType i){ return false;}
+//takes a walker index and returns coordinates if rejected
+PosType getrejectedcoords(IndexType i);
 
-    else
-    {
-      Walker_t::ParticlePos dR(getBead(nbead + 1).R), interpR(getBead(nbead).R);
-      dR = dR - getBead(nbead).R;
 
-      interpR = getBead(nbead).R + beadfrac * dR;
-      return interpR;
-    }
-  }
-  inline ReptileConfig_t getReptileSlicePositions(RealType tau, RealType beta)
-  {
-    IndexType nbeads_new = IndexType(beta / tau);
-    ReptileConfig_t new_reptile_coords(0);
-
-    for (IndexType i = 0; i < nbeads_new; i++)
-      new_reptile_coords.push_back(linearInterp(tau * i));
-
-    return new_reptile_coords;
-  }
-
-  inline void setReptileSlicePositions(ReptileConfig_t& rept)
-  {
-    if (rept.size() == nbeads)
-    {
-      for (int i = 0; i < nbeads; i++)
-        getBead(i).R = rept[i];
-    }
-    else
-      ;
-  }
-
-  inline void setReptileSlicePositions(Walker_t::ParticlePos R)
-  {
-    for (int i = 0; i < nbeads; i++)
-      getBead(i).R = R;
-  }
 };
-
 
 } // namespace qmcplusplus
 #endif
