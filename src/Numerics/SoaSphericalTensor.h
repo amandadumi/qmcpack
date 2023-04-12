@@ -73,6 +73,18 @@ struct SoaSphericalTensor
     for (int i = 0, nl = cYlm.size(); i < nl; i++)
       Ylm[i] *= NormFactor[i];
   }
+ // compute Ylm mutlitwalker
+ //TODO: change x, y, z datatype? not sure how in template 
+  inline void mw_evaluateV(Vector<T> x, T y, T z){
+    int nw = x.size()
+    for (int iw; iw < nw,iw++){
+      T* restrict Ylm = cYlm.data(0);
+      evaluate_bare(x[iw], y, z, Ylm);
+      for (int i = 0, nl = cYlm.size(); i < nl; i++)
+        Ylm[i] *= NormFactor[i];
+      
+    }
+  }
 
   ///makes a table of \f$ r^l S_l^m \f$ and their gradients up to Lmax.
   void evaluateVGL(T x, T y, T z);

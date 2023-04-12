@@ -700,7 +700,7 @@ struct SoaAtomicBasisSet
       //Allows to increment cells from 0,1,-1,2,-2,3,-3 etc...
       TransX = ((i % 2) * 2 - 1) * ((i + 1) / 2);
       for (int j = 0; j <= PBCImages[1]; j++) //loop Translation over Y
-      {
+      { 
         //Allows to increment cells from 0,1,-1,2,-2,3,-3 etc...
         TransY = ((j % 2) * 2 - 1) * ((j + 1) / 2);
         for (int k = 0; k <= PBCImages[2]; k++) //loop Translation over Z
@@ -716,8 +716,10 @@ struct SoaAtomicBasisSet
           iter++;
           if (r_new >= Rmax)
             continue;
-
+          //TODO: update these to have mw_implementation as well that can just be walker loop
+          // exit here a
           Ylm.evaluateV(-dr_new[iw][0], -dr_new[iw][1], -dr_new[iw][2], ylm_v);
+          // exit loop so this can done 
           MultiRnl.evaluate(r_new, phi_r);
           ///Phase for PBC containing the phase for the nearest image displacement and the correction due to the Distance table.
           const ValueType Phase = periodic_image_phase_factors[iter] * correctphase;
