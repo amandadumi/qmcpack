@@ -10,6 +10,7 @@ enum class QMCRunType
   VMC,   /**< VMC type: vmc, vmc-ptcl, vmc-multiple, vmc-ptcl-multiple */
   CSVMC,
   DMC,      /**< DMC type: dmc, dmc-ptcl*/
+  DMC_WITH_HISTORY,
   RMC,      /**< RMC type: rmc, rmc-ptcl */
   VMC_OPT,  /*!< Optimization with vmc blocks */
   LINEAR_OPTIMIZE,

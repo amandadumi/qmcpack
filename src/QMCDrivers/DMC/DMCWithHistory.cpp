@@ -32,8 +32,10 @@
 #include "Utilities/ProgressReportEngine.h"
 #include "Utilities/qmc_common.h"
 #include "Utilities/FairDivide.h"
+#include "Particle/MCWalkerConfigurationHistory.h"
 #if !defined(REMOVE_TRACEMANAGER)
 #include "Estimators/TraceManager.h"
+
 #else
 using TraceManager = int;
 #endif

@@ -22,8 +22,8 @@
  * stores the walker histories and implements functionality needed to evaluate forces with history
  */
 
-#ifndef QMCPLUSPLUS_REPTILE_H
-#define QMCPLUSPLUS_REPTILE_H
+#ifndef QMCPLUSPLUS_MCWALKERCONFIGURATIONHISTORY_H
+#define QMCPLUSPLUS_MCWALKERCONFIGURATIONHISTORY_H
 
 #include "QMCDrivers/DriftOperators.h"
 #include "QMCDrivers/WalkerProperties.h"

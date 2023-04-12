@@ -25,7 +25,6 @@ set(HAMSRCS
     BareKineticEnergy.cpp
     CoulombPBCAA.cpp
     CoulombPBCAB.cpp
-    ForceRhijn.cpp
     EwaldRef.cpp
     NonLocalTOperator.cpp
     ForwardWalking.cpp
