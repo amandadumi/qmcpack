@@ -33,6 +33,8 @@ struct SoaAtomicBasisSet
   using RealType        = typename ROT::RealType;
   using GridType        = typename ROT::GridType;
   using ValueType       = typename QMCTraits::ValueType;
+  template<typename DT>
+  using OffloadPosVector = VectorSoaContainer<DT, 3, OffloadAllocator<DT>>;
 
   ///size of the basis set
   int BasisSetSize;
@@ -603,7 +605,7 @@ struct SoaAtomicBasisSet
   {
     int TransX, TransY, TransZ;
 
-    PosType dr_new;
+    OffloadPosVector dr_new;
     T r_new;
 
 #if not defined(QMC_COMPLEX)
@@ -620,6 +622,8 @@ struct SoaAtomicBasisSet
     RealType* restrict ylm_v = tempS.data(0);
     RealType* restrict phi_r = tempS.data(1);
 
+  int nw = dr.size(); //TODO: not sure if i can do this even? Definitely not yet as dr is only single walker data structure, but maybe will change?
+  for (int iw; iw <nw ; iw++){
     for (size_t ib = 0; ib < BasisSetSize; ++ib)
       psi[ib] = 0;
     //Phase_idx (iter) needs to be initialized at -1 as it has to be incremented first to comply with the if statement (r_new >=Rmax)
@@ -637,11 +641,11 @@ struct SoaAtomicBasisSet
           //Allows to increment cells from 0,1,-1,2,-2,3,-3 etc...
           TransZ = ((k % 2) * 2 - 1) * ((k + 1) / 2);
 
-          dr_new[0] = dr[0] + (TransX * lattice.R(0, 0) + TransY * lattice.R(1, 0) + TransZ * lattice.R(2, 0));
-          dr_new[1] = dr[1] + (TransX * lattice.R(0, 1) + TransY * lattice.R(1, 1) + TransZ * lattice.R(2, 1));
-          dr_new[2] = dr[2] + (TransX * lattice.R(0, 2) + TransY * lattice.R(1, 2) + TransZ * lattice.R(2, 2));
+          dr_new[0] = dr[iw][0] + (TransX * lattice.R(0, 0) + TransY * lattice.R(1, 0) + TransZ * lattice.R(2, 0));
+          dr_new[1] = dr[iw][1] + (TransX * lattice.R(0, 1) + TransY * lattice.R(1, 1) + TransZ * lattice.R(2, 1));
+          dr_new[2] = dr[iw][2] + (TransX * lattice.R(0, 2) + TransY * lattice.R(1, 2) + TransZ * lattice.R(2, 2));
 
-          r_new = std::sqrt(dot(dr_new, dr_new));
+          r_new = std::sqrt(dot(dr_new[iw], dr_new[iw]));
           iter++;
           if (r_new >= Rmax)
             continue;
@@ -655,6 +659,74 @@ struct SoaAtomicBasisSet
         }
       }
     }
+   }
+  }
+
+  /** evaluate V
+   * TODO/Plan
+   * We need to templat this to use an distance table list instead of just postype for dr, or maybe whatever SoADistanceTableOMPTarget gives us
+   * then it becomes dt_list.size is walker size, but here we only need dt_list[iw][i]  so maybe we could get like displacement_list? RefvectorWithLeader<PosType>
+  */
+  template<typename LAT, typename T, typename PosType, typename VT>
+  inline void mw_evaluateV(const LAT& lattice, const T r, const OffloadPosVector& dr_list, VT* restrict psi, PosType Tv)
+  {
+    int TransX, TransY, TransZ;
+    OffloadPosVector dr_list_new;
+    T r_new;
+
+#if not defined(QMC_COMPLEX)
+    const ValueType correctphase = 1.0;
+#else
+
+    RealType phasearg = SuperTwist[0] * Tv[0] + SuperTwist[1] * Tv[1] + SuperTwist[2] * Tv[2];
+    RealType s, c;
+    qmcplusplus::sincos(-phasearg, &s, &c);
+    const ValueType correctphase(c, s);
+
+#endif
+
+    RealType* restrict ylm_v = tempS.data(0);
+    RealType* restrict phi_r = tempS.data(1);
+
+  int nw = dr_list.size(); //TODO: not sure if i can do this even? Right now, it doesn't even exist outide of this function...
+  for (size_t ib = 0; ib < BasisSetSize; ++ib)
+    psi[ib] = 0;
+  for (int iw; iw <nw ; iw++){
+
+    //Phase_idx (iter) needs to be initialized at -1 as it has to be incremented first to comply with the if statement (r_new >=Rmax)
+    int iter = -1;
+    for (int i = 0; i <= PBCImages[0]; i++) //loop Translation over X
+    {
+      //Allows to increment cells from 0,1,-1,2,-2,3,-3 etc...
+      TransX = ((i % 2) * 2 - 1) * ((i + 1) / 2);
+      for (int j = 0; j <= PBCImages[1]; j++) //loop Translation over Y
+      {
+        //Allows to increment cells from 0,1,-1,2,-2,3,-3 etc...
+        TransY = ((j % 2) * 2 - 1) * ((j + 1) / 2);
+        for (int k = 0; k <= PBCImages[2]; k++) //loop Translation over Z
+        {
+          //Allows to increment cells from 0,1,-1,2,-2,3,-3 etc...
+          TransZ = ((k % 2) * 2 - 1) * ((k + 1) / 2);
+
+          dr_list_new[iw][0] = dr_list[iw][0] + (TransX * lattice.R(0, 0) + TransY * lattice.R(1, 0) + TransZ * lattice.R(2, 0));
+          dr_list_new[iw][1] = dr_list[iw][1] + (TransX * lattice.R(0, 1) + TransY * lattice.R(1, 1) + TransZ * lattice.R(2, 1));
+          dr_list_new[iw][2] = dr_list[iw][2] + (TransX * lattice.R(0, 2) + TransY * lattice.R(1, 2) + TransZ * lattice.R(2, 2));
+
+          r_new = std::sqrt(dot(dr_list_new[iw], dr_list_new[iw]));
+          iter++;
+          if (r_new >= Rmax)
+            continue;
+
+          Ylm.evaluateV(-dr_new[iw][0], -dr_new[iw][1], -dr_new[iw][2], ylm_v);
+          MultiRnl.evaluate(r_new, phi_r);
+          ///Phase for PBC containing the phase for the nearest image displacement and the correction due to the Distance table.
+          const ValueType Phase = periodic_image_phase_factors[iter] * correctphase;
+          for (size_t ib = 0; ib < BasisSetSize; ++ib)
+            psi[ib] += ylm_v[LM[ib]] * phi_r[NL[ib]] * Phase;
+        }
+      }
+    }
+   }
   }
 };
 
