@@ -62,14 +62,14 @@ SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
                         ParticleSet::ParticleGradient& G,
                         ParticleSet::ParticleLaplacian& L,
                         bool fromscratch){
+    double* x = new double [OHMMS_DIM*P.getTotalNum()];
     RealType delta = 0.1; // TODO: find units
-    x = new double[OHMMS_DIM*natoms];
     double G_finite_diff_forward;
     double G_finite_diff_back;
     // compute gradient
         // i.e. pull gradient out from lammps.
-    auto db = lmp->modify->get_compute_by_id("db")
-    auto sna_global = lmp->modify->get_compute_by_id("snap")
+    auto db = lmp->modify->get_compute_by_id("db");
+    auto sna_global = lmp->modify->get_compute_by_id("snap");
     
    int nelec = P.getTotalNum();
    for (int ig = 0; ig < P.groups(); ig++) {
@@ -77,29 +77,27 @@ SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
             // loop over elecs in each group
             for (int dim = 0; dim < OHMMS_DIM; dim++){
                 //G[iel][dim] = lammps_object
-                G[iat][dim] += db[iel][dim]
+                G[iel][dim] += static_cast<double>(*db->array[iel*dim]);
                 //forward direction
                 RealType r0 = P.R[iel][dim];
                 RealType rp   = r0 + (delta/2);
-                P.R[iel][dim] = rp;
-                P.update();
                 //update lammps position
-                x[iel+dim] = P.R[iel][dim];
+                x[iel+dim] = rp;
                 // recalculate bispectrum stuff
-                db -> compute_per_atom()
-                G_finite_diff_forwared = db[iel][dim]
+                db -> compute_peratom();
+                G_finite_diff_forward = static_cast<double>(*db->array[iel*dim]);
                 //gradient
                 //backward direction
-                RealType r0 = P.R[iel][dim];
+                r0 = P.R[iel][dim];
                 RealType rm   = r0 - (delta/2);
-                P.R[iel][dim] = rm;
-                P.update();
                 //update lammps position
-                x[iel+dim] = P.R[iel][dim];
+                x[iel+dim] = rm;
+                db -> compute_peratom();
+                G_finite_diff_back = static_cast<double>(*db->array[iel*dim]);
                 // recalculate bispectrum stuff
-                double finit_diff_lap = (G_finite_diff_front - G_finite_diff_back)/delta;
+                double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/delta;
                 //fill L
-                L[iel][dim] -=  finite_diff_lap;
+                L[iel] -=  finite_diff_lap;
             }
         }
     }
@@ -109,8 +107,7 @@ SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
 
 SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
-                                  ParticleSet::ParticleLaplacian& L,
-                                  bool fromscratch){
+                                  ParticleSet::ParticleLaplacian& L){
                          return log_value_;
                    }
 }
