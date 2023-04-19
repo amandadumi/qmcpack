@@ -4,6 +4,8 @@
 //lammps related headers needed.
 #include "lammps.h"
 #include "input.h"
+#include "modify.h"
+#include "compute.h"
 #include "atom.h"
 #include "pair.h"
 #include "pair_snap.h"
