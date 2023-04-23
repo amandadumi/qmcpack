@@ -52,11 +52,7 @@ void SNAPJastrow::initialize_lammps(const ParticleSet& ions, ParticleSet& els){
     lmp->input->one("compute snap_elec elecs snap");
     lmp->input->one("compute db elecs snad/atom");
     lmp->input->one("run            0");
-
-
 }
-
-
 
 SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
                         ParticleSet::ParticleGradient& G,
