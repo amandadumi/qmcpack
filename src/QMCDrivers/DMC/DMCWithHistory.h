@@ -32,7 +32,7 @@ class DMCWithHistory : public QMCDriver, public CloneManager
 public:
   /// Constructor.
   DMCWithHistory(const ProjectData& project_data,
-      MCWalkerConfigurationHistory& w,
+      MCWalkerConfiguration& w,
       TrialWaveFunction& psi,
       QMCHamiltonian& h,
       Communicate* comm,
@@ -42,6 +42,8 @@ public:
   bool put(xmlNodePtr cur) override;
   void setTau(RealType i);
   QMCRunType getRunType() override { return QMCRunType::DMCWithHistory; }
+  // initialize storage object for history
+  MCWalkerConfigurationWithHistory DMCHistoryStorage;
 
 private:
   ///Index to determine what to do when node crossing is detected

@@ -21,7 +21,7 @@
 #include "QMCDrivers/DMC/DMCUpdatePbyP.h"
 #include "QMCDrivers/DMC/DMCUpdatePbyPL2.h"
 #include "QMCDrivers/DMC/SODMCUpdatePbyP.h"
-#include "QMCDrivers/DMC/DMCUpdateAll.h"
+#include "QMCDrivers/DMC/DMCWithHistoryUpdateAll.h"
 #include "QMCHamiltonians/HamiltonianPool.h"
 #include "Message/Communicate.h"
 #include "Message/CommOperators.h"
@@ -98,6 +98,9 @@ void DMCWithHistory::resetUpdateEngines()
     estimatorClones.resize(NumThreads, nullptr);
     traceClones.resize(NumThreads, nullptr);
     FairDivideLow(W.getActiveWalkers(), NumThreads, wPerRank);
+    // initialize History class
+    DMCHistoryStorage = MCWalkerConfigurationHistory::History();
+    
 
     {
       //log file
@@ -160,14 +163,8 @@ void DMCWithHistory::resetUpdateEngines()
       {
         if (qmc_driver_mode[QMC_UPDATE_MODE])
         {
-          if (L2 == "yes")
-            Movers[ip] = new DMCUpdatePbyPL2(*wClones[ip], *psiClones[ip], *hClones[ip], *Rng[ip]);
-          else
-            Movers[ip] = new DMCUpdatePbyPWithRejectionFast(*wClones[ip], *psiClones[ip], *hClones[ip], *Rng[ip]);
+          APP_ABORT("Only implemented for update all currently.");
 
-          Movers[ip]->put(qmcNode);
-          Movers[ip]->resetRun(branchEngine.get(), estimatorClones[ip], traceClones[ip], DriftModifier);
-          Movers[ip]->initWalkersForPbyP(W.begin() + wPerRank[ip], W.begin() + wPerRank[ip + 1]);
         }
         else
         {
@@ -178,6 +175,8 @@ void DMCWithHistory::resetUpdateEngines()
           Movers[ip]->put(qmcNode);
           Movers[ip]->resetRun(branchEngine.get(), estimatorClones[ip], traceClones[ip], DriftModifier);
           Movers[ip]->initWalkers(W.begin() + wPerRank[ip], W.begin() + wPerRank[ip + 1]);
+          //TODO: copy these initial walkers into the history
+          DMCHistoryStorage.copy_walkers(W);
         }
       }
     }
@@ -264,6 +263,8 @@ bool DMCWithHistory::run()
       //           ForwardWalkingHistory.storeConfigsForForwardWalking(W);
       //           W.resetWalkerParents();
       //         }
+      //AD TODO: here you will check for nhist position bassed on step. 
+      int history_step = step % Nhist;
 
 #pragma omp parallel
       {
@@ -276,8 +277,16 @@ bool DMCWithHistory::run()
 #pragma omp for nowait
         for (size_t iw = 0; iw < nw; ++iw)
         {
-          Walker_t& thisWalker(*W[iw]);
+          Walker_t& thisWalker(*W[iw]); 
           Movers[ip]->advanceWalker(thisWalker, recompute);
+          // At this point this walker should have the rr_accpeted or rr_proposed informatioin we can use to fill our history.
+          if DMCHistoryStorage.size() < history_step*iw{
+            DMCHistoryStorage.add_walkers(history_step, iw, thisWalker);//AD TODO: this is now how we call this, will have to have  wrapper overload
+          }
+          else{
+            DMCHistoryStorage.rewrite_walkers(history_step, iw, thisWalker); // AD TODO: this function is not written and needs added to wrapper. 
+          }
+          history_step ++;
         }
       }
 
@@ -293,6 +302,15 @@ bool DMCWithHistory::run()
       //           ForwardWalkingHistory.storeConfigsForForwardWalking(W);
       //           W.resetWalkerParents();
       //         }
+
+      //TODO will have to worry about parent ID stuff
+      if DMCHistoryStorage.size() < history_step*iw{
+        DMCHistoryStorage.add_walkers(history_step, iw, thisWalker);//AD TODO: this is now how we call this, will have to have  wrapper overload
+      }
+      else{
+        DMCHistoryStorage.rewrite_walkers(history_step, iw, thisWalker); // AD TODO: this function is not written and needs added to wrapper. 
+      }
+
       if (variablePop)
         FairDivideLow(W.getActiveWalkers(), NumThreads, wPerRank);
       sample++;
