@@ -59,6 +59,8 @@ private:
   std::unique_ptr<WaveFunctionComponent> buildkSpace(xmlNodePtr cur);
   /// build number-counting term
   std::unique_ptr<WaveFunctionComponent> buildCounting(xmlNodePtr cur);
+  /// build snap term
+  std::unique_ptr<WaveFunctionComponent> buildSNAP(xmlNodePtr cur);
 };
 
 } // namespace qmcplusplus
