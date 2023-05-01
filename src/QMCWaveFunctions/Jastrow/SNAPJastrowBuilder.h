@@ -23,8 +23,16 @@ class SNAPJastrowBuilder : public WaveFunctionComponentBuilder
 public:
     SNAPJastrowBuilder(Communicate* comm, ParticleSet& target, ParticleSet& source);
     std::unique_ptr<WaveFunctionComponent> buildComponent(xmlNodePtr cur) override;
+    std::unique_ptr<WaveFunctionComponent> createSNAP(xmlNodePtr cur);
+    bool putkids(xmlNodePtr kids);
 
+private:
+  std::string NameOpt;
+  std::string TypeOpt;
+  std::string RegionOpt;
+  std::string SourceOpt;
 
+  ParticleSet* SourcePtcl;
 };
 }
 #endif

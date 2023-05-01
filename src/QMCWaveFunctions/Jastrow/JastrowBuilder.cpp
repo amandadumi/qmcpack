@@ -101,10 +101,7 @@ std::unique_ptr<WaveFunctionComponent> JastrowBuilder::buildSNAP(xmlNodePtr cur)
   ReportEngine PRE(ClassName, "addSNAP(xmlNodePtr)");
   std::unique_ptr<SNAPJastrowBuilder> sjb;
   auto pa_it(ptclPool.find(sourceOpt));
-  if (pa_it != ptclPool.end() && sourceOpt != targetPtcl.getName()) // source is not target
-    sjb = std::make_unique<SNAPJastrowBuilder>(myComm, targetPtcl, *pa_it->second);
-  else
-    sjb = std::make_unique<SNAPJastrowBuilder>(myComm, targetPtcl);
+  sjb = std::make_unique<SNAPJastrowBuilder>(myComm, targetPtcl, *pa_it->second);
   return sjb->buildComponent(cur);
 }
 
