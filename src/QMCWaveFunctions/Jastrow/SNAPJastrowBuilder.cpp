@@ -19,7 +19,7 @@
 
 namespace qmcplusplus
 {
-SNAPJastrowBuilder::SNAPJastrowBuilder(Communicate* comm, ParticleSet& target)
+SNAPJastrowBuilder::SNAPJastrowBuilder(Communicate* comm, ParticleSet& target, ParticleSet& source)
     : WaveFunctionComponentBuilder(comm, target)
 {
     ClassName = "SnapJastrowBuilder";
@@ -36,30 +36,28 @@ std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::buildComponent(xmlNod
   return createSNAP(cur);
 }
 
-bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, J3type& J3)
+bool SNAPJastrowBuilder::putkids(xmlNodePtr kids)
 {
-auto& jname =J3.getName();
-SpeciesSet& iSet = sourcePtcl->getSpeciesSet();
-SpeciesSet& iSet = targetPtcl.getSpeciesSet();
+SpeciesSet& iSet = SourcePtcl->getSpeciesSet();
+SpeciesSet& eSet = targetPtcl.getSpeciesSet();
 
 while (kids != NULL){
     std::string kidsname = (char*)kids->name;
     if (kidsname == "correlation")
     {
-        RealType ee_cusp = 0.0;
+        RealType eecusp = 0.0;
         RealType eIcusp = 0.0;
-        std::sstring iSpecies, eSpecies1("u"), eSpecies2("u");
-        OhmmsAttribueSet rAttrib;
+        std::string iSpecies, eSpecies1("u"), eSpecies2("u");
+        OhmmsAttributeSet rAttrib;
         rAttrib.add(iSpecies,"ispecies");
         rAttrib.add(eSpecies1,"especies1");
         rAttrib.add(eSpecies2,"especies2");
-        rAttrib.add(ee_cusp,"ecusp");
-        rAttrib.add(eI_cusp,"icusp");
+        rAttrib.add(eecusp,"ecusp");
+        rAttrib.add(eIcusp,"icusp");
         rAttrib.add(kids);
-        using FT    = typename J3type::FuncType;
         const auto coef_id = extracCoefficientsID(kids);
         auto functor = 
-        std::make_unique<FT>(coef_id.empty() ? jname + "_" + iSpecies + eSpecies1 + eSpecies2 : coef_id, ee_cusp, eI_cusp);
+        std::make_unique<SNAPJastrow>(coef_id.empty() ? jname + "_" + iSpecies + eSpecies1 + eSpecies2 : coef_id, ee_cusp, eI_cusp);
         functor->iSpecies = iSpecies;
         functor->eSpecies1 = eSpecies1;
         functor->eSpecies2 = eSpecies2;
@@ -97,7 +95,7 @@ ReportEngine PRE(ClassName, "createSNAP(xmlNodePtr)");
 xmlNodePtr kids = cur->xmlChildrenNode;
 
 //if ions are fet to jastrow 
-if (sourcePtcl){
+if (SourcePtcl){
     std::string ftype("snap");
     OhmmsAttributeSet tAttrib;
     tAttrib.add(ftype, "function");
@@ -105,7 +103,7 @@ if (sourcePtcl){
 
     std::string input_name(getXMLAttributeValue(cur, "namae"));
     std::string jname = input_name.empty() ? "snapjastrow" : input_name;
-    SpeciesSet& iSet = sourcePtcl->getSpeciesSet();
+    SpeciesSet& iSet = SourcePtcl->getSpeciesSet();
     if (ftype == "snap"){
         using SNAPJ = SNAPJastrow();
         auto SJ           = std::make_unique<SNAPJ>;
