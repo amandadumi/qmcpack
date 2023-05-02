@@ -81,6 +81,8 @@ public:
     int Nions;
     int Nelec;
     int NIonGroups;
+    std::string iSpecies, eSpecies1, eSpecies2;
+    
     opt_variables_type myVars;
 
     Vector<double> Vat;

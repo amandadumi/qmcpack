@@ -8,6 +8,7 @@ SNAPJastrow::SNAPJastrow(const ParticleSet& ions, ParticleSet& els){
     Nelec = els.getTotalNum();
     Nions = ions.getTotalNum();
     NIonGroups = ions.groups() ;
+    std::string iSpecies, eSpecies1, eSpecies2;
     double ncoeff = 56;
     std::vector<double> default_coeff; // this should be a matrix where we resize to size of Nspecies*ncoeff
 }
