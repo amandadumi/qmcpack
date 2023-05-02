@@ -43,21 +43,30 @@ SpeciesSet& eSet = targetPtcl.getSpeciesSet();
 
 while (kids != NULL){
     std::string kidsname = (char*)kids->name;
+    // if this section is building in correlation...
     if (kidsname == "correlation")
     {
+        // what is the cusp? 
         RealType eecusp = 0.0;
         RealType eIcusp = 0.0;
+        //create strings to denote which species are set, by default elecs are both up.
+        // iSpecies isn't set yet.
         std::string iSpecies, eSpecies1("u"), eSpecies2("u");
         OhmmsAttributeSet rAttrib;
+        // I don't know what an attribute set is, im guessing its a way to create objects in the code?
+        // are we able to refer to them as the value in string later?
         rAttrib.add(iSpecies,"ispecies");
         rAttrib.add(eSpecies1,"especies1");
         rAttrib.add(eSpecies2,"especies2");
         rAttrib.add(eecusp,"ecusp");
         rAttrib.add(eIcusp,"icusp");
-        rAttrib.add(kids);
-        const auto coef_id = extracCoefficientsID(kids);
+        //rAttrib.add(kids); // this was done in eeI_jastrow builder but can't get it to work here...
+        // this seems to be if there are more than one set of coeffs given in this jastrow object. We will ned this eventually. We will ned this eventually.
+        //const auto coef_id = extracCoefficientsID(kids); // We can survive without this for now since we will make sure to do I + u + d only
+        std::string jname("SNAP");
+        std::string coef_id("");
         auto functor = 
-        std::make_unique<SNAPJastrow>(coef_id.empty() ? jname + "_" + iSpecies + eSpecies1 + eSpecies2 : coef_id, ee_cusp, eI_cusp);
+           std::make_unique<SNAPJastrow>(coef_id.empty() ? jname + "_" + iSpecies + eSpecies1 + eSpecies2 : coef_id, eecusp, eIcusp);
         functor->iSpecies = iSpecies;
         functor->eSpecies1 = eSpecies1;
         functor->eSpecies2 = eSpecies2;
@@ -67,7 +76,7 @@ while (kids != NULL){
         if (iNum == iSet.size()){
             APP_ABORT("ion species " + iSpecies + " requested for Jastrow " + jname + " does not exist in ParticleSet")
         }
-        std::string illegal_eSpeciess;
+        std::string illegal_eSpecies;
         if (eNum1 == eSet.size()){
             illegal_eSpecies = eSpecies1;
         }
@@ -78,11 +87,11 @@ while (kids != NULL){
         }
         if (illegal_eSpecies.size())
             APP_ABORT("electron species " + illegal_eSpecies + " requested for Jastrow " + jname + " does not exist in ParticleSet " + targetPtcl.getName());
+        functor->put(kids);
+        // TODO: check wigner seitz radius vs jastrow cutoff
+        functor->cutoff_radius = 1e-5;
+        SJ.addFunc(iNum,eNum1,eNum2,std::move(functor));
     }
-    functor->put(kids);
-    // TODO: check wigner seitz radius vs jastrow cutoff
-    functor->cutoff_radius = 1e-5;
-    SJ.addFunc(iNum,eNum1,eNum2,std::move(functor));
     kids = kids->next;
     SJ.check_complete();
 
@@ -94,7 +103,7 @@ std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::createSNAP(xmlNodePtr
 ReportEngine PRE(ClassName, "createSNAP(xmlNodePtr)");
 xmlNodePtr kids = cur->xmlChildrenNode;
 
-//if ions are fet to jastrow 
+//if ions are fed to jastrow 
 if (SourcePtcl){
     std::string ftype("snap");
     OhmmsAttributeSet tAttrib;
