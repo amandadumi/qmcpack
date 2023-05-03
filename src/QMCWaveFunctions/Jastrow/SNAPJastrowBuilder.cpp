@@ -19,14 +19,7 @@
 
 namespace qmcplusplus
 {
-SNAPJastrowBuilder::SNAPJastrowBuilder(Communicate* comm, ParticleSet& target, ParticleSet& source)
-    : WaveFunctionComponentBuilder(comm, target)
-{
-    ClassName = "SnapJastrowBuilder";
-    NameOpt = "0";
-    TypeOpt = "SNAP";
-    SourceOpt = SourcePtcl->getName();
-}
+
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::buildComponent(xmlNodePtr cur){
   OhmmsAttributeSet oAttrib;
@@ -38,62 +31,31 @@ std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::buildComponent(xmlNod
 
 bool SNAPJastrowBuilder::putkids(xmlNodePtr kids)
 {
-SpeciesSet& iSet = SourcePtcl->getSpeciesSet();
-SpeciesSet& eSet = targetPtcl.getSpeciesSet();
 
 while (kids != NULL){
     std::string kidsname = (char*)kids->name;
     // if this section is building in correlation...
     if (kidsname == "correlation")
     {
-        // what is the cusp? 
-        RealType eecusp = 0.0;
-        RealType eIcusp = 0.0;
+
         //create strings to denote which species are set, by default elecs are both up.
         // iSpecies isn't set yet.
         std::string iSpecies, eSpecies1("u"), eSpecies2("u");
-        OhmmsAttributeSet rAttrib;
         // I don't know what an attribute set is, im guessing its a way to create objects in the code?
         // are we able to refer to them as the value in string later?
-        rAttrib.add(iSpecies,"ispecies");
-        rAttrib.add(eSpecies1,"especies1");
-        rAttrib.add(eSpecies2,"especies2");
-        rAttrib.add(eecusp,"ecusp");
-        rAttrib.add(eIcusp,"icusp");
         //rAttrib.add(kids); // this was done in eeI_jastrow builder but can't get it to work here...
         // this seems to be if there are more than one set of coeffs given in this jastrow object. We will ned this eventually. We will ned this eventually.
         //const auto coef_id = extracCoefficientsID(kids); // We can survive without this for now since we will make sure to do I + u + d only
         std::string jname("SNAP");
-        std::string coef_id("");
-        auto functor = 
-           std::make_unique<SNAPJastrow>(coef_id.empty() ? jname + "_" + iSpecies + eSpecies1 + eSpecies2 : coef_id, eecusp, eIcusp);
-        functor->iSpecies = iSpecies;
-        functor->eSpecies1 = eSpecies1;
-        functor->eSpecies2 = eSpecies2;
-        int iNum = iSet.findSpecies(iSpecies);
-        int eNum1 = eSet.findSpecies(eSpecies1);
-        int eNum2 = eSet.findSpecies(eSpecies2);
-        if (iNum == iSet.size()){
-            APP_ABORT("ion species " + iSpecies + " requested for Jastrow " + jname + " does not exist in ParticleSet")
-        }
-        std::string illegal_eSpecies;
-        if (eNum1 == eSet.size()){
-            illegal_eSpecies = eSpecies1;
-        }
-        if (eNum2 == eSet.size()){
-              if (illegal_eSpecies.size())
-                illegal_eSpecies += " and ";
-            illegal_eSpecies += eSpecies2;
-        }
-        if (illegal_eSpecies.size())
-            APP_ABORT("electron species " + illegal_eSpecies + " requested for Jastrow " + jname + " does not exist in ParticleSet " + targetPtcl.getName());
-        functor->put(kids);
+        //functor->put(kids);
         // TODO: check wigner seitz radius vs jastrow cutoff
-        functor->cutoff_radius = 1e-5;
-        SJ.addFunc(iNum,eNum1,eNum2,std::move(functor));
+        //TODO: a lot of jastrow set up will happen here, initially just hard coding values to test.
+        //functor->cutoff_radius = 1e-5;
+        //SJ.addFunc(iNum,eNum1,eNum2,std::move(functor));
     }
     kids = kids->next;
-    SJ.check_complete();
+    //SJ.check_complete();
+    return true;
 
  }
 }
@@ -104,30 +66,24 @@ ReportEngine PRE(ClassName, "createSNAP(xmlNodePtr)");
 xmlNodePtr kids = cur->xmlChildrenNode;
 
 //if ions are fed to jastrow 
-if (SourcePtcl){
-    std::string ftype("snap");
-    OhmmsAttributeSet tAttrib;
-    tAttrib.add(ftype, "function");
-    tAttrib.put(cur);
+std::string ftype("snap");
+OhmmsAttributeSet tAttrib;
+tAttrib.add(ftype, "function");
+tAttrib.put(cur);
 
-    std::string input_name(getXMLAttributeValue(cur, "namae"));
-    std::string jname = input_name.empty() ? "snapjastrow" : input_name;
-    SpeciesSet& iSet = SourcePtcl->getSpeciesSet();
-    if (ftype == "snap"){
-        using SNAPJ = SNAPJastrow();
-        auto SJ           = std::make_unique<SNAPJ>;
-        putkids(kids, *SJ);
-        return SJ;
-    }
-    else
-    {
-        std::ostringstream err_msg;
-        err_msg << "Unknown function\"" << ftype << "\" in SNAPJastrowBuilder. Aborting.\n";
-        APP_ABORT(err_msg.str());
-    }
+std::string input_name(getXMLAttributeValue(cur, "namae"));
+std::string jname = input_name.empty() ? "snapjastrow" : input_name;
+if (ftype == "snap"){
+    auto SJ  = std::make_unique<SNAPJastrow>(sourcePtcl, targetPtcl);
+    //putkids(kids, *SJ);
+    return SJ;
 }
 else
-    APP_ABORT("You must specify the \"source\" particleset for a three-body Jastrow.\n");
+{
+    std::ostringstream err_msg;
+    err_msg << "Unknown function\"" << ftype << "\" in SNAPJastrowBuilder. Aborting.\n";
+    APP_ABORT(err_msg.str());
+}
 return nullptr;
 }
 

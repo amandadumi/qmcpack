@@ -54,7 +54,7 @@ public:
     /** Calculate the ratio of proposed to current wave function element*/
     PsiValueType ratio(ParticleSet& P, int iat) override;
     /** Calculate d/di U_SNap*/
-    GradType evalGrad(ParticleSet& P, int iat) override;
+    //GradType evalGrad(ParticleSet& P, int iat) override;
 
     PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
@@ -67,7 +67,6 @@ public:
     ParticleSet::ParticleGradient& G,
     ParticleSet::ParticleLaplacian& L) override;
 
-    void bispectrum_Laplacian_finite_diff();
 
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
