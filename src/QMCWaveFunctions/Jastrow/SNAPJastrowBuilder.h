@@ -15,13 +15,22 @@
 #ifndef QMCPLUSPLUS_SNAP_JASTROW_BUILDER_H
 #define QMCPLUSPLUS_SNAP_JASTROW_BUILDER_H
 #include "QMCWaveFunctions/WaveFunctionComponentBuilder.h"
-
+#include "SNAPJastrow.h"
 namespace qmcplusplus
 {
+// forward declaration
+class ParticleSet;
 class SNAPJastrowBuilder : public WaveFunctionComponentBuilder
 {
 public:
-    SNAPJastrowBuilder(Communicate* comm, ParticleSet& target, ParticleSet& source);
+    const ParticleSet& sourcePtcl;
+    SNAPJastrowBuilder(Communicate* comm, ParticleSet& target, const ParticleSet& source)
+    : WaveFunctionComponentBuilder(comm, target), sourcePtcl(source)
+{
+    ClassName = "SnapJastrowBuilder";
+    NameOpt = "0";
+    TypeOpt = "SNAP";
+}
     std::unique_ptr<WaveFunctionComponent> buildComponent(xmlNodePtr cur) override;
     std::unique_ptr<WaveFunctionComponent> createSNAP(xmlNodePtr cur);
     bool putkids(xmlNodePtr kids);
@@ -32,7 +41,6 @@ private:
   std::string RegionOpt;
   std::string SourceOpt;
 
-  ParticleSet* SourcePtcl;
 };
 }
 #endif

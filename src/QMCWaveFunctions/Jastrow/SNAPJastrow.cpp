@@ -108,6 +108,33 @@ SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L){
                          return log_value_;
-                   }
+}
+
+
+void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
+{}
+
+/////// Functions for optimization /////
+void SNAPJastrow::checkOutVariables(const opt_variables_type& o ){myVars.getIndex(o);}
+
+/////////////////////////////////// MC Related functions /////////
+
+void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
+    int x = 0;
+    // Is this where coefficients are reset or is this just for other variables?  
+    // I would think optimizer handles coefficient and updating them. This would be other things that depend on the updated coefficents?
+
+}
+
+void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
+    log_value_ = evaluateLog(P, P.G, P.L);
+}
+void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
+    log_value_ evaluateLog(P,P.G,P.L);
+}
+
+void SNAPJastrow::copyFromBuffer(ParticleSet& P, WFBufferType& buf){
+    
+}
 }
 
