@@ -107,6 +107,12 @@ SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
 SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L){
+    // loop over atom types
+    for (int ig = 0; ig < P.groups(); ig++) {
+        for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
+        double** coeffs = static_cast<double**>lmp->force->pair->coeffelem;
+    // loop over bispectrum compoenents
+    // calculate linear energy 
                          return log_value_;
 }
 
@@ -129,12 +135,18 @@ void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
 void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
     log_value_ = evaluateLog(P, P.G, P.L);
 }
-void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
-    log_value_ evaluateLog(P,P.G,P.L);
+SNAPJastrow::LogValueType SNAPJastrow::updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch){
+    log_value_ = evaluateLog(P,P.G,P.L);
+    return log_value_;
 }
 
 void SNAPJastrow::copyFromBuffer(ParticleSet& P, WFBufferType& buf){
     
+}
+SNAPJastrow::PsiValueType SNAPJastrow::ratio(ParticleSet& P, int iat){
+    PsiValueType ratio;
+    ratio = 0;
+    return ratio;
 }
 }
 
