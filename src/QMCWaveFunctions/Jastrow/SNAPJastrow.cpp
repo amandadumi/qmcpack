@@ -51,7 +51,7 @@ void SNAPJastrow::initialize_lammps(const ParticleSet& ions, ParticleSet& els){
     }
     lmp->input->one("pair_style snap");
     lmp->input->one("pair_coeff * * coeff.snapcoeff param.snapparam snap e_u e_d i" );
-    lmp->input->one("compute snap all snap");
+    lmp->input->one("compute snap all snap dgradflag 1"); //dgradflag lets us store gradient for each atom intead of derivative!
     lmp->input->one("compute snap_elec elecs snap");
     lmp->input->one("compute db elecs snad/atom");
     lmp->input->one("run            0");
@@ -108,17 +108,99 @@ SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L){
     // loop over atom types
-    for (int ig = 0; ig < P.groups(); ig++) {
-        for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
-        double** coeffs = static_cast<double**>lmp->force->pair->coeffelem;
+    // for (int ig = 0; ig < P.groups(); ig++) {
+    //     for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
+    //         double** coeffs = static_cast<double**>lmp->force->pair->coeffelem;
+    //     }
+        lmp->input->one("run            0");
+        log_value_ =  static_cast<double>lmp->force->pair->eng_vdwl;
+
     // loop over bispectrum compoenents
     // calculate linear energy 
-                         return log_value_;
+    return log_value_;
 }
 
 
 void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
-{}
+{
+    evaluateDerivativesWF(P, active, dlogpsi);
+    bool recalculate(false);
+    std::vector<bool> rcsingles(myVars.size(), false);
+    for (int k = 0; k < myVars.size(); ++k)
+    {
+      int kk = myVars.where(k);
+      if (kk < 0)
+        continue;
+      if (active.recompute(kk))
+        recalculate = true;
+      rcsingles[k] = true;
+    }
+    if (recalculate)
+    {
+      for (int k = 0; k < myVars.size(); ++k)
+      {
+        int kk = myVars.where(k);
+        if (kk < 0)
+          continue;
+        if (rcsingles[k])
+        {
+          dhpsioverpsi[kk] = -RealType(0.5) * ValueType(Sum(lapLogPsi[k])) - ValueType(Dot(P.G, gradLogPsi[k]));
+        }
+      }
+    }
+  }
+
+
+
+void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
+{
+bool recalculate(false);
+std::vector<bool> rcsingles(myVars.size(), false);
+for (int k = 0; k < myVars.size(); ++k)
+    {
+      int kk = myVars.where(k);
+      if (kk < 0)
+        continue;
+      if (active.recompute(kk))
+        recalculate = true;
+      rcsingles[k] = true;
+    }
+    if (recalculate){
+        const size_t NumVars = myVars.size();
+        for (int p = 0; p < NumVars; ++p){
+            gradLogPsi[p] = 0.0;
+            lapLogPsi[p] = 0.0;
+        }
+    dlogpsi = 0.0;
+    const auto& d_table: const auto & = P.getDistTableAB(myTableID);
+    std::vector<TinyVector<RealType,3>> derivs(NumVars);
+
+    constexpr RealType cone(1);
+    const size_t ns = d_table.sources();
+    const size_t nt = P.getTotalNum();
+
+    aligned_vector<int> iadj(nt); //AD: what?
+    aligned_vector<RealType> lapfac(OHMMS_DIM - cone) // AD: what?
+    std::vector<PosType> displ(nt);
+
+    for size_t i = 0; i < ns; i++){
+     for size_t j = 0; j <nt; ++j):{
+        std::fill(first: derivs.begin(), last:derivs.end(),value: 0);
+        auto dist: auto = P.getDistTableAB(myTableID).getDistRow(j)[i];
+        RealType rinv(cone/dist); 
+        const PosType& dr = P.getDistTableAB(myTableID).getDisplRow(j)[i];
+        for (int p = first, ip = 0; p <last, ++p, ++ip){
+            dLogPsi[p] -= derivs[ip][0];
+            RealType dudr (rinv*derivs[ip][1]);
+            gradLogPsi[p][j] = dudr*dr  ; 
+            lapLogPsi[p][j] =  -=derivs[ip][2] + lapfac*dudr;
+        }
+
+     }
+    }
+    }
+     
+}
 
 /////// Functions for optimization /////
 void SNAPJastrow::checkOutVariables(const opt_variables_type& o ){myVars.getIndex(o);}
