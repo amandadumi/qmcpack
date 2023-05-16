@@ -67,6 +67,7 @@ public:
     void checkOutVariables(const opt_variables_type& o) override;
 
     // void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
+    // void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
 
 
 /****** Evaluate E_L functions ******/
@@ -78,7 +79,7 @@ public:
     GradType evalGrad(ParticleSet& P, int iat) override;
 
 
-    //PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
+    // PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
@@ -112,7 +113,7 @@ public:
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
 
-    LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch = false) override;
+    LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
 
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
     
