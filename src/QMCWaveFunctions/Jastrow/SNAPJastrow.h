@@ -19,6 +19,12 @@ class SNAPJastrow : public WaveFunctionComponent
 {
 public:
 
+    using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
+    using ValueDerivVec = ParticleAttrib<QTFull::ValueType>;
+    std::vector<GradDerivVec> gradLogPsi;
+    std::vector<ValueDerivVec> lapLogPsi;
+
+
     SNAPJastrow(const ParticleSet& ions, ParticleSet& els);
 
     ~SNAPJastrow();
@@ -47,16 +53,16 @@ public:
     */
     void checkOutVariables(const opt_variables_type& o) override;
 
-    //void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
+    // void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
 
 
 /****** Evaluate E_L functions ******/
     /** Calculate the ratio of proposed to current wave function element*/
-    PsiValueType ratio(ParticleSet& P, int iat) override;
+    // PsiValueType ratio(ParticleSet& P, int iat) override;
     /** Calculate d/di U_SNap*/
     //GradType evalGrad(ParticleSet& P, int iat) override;
 
-    //PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
+    // PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
@@ -66,12 +72,28 @@ public:
     LogValueType evaluateLog(const ParticleSet& P,
     ParticleSet::ParticleGradient& G,
     ParticleSet::ParticleLaplacian& L) override;
+    
+    
+    void evaluateDerivatives(ParticleSet& P,
+                                   const opt_variables_type& optvars,
+                                   Vector<ValueType>& dlogpsi,
+                                   Vector<ValueType>& dhpsioverpsi) override;
 
+    void evaluateDerivativesWF(ParticleSet& P,
+                                   const opt_variables_type& optvars,
+                                   Vector<ValueType>& dlogpsi,
+                                   Vector<ValueType>& dhpsioverpsi) override;
+
+    /* calculates esnap based on a set of coefficients manually in qmcpack
+    used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
+    without having to internally change the lammps object.
+    */
+    void calculate_internal_ESNAP_CD(std::vector<RealType> new_coeff, RealType new_u);
 
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
 
-    LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch = false) override;
+    LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
 
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
     
@@ -89,10 +111,6 @@ public:
 
 
 
-    void evaluateDerivatives(ParticleSet& P,
-                                   const opt_variables_type& optvars,
-                                   Vector<ValueType>& dlogpsi,
-                                   Vector<ValueType>& dhpsioverpsi) override;
 
 private:
  LAMMPS_NS::LAMMPS *lmp;                  // pointer to lammps object
