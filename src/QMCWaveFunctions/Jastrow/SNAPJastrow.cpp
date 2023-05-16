@@ -171,35 +171,80 @@ for (int k = 0; k < myVars.size(); ++k)
             gradLogPsi[p] = 0.0;
             lapLogPsi[p] = 0.0;
         }
-    dlogpsi = 0.0;
     const auto& d_table: const auto & = P.getDistTableAB(myTableID);
     std::vector<TinyVector<RealType,3>> derivs(NumVars);
 
     constexpr RealType cone(1);
     const size_t ns = d_table.sources();
     const size_t nt = P.getTotalNum();
-
-    aligned_vector<int> iadj(nt); //AD: what?
-    aligned_vector<RealType> lapfac(OHMMS_DIM - cone) // AD: what?
+    
     std::vector<PosType> displ(nt);
 
-    for size_t i = 0; i < ns; i++){
-     for size_t j = 0; j <nt; ++j):{
-        std::fill(first: derivs.begin(), last:derivs.end(),value: 0);
-        auto dist: auto = P.getDistTableAB(myTableID).getDistRow(j)[i];
-        RealType rinv(cone/dist); 
-        const PosType& dr = P.getDistTableAB(myTableID).getDisplRow(j)[i];
-        for (int p = first, ip = 0; p <last, ++p, ++ip){
-            dLogPsi[p] -= derivs[ip][0];
-            RealType dudr (rinv*derivs[ip][1]);
-            gradLogPsi[p][j] = dudr*dr  ; 
-            lapLogPsi[p][j] =  -=derivs[ip][2] + lapfac*dudr;
-        }
-
-     }
+    std::fill(first: derivs.begin(), last:derivs.end(),value: 0);
+        /*
+        $\partial E_{SNAP}/\partial c$
+        1. have snap energy with current coefficients at current positions. 
+        2. apply a central difference to the coeffs. FD + BD/2del
+        3. make sure lammps has new coeffs.
+        4. recalculate lammps energy.
+	      how could i do this quickly?
+	      just a run 0 on lammps copy? probably just do this myself
+        loop thorugh
+        */
+          //FD
+    std::vector<RealType> fd_coeff;
+    std::vector<RealType> bd_coeff;
+    RealType fd_u;
+    RealType bd_u;
+    RealType delta = 0.1;
+    for (nv = 0; nv < NumVars; nv++){
+    fd_coeff[nv] = lmp->force->pair->snap->beta[nv] + delta;
+    bd_coeff[nv] = lmp->force->pair->snap->beta[nv] - delta;
+    calculate_internal_ESNAP_CD(fd_coeff, fd_u);
+    calculate_internal_ESNAP_CD(bd_coeff, bd_u);
+    dlogpsi = fd_u - bd_u/(2*delta);
+    dLogPsi[p] -= dlogpsi;
     }
+
     }
      
+}
+
+/* calculates esnap based on a set of coefficients manually in qmcpack
+used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
+without having to internally change the lammps object.
+*/
+void calculate_internal_ESNAP_CD(std::vector<RealType> new_coeff, new_u){
+  RealType ESNAP_all = 0;
+  RealType ESNAP_elec;
+  RealType ESNAP_ion;
+  const auto& d_table = P.getDistTableAB(myTableID);
+
+  const size_t ns = d_table.sources();
+  const_size nt = P.getTotalNum();
+
+  for (int ig = 0; ig < P.groups(); ig++) {
+    for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
+      ESNAP_i = 0; //  maybe beta_0
+      for (k=0; k < ncoeff; k++){
+        // determine atom type
+        RealType bispectrum_val = sna_global[ig*ncoeff+k]; //block of bispectrum + current component to add.
+        ESNAP_i += new_coeff[ig*ncoeff + k] * bispectrum_val  ;
+      }
+    ESNAP_all += ESNAP_i;
+    }
+  }
+  bispectrum_block = P.groups() // number of groups for electrons will be block for ions. 2*nbispectrum = start of ions.
+  //TODO: only written for single ion at the moment.
+  for (s = 0; s <ns; s++){
+    ESNAP_i = 0;
+      for (k=0; k < ncoeff; k++){
+        RealType bispectrum_val = sna_global[bispectrum_block*n_bispectrum+k];
+        ESNAP_i += beta[bispectrum_block][k] * bispectrum_val  ;
+      }
+    ESNAP_all += ESNAP_i;
+  }
+  new_u = ESNAP;
 }
 
 /////// Functions for optimization /////
