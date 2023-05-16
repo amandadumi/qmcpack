@@ -154,6 +154,7 @@ void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& 
 
 void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
 {
+auto sna_global = lmp->modify->get_compute_by_id("snap");
 bool recalculate(false);
 std::vector<bool> rcsingles(myVars.size(), false);
 for (int k = 0; k < myVars.size(); ++k)
