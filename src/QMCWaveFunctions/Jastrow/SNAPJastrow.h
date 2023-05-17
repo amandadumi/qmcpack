@@ -1,6 +1,9 @@
 #ifndef QMCPLUSPLUS_SNAPJASTROW
 #define QMCPLUSPLUS_SNAPJASTROW
 #include "QMCWaveFunctions/WaveFunctionComponent.h"
+#include "ParticleBase/ParticleAttribOps.h"
+#include "Particle/DistanceTable.h"
+#include "Configuration.h"
 //lammps related headers needed.
 #include "lammps.h"
 #include "input.h"
@@ -21,15 +24,22 @@ public:
 
     using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
     using ValueDerivVec = ParticleAttrib<QTFull::ValueType>;
+    std::vector<RealType> dLogPsi;
     std::vector<GradDerivVec> gradLogPsi;
     std::vector<ValueDerivVec> lapLogPsi;
 
 
-    SNAPJastrow(const ParticleSet& ions, ParticleSet& els);
+    SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els);
 
     ~SNAPJastrow();
 
     std::string getClassName() const override {return "SNAPJastrow";}
+
+    void resizeWFOptVectors(){
+        dLogPsi.resize(myVars.size());
+        gradLogPsi.resize(myVars.size(), GradDerivVec(Nelec));
+        lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec));
+    }
 
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
@@ -58,7 +68,7 @@ public:
 
 /****** Evaluate E_L functions ******/
     /** Calculate the ratio of proposed to current wave function element*/
-    // PsiValueType ratio(ParticleSet& P, int iat) override;
+    PsiValueType ratio(ParticleSet& P, int iat) override;
     /** Calculate d/di U_SNap*/
     //GradType evalGrad(ParticleSet& P, int iat) override;
 
@@ -81,14 +91,14 @@ public:
 
     void evaluateDerivativesWF(ParticleSet& P,
                                    const opt_variables_type& optvars,
-                                   Vector<ValueType>& dlogpsi,
-                                   Vector<ValueType>& dhpsioverpsi) override;
+                                   Vector<ValueType>& dlogpsi) override;
 
     /* calculates esnap based on a set of coefficients manually in qmcpack
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
     void calculate_internal_ESNAP_CD(std::vector<RealType> new_coeff, RealType new_u);
+    void calculate_ddc_gradlap_lammps(RealType delta, std::vector<RealType> fd_coeff, std::vector<RealType> bd_coeff);
 
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
@@ -99,10 +109,13 @@ public:
     
 
     //variables
-    int Nions;
-    int Nelec;
+    const int Nions;
+    const int Nelec;
     int NIonGroups;
+    double ncoeff;
+    const int myTableID;
     std::string iSpecies, eSpecies1, eSpecies2;
+    const ParticleSet& Ions;
     
     opt_variables_type myVars;
 
