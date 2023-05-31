@@ -58,6 +58,7 @@ while (kids != NULL){
     return true;
 
  }
+ return false;
 }
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::createSNAP(xmlNodePtr cur)
@@ -74,7 +75,8 @@ tAttrib.put(cur);
 std::string input_name(getXMLAttributeValue(cur, "namae"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
 if (ftype == "snap"){
-    auto SJ  = std::make_unique<SNAPJastrow>(sourcePtcl, targetPtcl);
+    auto SJ  = std::make_unique<SNAPJastrow>(ftype,sourcePtcl, targetPtcl);
+    //SJ->setCoefficients(set); // eventually, currently can happen in constructor.
     //putkids(kids, *SJ);
     return SJ;
 }
