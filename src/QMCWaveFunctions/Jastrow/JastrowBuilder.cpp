@@ -78,6 +78,8 @@ std::unique_ptr<WaveFunctionComponent> JastrowBuilder::buildComponent(xmlNodePtr
     return buildkSpace(cur);
   else if (typeOpt.find("Counting") < typeOpt.size())
     return buildCounting(cur);
+  else if (typeOpt.find("snap") < typeOpt.size())
+    return buildSNAP(cur);
   else
   {
     APP_ABORT("  JastrowBuilder::buildComponent unknown type!\n");
