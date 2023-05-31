@@ -7,7 +7,7 @@
       <parameter name="atomicnumber">2</parameter>
     </group>
     <attrib name="position" datatype="posArray">
- 0.000 0.000 0.000
+ 0.1 0.2 0.3
 </attrib>
     <attrib name="ionid" datatype="stringArray">
  He

@@ -18,18 +18,18 @@
 
 namespace qmcplusplus
 {
-class SNAPJastrow : public WaveFunctionComponent
+class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
 {
 public:
 
     using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
     using ValueDerivVec = ParticleAttrib<QTFull::ValueType>;
-    std::vector<RealType> dLogPsi;
+    std::vector<ValueType> dLogPsi;
     std::vector<GradDerivVec> gradLogPsi;
     std::vector<ValueDerivVec> lapLogPsi;
 
 
-    SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els);
+    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els);
 
     ~SNAPJastrow();
 
@@ -97,8 +97,8 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_internal_ESNAP_CD(std::vector<RealType> new_coeff, RealType new_u);
-    void calculate_ddc_gradlap_lammps(RealType delta, std::vector<RealType> fd_coeff, std::vector<RealType> bd_coeff);
+    void calculate_internal_ESNAP_CD(ParticleSet& P, std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ddc_gradlap_lammps(ParticleSet& P, double delta, std::vector<std::vector<double>> fd_coeff, std::vector<std::vector<double>> bd_coeff);
 
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
@@ -106,16 +106,25 @@ public:
     LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
 
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
-    
 
+    void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
+
+    void checkInVariablesExclusive(opt_variables_type& active) override;
+    void resetParametersExclusive(const opt_variables_type& active) override;
+    // responsible for setting snap coefficients into myVars for optimization during build.
+    void setCoefficients(std::vector<ValueType> snap_coeffs){};
+    bool put(xmlNodePtr cur);
     //variables
     const int Nions;
     const int Nelec;
     int NIonGroups;
-    double ncoeff;
+    int ncoeff;
     const int myTableID;
     std::string iSpecies, eSpecies1, eSpecies2;
     const ParticleSet& Ions;
+    std::vector<std::vector<double>> snap_beta;
+    double hartree_over_ev = 1.000000589/27.211399998784;
+    LAMMPS_NS::Compute* sna_global;
     
     opt_variables_type myVars;
 
