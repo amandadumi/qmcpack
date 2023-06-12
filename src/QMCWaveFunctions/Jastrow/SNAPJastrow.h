@@ -130,6 +130,8 @@ public:
     double bohr_over_ang = 1.88973; 
     LAMMPS_NS::Compute* sna_global;
     LAMMPS_NS::Compute* proposed_sna_global;
+    LAMMPS_NS::LAMMPS *lmp;                  // pointer to lammps object
+    LAMMPS_NS::LAMMPS *proposed_lmp;                  // pointer to lammps object
     
     opt_variables_type myVars;
 
@@ -139,9 +141,6 @@ public:
 
 
 
-private:
- LAMMPS_NS::LAMMPS *lmp;                  // pointer to lammps object
- LAMMPS_NS::LAMMPS *proposed_lmp;                  // pointer to lammps object
  
 };
 }
