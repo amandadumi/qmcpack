@@ -13,7 +13,7 @@
 #include "catch.hpp"
 #include "Particle/ParticleSet.h"
 #include "Particle/DistanceTable.h"
-#include "QMCWavefunctions/Jastrow/SNAPJastrow.h"
+#include "QMCWaveFunctions/Jastrow/SNAPJastrow.h"
 //lammps libraries
 #include "lammps.h"
 #include "input.h"
@@ -30,7 +30,7 @@ using std::string;
 namespace qmcplusplus
 // namespace LAMMPS_NS{
 {
-TEST_CASE("simple_file_run", "[particle]")
+TEST_CASE("simple_file_run", "[wavefunction]")
 {
   const char *lmpargv[] {"liblammps", "-log", "none"};
   int lmpargc = sizeof(lmpargv)/sizeof(const char *);
@@ -40,7 +40,7 @@ TEST_CASE("simple_file_run", "[particle]")
   //does it make sense to have a test just to make sure this doesn't fail? is there a REQUIRE to add?
 }
 
-TEST_CASE("lammps_one_command", "[particle]")
+TEST_CASE("lammps_one_command", "[wavefunction]")
 {
 
   const char *lmpargv[] {"liblammps", "-log", "none"};
@@ -51,7 +51,7 @@ TEST_CASE("lammps_one_command", "[particle]")
 
 }
 
-TEST_CASE("lammps_access_pair_class", "[particle]")
+TEST_CASE("lammps_access_pair_class", "[wavefunction]")
 {
   const char *lmpargv[] {"liblammps", "-log", "none"};
   int lmpargc = sizeof(lmpargv)/sizeof(const char *);
@@ -69,7 +69,7 @@ TEST_CASE("lammps_access_pair_class", "[particle]")
   delete lmp;
 }
 
-TEST_CASE("lammps_update_pos", "[particle]")
+TEST_CASE("lammps_update_pos", "[wavefunction]")
 {
   const char *lmpargv[] {"liblammps", "-log", "none"};
   int lmpargc = sizeof(lmpargv)/sizeof(const char *);
@@ -103,7 +103,7 @@ TEST_CASE("lammps_update_pos", "[particle]")
 }
 
 
-TEST_CASE("pass_ions_to_lammps", "[particle]")
+TEST_CASE("pass_ions_to_lammps", "[wavefunction]")
 {
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell);
@@ -151,7 +151,7 @@ TEST_CASE("pass_ions_to_lammps", "[particle]")
   delete lmp;
 }
 
-TEST_CASE("pass_ions_and_electrons_to_lammps", "[particle]")
+TEST_CASE("pass_ions_and_electrons_to_lammps", "[wavefunction]")
 {
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
@@ -218,7 +218,7 @@ TEST_CASE("pass_ions_and_electrons_to_lammps", "[particle]")
 // } // namespace qmcplusplus
 
 
-TEST_CASE("get_dbi_drj", "[particle]")
+TEST_CASE("get_dbi_drj", "[wavefunction]")
 {
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
@@ -256,28 +256,25 @@ TEST_CASE("get_dbi_drj", "[particle]")
 
 
 
-TEST_CASE("snap_jastrow_init", "[particle]")
+TEST_CASE("snap_jastrow_init", "[wavefunction]")
 {
 // short input xml check that lammps positions are correct.
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
 
   electrons.create({2});
-  electrons.R[0][0] = 0.0;
-  electrons.R[0][1] = 0.0;
-  electrons.R[0][2] = 0.0;
-  electrons.R[1][0] = 0.0;
-  electrons.R[1][1] = 0.0;
-  electrons.R[1][2] = 0.5;
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1;
+  electrons.R[1][2] = 0.1;
 
-  ions.create({2});
+  ions.create({1});
 
   ions.R[0][0] = 0.0;
   ions.R[0][1] = 0.0;
   ions.R[0][2] = 0.0;
-  ions.R[1][0] = 0.0;
-  ions.R[1][1] = 0.0;
-  ions.R[1][2] = 0.5;
 
    // initialize SK
   electrons.createSK();
@@ -295,9 +292,12 @@ TEST_CASE("snap_jastrow_init", "[particle]")
   xmlNodePtr jas_node = xmlFirstElementChild(root);
   auto jas            = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons);
   jas->put(root); 
-  void *pos = lmp->atom->x;
+  void *pos = jas->lmp->atom->x;
   double **x = static_cast<double **> (pos);
   REQUIRE((*x)[0] == Approx(0.0));
   REQUIRE((*x)[5] == Approx(0.5)); 
+
+  REQUIRE(jas->sna_global->array[1][0] == 0.0);
+  REQUIRE(jas->sna_global->array[0][10] == 27);
 }
 }
