@@ -24,7 +24,7 @@ public:
 
     using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
     using ValueDerivVec = ParticleAttrib<QTFull::ValueType>;
-    std::vector<ValueType> dLogPsi;
+    Vector<RealType> dLogPsi;
     std::vector<GradDerivVec> gradLogPsi;
     std::vector<ValueDerivVec> lapLogPsi;
 
@@ -44,12 +44,13 @@ public:
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
     | */
-    void initialize_lammps(const ParticleSet& ions, ParticleSet& els);
+    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els, bool proposed);
 
 /******MC step related functions******/
 
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
     void acceptMove(ParticleSet& P, int iat, bool safe_to_delay = false) override; 
+
     inline void restore(int iat) override {}
     /** From exsisting lammps object, get bispectrum components.
     | * 
@@ -70,9 +71,9 @@ public:
     /** Calculate the ratio of proposed to current wave function element*/
     PsiValueType ratio(ParticleSet& P, int iat) override;
     /** Calculate d/di U_SNap*/
-    //GradType evalGrad(ParticleSet& P, int iat) override;
+    GradType evalGrad(ParticleSet& P, int iat) override;
 
-    // PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
+    PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
@@ -97,8 +98,10 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_internal_ESNAP_CD(ParticleSet& P, std::vector<std::vector<double>> new_coeff, double& new_u);
-    void calculate_ddc_gradlap_lammps(ParticleSet& P, double delta, std::vector<std::vector<double>> fd_coeff, std::vector<std::vector<double>> bd_coeff);
+    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::Compute* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>> fd_coeff, std::vector<std::vector<double>> bd_coeff);
+    void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::Compute* snap_array, int iat, bool proposed);
+    void evaluate_fd_derivs(ParticleSet& P);
 
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
@@ -111,20 +114,22 @@ public:
 
     void checkInVariablesExclusive(opt_variables_type& active) override;
     void resetParametersExclusive(const opt_variables_type& active) override;
-    // responsible for setting snap coefficients into myVars for optimization during build.
-    void setCoefficients(std::vector<ValueType> snap_coeffs){};
+
     bool put(xmlNodePtr cur);
     //variables
     const int Nions;
     const int Nelec;
     int NIonGroups;
     int ncoeff;
+    int twojmax;
     const int myTableID;
     std::string iSpecies, eSpecies1, eSpecies2;
     const ParticleSet& Ions;
     std::vector<std::vector<double>> snap_beta;
     double hartree_over_ev = 1.000000589/27.211399998784;
+    double bohr_over_ang = 1.88973; 
     LAMMPS_NS::Compute* sna_global;
+    LAMMPS_NS::Compute* proposed_sna_global;
     
     opt_variables_type myVars;
 
@@ -136,8 +141,7 @@ public:
 
 private:
  LAMMPS_NS::LAMMPS *lmp;                  // pointer to lammps object
- void* pointer_to_bispectrum_coeff;         // pointer to bispectrum coeffs.
- void** pointer_to_dbidrj;                 // pointer to location in lammps object for derivative of bispectrum components with position
+ LAMMPS_NS::LAMMPS *proposed_lmp;                  // pointer to lammps object
  
 };
 }

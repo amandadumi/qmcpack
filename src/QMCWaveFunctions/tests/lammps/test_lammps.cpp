@@ -13,6 +13,7 @@
 #include "catch.hpp"
 #include "Particle/ParticleSet.h"
 #include "Particle/DistanceTable.h"
+#include "QMCWavefunctions/Jastrow/SNAPJastrow.h"
 //lammps libraries
 #include "lammps.h"
 #include "input.h"
@@ -104,7 +105,7 @@ TEST_CASE("lammps_update_pos", "[particle]")
 
 TEST_CASE("pass_ions_to_lammps", "[particle]")
 {
-    const SimulationCell simulation_cell;
+  const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell);
 
   ions.create({2});
@@ -235,6 +236,7 @@ TEST_CASE("get_dbi_drj", "[particle]")
   int lmpargc = sizeof(lmpargv)/sizeof(const char *);
   LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
   lmp->input->file("diffusing_particle.lam");
+
   void *a;
   double** a_dbdrlist_vals;
   int b;
@@ -252,5 +254,50 @@ TEST_CASE("get_dbi_drj", "[particle]")
 
   }
 
-}
 
+
+TEST_CASE("snap_jastrow_init", "[particle]")
+{
+// short input xml check that lammps positions are correct.
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+
+  electrons.create({2});
+  electrons.R[0][0] = 0.0;
+  electrons.R[0][1] = 0.0;
+  electrons.R[0][2] = 0.0;
+  electrons.R[1][0] = 0.0;
+  electrons.R[1][1] = 0.0;
+  electrons.R[1][2] = 0.5;
+
+  ions.create({2});
+
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.R[1][0] = 0.0;
+  ions.R[1][1] = 0.0;
+  ions.R[1][2] = 0.5;
+
+   // initialize SK
+  electrons.createSK();
+
+  const char * xmltext = R"(<tmp>
+  <jastrow name="snap" type="snap" function="snap"/>
+</tmp>)";
+  Libxml2Document doc;
+  bool okay;
+  okay    = doc.parseFromString(xmltext);
+  REQUIRE(okay);
+
+  xmlNodePtr root = doc.getRoot();
+
+  xmlNodePtr jas_node = xmlFirstElementChild(root);
+  auto jas            = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons);
+  jas->put(root); 
+  void *pos = lmp->atom->x;
+  double **x = static_cast<double **> (pos);
+  REQUIRE((*x)[0] == Approx(0.0));
+  REQUIRE((*x)[5] == Approx(0.5)); 
+}
+}
