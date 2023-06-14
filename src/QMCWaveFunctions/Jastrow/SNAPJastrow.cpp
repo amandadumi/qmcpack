@@ -18,6 +18,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     ncoeff = (m*(m+1)*(2*m+1))/6;
 
     lmp = initialize_lammps(els,false);
+    std::cout << "lammps initialized" <<std::endl;
       proposed_lmp = initialize_lammps(els,false);
       sna_global = lmp->modify->get_compute_by_id("sna_global");
       proposed_sna_global = proposed_lmp->modify->get_compute_by_id("sna_global");
@@ -39,10 +40,12 @@ SNAPJastrow::~SNAPJastrow(){
 }
 
 LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool proposed){
+    std::cout << "in initialize_lammps" <<std::endl;
     const char *lmpargv[] {"liblammps","-log","none","-screen","none"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
     LAMMPS_NS::LAMMPS *this_lmp;
     this_lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv, MPI_COMM_WORLD);
+    std::cout << "created lammps instance" <<std::endl;
     this_lmp->input->one("units  metal");
     this_lmp->input->one("atom_style  atomic");
     // TODO: will this be set by a qmc box? probably.
@@ -64,6 +67,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool 
       this_lmp->input->one("mass 1 .95");
       this_lmp->input->one("mass 2 .95");
       this_lmp->input->one("mass 3 1");
+      std::cout << "before ion creation" <<std::endl;
       for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
           // label groups in lamps
           for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
@@ -84,6 +88,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool 
           this_lmp->input->one(temp_command);
         }
       }
+      std::cout << "after ion creation" <<std::endl;
       temp_command = std::string("variable twojmax equal ") + std::to_string(twojmax);
       this_lmp->input->one(temp_command);
       this_lmp->input->one("variable 	rcutfac equal 1.0");
