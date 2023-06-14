@@ -292,8 +292,6 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
   electrons.R[0][0] = 0.2;
   electrons.R[0][1] = 0.2;
   electrons.R[0][2] = 0.2;
-  electrons.create({1});
-  electrons.setName("e_d");
   electrons.R[1][0] = 0.1;
   electrons.R[1][1] = 0.1;
   electrons.R[1][2] = 0.1;
