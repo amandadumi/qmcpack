@@ -324,4 +324,11 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
   REQUIRE(jas->sna_global->array[1][0] == 0.0);
   REQUIRE(jas->sna_global->array[0][10] == 27);
 }
+
+TEST_CASE("snap_jastrow_derivatives", "[wavefunction]")
+{
+
+int x =0;
+}
+
 }
