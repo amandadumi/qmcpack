@@ -99,7 +99,7 @@ public:
     without having to internally change the lammps object.
     */
     void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::Compute* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
-    void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>> fd_coeff, std::vector<std::vector<double>> bd_coeff);
+    void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::Compute* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P);
 
