@@ -72,8 +72,9 @@ OhmmsAttributeSet tAttrib;
 tAttrib.add(ftype, "function");
 tAttrib.put(cur);
 
-std::string input_name(getXMLAttributeValue(cur, "namae"));
+std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
+std::cout << "creating jastrow using target: and source:" << targetPtcl.getName() << sourcePtcl.getName() <<std::endl;
 if (ftype == "snap"){
     auto SJ  = std::make_unique<SNAPJastrow>(ftype,sourcePtcl, targetPtcl);
     //SJ->setCoefficients(set); // eventually, currently can happen in constructor.

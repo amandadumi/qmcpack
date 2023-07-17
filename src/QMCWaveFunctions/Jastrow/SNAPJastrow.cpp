@@ -17,18 +17,18 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     int m = (twojmax/2)+1;
     ncoeff = (m*(m+1)*(2*m+1))/6;
 
-    lmp = initialize_lammps(els,false);
+    lmp = initialize_lammps(els);
     std::cout << "lammps initialized" <<std::endl;
-      proposed_lmp = initialize_lammps(els,false);
-      sna_global = lmp->modify->get_compute_by_id("sna_global");
-      proposed_sna_global = proposed_lmp->modify->get_compute_by_id("sna_global");
-      snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.0));
-      for (int i=0; i<(Nelec); i++){
-        for (int nc = 0; nc < ncoeff;nc++){
-          std::stringstream name;
-          name << "snap_coeff_" << i;
-          name << "_"  << nc ;
-          snap_beta[i][nc] = 0.0;
+    proposed_lmp = initialize_lammps(els);
+    sna_global = lmp->modify->get_compute_by_id("sna_global");
+    proposed_sna_global = proposed_lmp->modify->get_compute_by_id("sna_global");
+    snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.0));
+    for (int i=0; i<(Nelec); i++){
+      for (int nc = 0; nc < ncoeff;nc++){
+        std::stringstream name;
+        name << "snap_coeff_" << i;
+        name << "_"  << nc ;
+        snap_beta[i][nc] = 0.0;
         myVars.insert(name.str(), snap_beta[i][nc], true);
       }
     }
@@ -39,7 +39,7 @@ SNAPJastrow::~SNAPJastrow(){
   delete lmp;
 }
 
-LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool proposed){
+LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     std::cout << "in initialize_lammps" <<std::endl;
     const char *lmpargv[] {"liblammps","-log","none","-screen","none"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
@@ -72,19 +72,14 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool 
           // label groups in lamps
           for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
             // place atom in boxes according to their group.
-            if (proposed==true){
-              temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string(els.activeR(iat)[0]/bohr_over_ang) + "  " + std::to_string(els.activeR(iat)[1]/bohr_over_ang)  + " " + std::to_string(els.activeR(iat)[2]/bohr_over_ang)+ " units box";  
-              this_lmp->input->one(temp_command);
-            }
-            else{
-              temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
-              this_lmp->input->one(temp_command);
-            }
+            temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
+            this_lmp->input->one(temp_command);
           }
       }
       for (int ig = 0; ig < Ions.groups(); ig++) { // loop over groups
         for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
           temp_command = std::string("create_atoms 3 single ") + std::to_string(Ions.R[iat][0]/bohr_over_ang) + "  " + std::to_string(Ions.R[iat][1]/bohr_over_ang)  + " " + std::to_string(Ions.R[iat][2]/bohr_over_ang) + " units box";  
+          std::cout << temp_command << std::endl;
           this_lmp->input->one(temp_command);
         }
       }
@@ -142,45 +137,46 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool 
                           ParticleSet::ParticleLaplacian& L,
                           bool fromscratch){
 
-      void *pos = lmp->atom->x;
-      double **x = static_cast<double **> (pos);
-      RealType delta = 0.001; // TODO: find units
-      double G_finite_diff_forward;
-      double G_finite_diff_back;
-      // compute gradient
-          // i.e. pull gradient out from lammps.
+    void *pos = lmp->atom->x;
+    double **x = static_cast<double **> (pos);
+    RealType delta = 0.001; // TODO: find units
+    double G_finite_diff_forward;
+    double G_finite_diff_back;
+    // compute gradient
+      // i.e. pull gradient out from lammps.
     for (int ig = 0; ig < P.groups(); ig++) {
-          for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
-              // loop over elecs in each group
-              for (int dim = 0; dim < OHMMS_DIM; dim++){
-                for (int nv =0; nv <ncoeff; nv ++){
-                int row = (iel*3)+dim + 1;
-                int col = nv;
-                //G[iel][dim] = lammps_object
-                G[iel][dim] += snap_beta[iel][col]*static_cast<double>(sna_global->array[row][col])*hartree_over_ev*bohr_over_ang;
-                //forward direction
-                RealType r0 = P.R[iel][dim]/bohr_over_ang;
-                RealType rp   = r0 + (delta/2);
-                //update lammps position
-                (*x)[(iel*3)+dim] = rp;
-                // recalculate bispectrum stuff
-                sna_global -> compute_array();
-                G_finite_diff_forward = snap_beta[iel][col]*static_cast<double>(sna_global->array[row][col])*hartree_over_ev*bohr_over_ang;
-                //gradient
-                //backward direction
-                RealType rm   = r0 - (delta/2);
-                //update lammps position
-                (*x)[(3*iel)+dim] = rm;
-                sna_global -> compute_array();
-                G_finite_diff_back = snap_beta[iel][col]*static_cast<double>(sna_global->array[row][col])*hartree_over_ev*bohr_over_ang;
-                // recalculate bispectrum stuff
-                double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/delta;
-                //fill L
-                L[iel] -=  finite_diff_lap;
-                // return coordinates to original
-                (*x)[iel+dim] = r0;
-                sna_global -> compute_array();
-              }
+      for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
+       // loop over elecs in each group
+       for (int dim = 0; dim < OHMMS_DIM; dim++){
+          for (int nv =0; nv <ncoeff; nv ++){
+            int row = (iel*3)+dim + 1;
+            int col = nv;
+            //G[iel][dim] = lammps_object
+            double grad_val = static_cast<double>(sna_global->array[row][col]);
+            G[iel][dim] += snap_beta[iel][col]*grad_val*hartree_over_ev*bohr_over_ang;
+            //forward direction
+            RealType r0 = P.R[iel][dim]/bohr_over_ang;
+            RealType rp   = r0 + (delta/2);
+            //update lammps position
+            (*x)[(iel*3)+dim] = rp;
+           // recalculate bispectrum stuff
+            sna_global -> compute_array();
+            G_finite_diff_forward = snap_beta[iel][col]*static_cast<double>(sna_global->array[row][col])*hartree_over_ev*bohr_over_ang;
+            //gradient
+            //backward direction
+            RealType rm   = r0 - (delta/2);
+            //update lammps position
+            (*x)[(3*iel)+dim] = rm;
+            sna_global -> compute_array();
+            G_finite_diff_back = snap_beta[iel][col]*static_cast<double>(sna_global->array[row][col])*hartree_over_ev*bohr_over_ang;
+            // recalculate bispectrum stuff
+            double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/delta;
+            //fill L
+            L[iel] -=  finite_diff_lap;
+            // return coordinates to original
+            (*x)[iel+dim] = r0;
+            sna_global -> compute_array();
+          }
             }
           }
     }
@@ -402,15 +398,15 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool 
           double finite_diff_lap_forward = fd_coeff[iel][nv]*((G_finite_diff_forward - G_finite_diff_back)/dist_delta);
           double finite_diff_lap_back = bd_coeff[iel][nv]*((G_finite_diff_forward - G_finite_diff_back)/dist_delta);
           //fill L
-          ddc_lap_forward_val[iel] +=  finite_diff_lap_forward*hartree_over_ev*bohr_over_ang;
-          ddc_lap_back_val[iel] +=  finite_diff_lap_back*hartree_over_ev*bohr_over_ang;
+          ddc_lap_forward_val[iel] -=  finite_diff_lap_forward*hartree_over_ev*bohr_over_ang;
+          ddc_lap_back_val[iel] -=  finite_diff_lap_back*hartree_over_ev*bohr_over_ang;
           // return coordinates to original
           (*x)[(iel*3)+dim] = r0;
           sna_global->compute_array();
         } //end dim
       } //end iel
     } //end nv
-    lapLogPsi[cur_val] = -(ddc_lap_forward_val-ddc_lap_back_val)/(2*coeff_delta);
+    lapLogPsi[cur_val] = (ddc_lap_forward_val-ddc_lap_back_val)/(2*coeff_delta);
     gradLogPsi[cur_val] = (ddc_grad_forward_val - ddc_grad_back_val)/(2*coeff_delta);
   }
     
@@ -432,7 +428,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els, bool 
           // determine atom type
           double bispectrum_val = snap_global->array[0][(iel*ncoeff) + k]; //block of bispectrum + current component to add.
           ESNAP_elec += coeff[iel][k] * bispectrum_val;
-          //std::cout << "esnap_elec val is" << ESNAP_elec << std::endl;
+          std::cout << "esnap_elec val is" << ESNAP_elec << "a product of coeff " << coeff[iel][k] <<" and bispectrum"<< bispectrum_val <<std::endl;
         }
         ESNAP_all += ESNAP_elec;
       }

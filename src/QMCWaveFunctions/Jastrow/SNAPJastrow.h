@@ -44,7 +44,7 @@ public:
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
     | */
-    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els, bool proposed);
+    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els);
 
 /******MC step related functions******/
 
