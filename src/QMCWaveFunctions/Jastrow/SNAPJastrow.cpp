@@ -133,6 +133,8 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
       this_lmp->input->one("compute sna_global all snap ${snap_options}"); 
       this_lmp->input->one("thermo 100");
       this_lmp->input->one("thermo_style   custom  c_sna_global[1][11] c_sna_global[2][1]");
+      this_lmp->input->one("thermo 100");
+      this_lmp->input->one("thermo_style   custom  c_sna_global[1][11] c_sna_global[2][1]");
       this_lmp->input->one("run            0");
 
 
@@ -203,6 +205,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
     }
     log_value_ = evaluateLog(P,G,L);
     return log_value_;
+   }
    }
 
 
