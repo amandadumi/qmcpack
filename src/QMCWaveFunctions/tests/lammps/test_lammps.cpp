@@ -320,15 +320,22 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
   REQUIRE((*x)[5] == Approx(0.1*0.529177)); //elec2
   REQUIRE((*x)[7] == Approx(0.0)); //ions
   std::cout << "check 2 position" << std::endl;
-
+  
+  std::cout << "checking whether expected bispectrum components are present" << std::endl;
+  jas->sna_global->compute_array();
+  std::vector<double> true_bispectrum{51.868672, 103.44331, 154.57879, 154.43365, 153.84747, 0, 0, 0, 0, 0}; 
+  for (int i=0; i<jas->ncoeff;i++){
+    std::cout<< i << " " << jas->sna_global->array[0][i]<< " " << true_bispectrum[i] << std::endl; 
+    REQUIRE(jas->sna_global->array[0][i] == true_bispectrum[i]);
+  }
   REQUIRE(jas->sna_global->array[1][0] == 0.0);
   REQUIRE(jas->sna_global->array[0][10] == 27);
-}
 
-TEST_CASE("snap_jastrow_derivatives", "[wavefunction]")
-{
+  std::cout << "checking energy calculation" << std::endl;
+  std::vector<std::vector<double>> set_coeffs;
+  set_coeffs = std::vector<std::vector<double>>(3, std::vector<double>{1.2,1.3,1.4,1.5,1.6});
+  std::cout << "checking whether expected bispectrum components are present" << std::endl;
 
-int x =0;
 }
 
 }
