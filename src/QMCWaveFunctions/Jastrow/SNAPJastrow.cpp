@@ -20,6 +20,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     lmp = initialize_lammps(els);
     std::cout << "lammps initialized" <<std::endl;
     proposed_lmp = initialize_lammps(els);
+    //std::cout << "can we find this compute? " << lmp->modify->find_compute("sna_global") <<std::endl;
     sna_global = lmp->modify->get_compute_by_id("sna_global");
     proposed_sna_global = proposed_lmp->modify->get_compute_by_id("sna_global");
     snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.0));
@@ -41,7 +42,7 @@ SNAPJastrow::~SNAPJastrow(){
 
 LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     std::cout << "in initialize_lammps" <<std::endl;
-    const char *lmpargv[] {"liblammps","-log","none","-screen","none"};
+    const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","none"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
     LAMMPS_NS::LAMMPS *this_lmp;
     this_lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv, MPI_COMM_WORLD);
@@ -73,6 +74,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
           for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
             // place atom in boxes according to their group.
             temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
+            std::cout << temp_command << std::endl;
             this_lmp->input->one(temp_command);
           }
       }
@@ -110,6 +112,8 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
       this_lmp->input->one("pair_style zbl ${zblcutinner} ${zblcutouter}");
       this_lmp->input->one("pair_coeff 	* * ${zblz} ${zblz}");
       this_lmp->input->one("compute sna_global all snap ${snap_options}"); 
+      this_lmp->input->one("thermo 100");
+      this_lmp->input->one("thermo_style   custom  c_sna_global[1][11] c_sna_global[2][1]");
       this_lmp->input->one("run            0");
 
 
@@ -182,7 +186,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     }
     log_value_ = evaluateLog(P,G,L);
     return log_value_;
-  }
+   }
 
 
 
