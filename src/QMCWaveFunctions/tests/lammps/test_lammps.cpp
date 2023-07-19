@@ -306,24 +306,22 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
 
   xmlNodePtr jas_node = xmlFirstElementChild(root);
   std::cout << "some xml parsing stuff" << std::endl;
-  auto jas            = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons);
+  auto jas = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons);
   std::cout << "initial jastrow called finished" << std::endl;
   jas->put(root); 
   std::cout << "some xml parsing stuff" << std::endl;
   void *pos = jas->lmp->atom->x;
   std::cout << "get_position" << std::endl;
-  double **x = static_cast<double **> (pos);
   jas->evaluateLog(electrons, electrons.G, electrons.L);
-  std::cout << "cast position" << std::endl;
-  REQUIRE((*x)[0] == Approx(0.2*0.529177));//elec1
-  std::cout << "check 1 position" << std::endl;
-  REQUIRE((*x)[5] == Approx(0.1*0.529177)); //elec2
-  REQUIRE((*x)[7] == Approx(0.0)); //ions
+  std::cout << "check positions" << std::endl;
+  REQUIRE(jas->lmp->atom->x[0][2] == Approx(0.2*0.529177));//elec1
+  REQUIRE(jas->lmp->atom->x[1][2] == Approx(0.1*0.529177));//elec1
+  REQUIRE(jas->lmp->atom->x[2][0] == Approx(0.0));//elec1
   std::cout << "check 2 position" << std::endl;
   
   std::cout << "checking whether expected bispectrum components are present" << std::endl;
   jas->sna_global->compute_array();
-  std::vector<double> true_bispectrum{51.868672, 103.44331, 154.57879, 154.43365, 153.84747, 0, 0, 0, 0, 0}; 
+  std::vector<double> true_bispectrum{25.934336, 51.716743, 77.272263, 77.197303, 76.89445, 25.934336, 51.726568, 77.306523, 77.236349, 76.953019, 76.953019}; 
   for (int i=0; i<jas->ncoeff;i++){
     std::cout<< i << " " << jas->sna_global->array[0][i]<< " " << true_bispectrum[i] << std::endl; 
     REQUIRE(jas->sna_global->array[0][i] == true_bispectrum[i]);
