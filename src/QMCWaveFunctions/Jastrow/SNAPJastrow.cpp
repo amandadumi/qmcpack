@@ -52,32 +52,32 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     // TODO: will this be set by a qmc box? probably.
     this_lmp->input->one("boundary  f f f ");
     this_lmp->input->one("neighbor 1.9 bin");
-      this_lmp->input->one("neigh_modify every 1 delay 1 check yes ");
-      //TODO: what will box region be pased on QMC object. Cell?
-      this_lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
-      // create a box that will contain the number of species equal to the number of groups.
-      std::string temp_command = std::string("create_box ") + std::to_string(3) +  " mybox";
-      this_lmp->input->one(temp_command);
-      // add atoms to the groups
-      double bohr_over_ang = 1.88973;// to convert qmcpack storage of bohr into angstrom for lammps
-      this_lmp->input->one("group e_u type 1");
-      this_lmp->input->one("group e_d type 2");
-      this_lmp->input->one("group i type 3");
-      this_lmp->input->one("group elecs type 1 2");
-      this_lmp->input->one("group all type 1 2 3");
-      this_lmp->input->one("mass 1 .95");
-      this_lmp->input->one("mass 2 .95");
-      this_lmp->input->one("mass 3 1");
-      std::cout << "before ion creation" <<std::endl;
-      for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
-          // label groups in lamps
-          for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
-            // place atom in boxes according to their group.
-            temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
-            std::cout << temp_command << std::endl;
-            this_lmp->input->one(temp_command);
-          }
+    this_lmp->input->one("neigh_modify every 1 delay 1 check yes ");
+    //TODO: what will box region be pased on QMC object. Cell?
+    this_lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
+    // create a box that will contain the number of species equal to the number of groups.
+    std::string temp_command = std::string("create_box ") + std::to_string(3) +  " mybox";
+    this_lmp->input->one(temp_command);
+    // add atoms to the groups
+    double bohr_over_ang = 1.88973;// to convert qmcpack storage of bohr into angstrom for lammps
+    this_lmp->input->one("group e_u type 1");
+    this_lmp->input->one("group e_d type 2");
+    this_lmp->input->one("group i type 3");
+    this_lmp->input->one("group elecs type 1 2");
+    this_lmp->input->one("group all type 1 2 3");
+    this_lmp->input->one("mass 1 .95");
+    this_lmp->input->one("mass 2 .95");
+    this_lmp->input->one("mass 3 1");
+    std::cout << "before ion creation" <<std::endl;
+    for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
+      // label groups in lamps
+      for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
+        // place atom in boxes according to their group.
+        temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
+        std::cout << temp_command << std::endl;
+        this_lmp->input->one(temp_command);
       }
+    }
       for (int ig = 0; ig < Ions.groups(); ig++) { // loop over groups
         for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
           temp_command = std::string("create_atoms 3 single ") + std::to_string(Ions.R[iat][0]/bohr_over_ang) + "  " + std::to_string(Ions.R[iat][1]/bohr_over_ang)  + " " + std::to_string(Ions.R[iat][2]/bohr_over_ang) + " units box";  
@@ -121,16 +121,18 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
   }
 
   void SNAPJastrow::update_lmp_pos(const ParticleSet& P, LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::Compute* snap_array,int iat, bool proposed){
-      void *pos = lmp_pntr->atom->x;
-      double **x = static_cast<double **> (pos);
       if (proposed){
       for (int dim = 0; dim < OHMMS_DIM; dim++){
-        (*x)[(iat*3)+dim] = P.activeR(iat)[dim]/bohr_over_ang;
+        std::cout<< "before " <<lmp_pntr->atom->x[iat][dim]<<std::endl;
+        lmp_pntr->atom->x[iat][dim] = P.activeR(iat)[dim]/bohr_over_ang;
+        std::cout << "after " << lmp_pntr->atom->x[iat][dim]<<std::endl;
       }
       }
       else{
       for (int dim = 0; dim < OHMMS_DIM; dim++){
-        (*x)[(iat*3)+dim] = P.R[iat][dim]/bohr_over_ang;
+        std::cout<< "before " <<lmp_pntr->atom->x[iat][dim]<<std::endl;
+        lmp_pntr->atom->x[iat][dim] = P.R[iat][dim]/bohr_over_ang;
+        std::cout << "after " << lmp_pntr->atom->x[iat][dim]<<std::endl;
       }
       }
       snap_array->compute_array();
@@ -190,13 +192,14 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
 
 
 
-
   SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                     ParticleSet::ParticleGradient& G,
                                     ParticleSet::ParticleLaplacian& L){
       double ESNAP=0;
       for (int i = 0; i < (Nelec); i++){
+        std::cout<< "updating position of particle " << i <<std::endl;
         update_lmp_pos(P,lmp,sna_global,i,false);
+        std::cout << "position outside of function is " << lmp->atom->x[i][2] <<std::endl;
       }
       calculate_ESNAP(P, sna_global, snap_beta, ESNAP);
       log_value_ = static_cast<SNAPJastrow::LogValueType>(ESNAP);
