@@ -9,6 +9,7 @@
 #include "input.h"
 #include "modify.h"
 #include "compute.h"
+#include "compute_snap.h"
 #include "atom.h"
 #include "pair.h"
 #include "pair_snap.h"
@@ -98,10 +99,11 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::Compute* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
     void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
-    void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::Compute* snap_array, int iat, bool proposed);
+    void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P);
+    double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int col, std::vector<std::vector<double>> coeffs, double dist_delta);
 
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
@@ -128,8 +130,8 @@ public:
     std::vector<std::vector<double>> snap_beta;
     double hartree_over_ev = 1.000000589/27.211399998784;
     double bohr_over_ang = 1.88973; 
-    LAMMPS_NS::Compute* sna_global;
-    LAMMPS_NS::Compute* proposed_sna_global;
+    LAMMPS_NS::ComputeSnap* sna_global;
+    LAMMPS_NS::ComputeSnap* proposed_sna_global;
     LAMMPS_NS::LAMMPS *lmp;                  // pointer to lammps object
     LAMMPS_NS::LAMMPS *proposed_lmp;                  // pointer to lammps object
     
