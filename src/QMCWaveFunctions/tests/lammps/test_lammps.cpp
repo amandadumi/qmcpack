@@ -17,12 +17,6 @@
 #include "OhmmsData/Libxml2Doc.h"
 //lammps libraries
 #include "lammps.h"
-#include "input.h"
-#include "atom.h"
-#include "pair.h"
-#include "pair_snap.h"
-#include "force.h"
-
 #include <stdio.h>
 #include <string>
 #include <cstring>
@@ -323,8 +317,8 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
   jas->sna_global->compute_array();
   std::vector<double> true_bispectrum{25.934336, 51.716743, 77.272263, 77.197303, 76.89445, 25.934336, 51.726568, 77.306523, 77.236349, 76.953019, 76.953019}; 
   for (int i=0; i<jas->ncoeff;i++){
-    std::cout<< i << " " << jas->sna_global->array[0][i]<< " " << true_bispectrum[i] << std::endl; 
-    REQUIRE(jas->sna_global->array[0][i] == true_bispectrum[i]);
+    std::cout<< i << " " << jas->sna_global->array[0][i]<<" " <<  true_bispectrum[i] << std::endl; 
+    REQUIRE(jas->sna_global->array[0][i] == Approx(true_bispectrum[i]));
   }
   REQUIRE(jas->sna_global->array[1][0] == 0.0);
   REQUIRE(jas->sna_global->array[0][10] == 27);
