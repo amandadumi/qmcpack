@@ -21,8 +21,8 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     std::cout << "lammps initialized" <<std::endl;
     proposed_lmp = initialize_lammps(els);
     //std::cout << "can we find this compute? " << lmp->modify->find_compute("sna_global") <<std::endl;
-    sna_global = lmp->modify->get_compute_by_id("sna_global");
-    proposed_sna_global = proposed_lmp->modify->get_compute_by_id("sna_global");
+    sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
+    proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
     snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.0));
     for (int i=0; i<(Nelec); i++){
       for (int nc = 0; nc < ncoeff;nc++){
@@ -42,7 +42,7 @@ SNAPJastrow::~SNAPJastrow(){
 
 LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     std::cout << "in initialize_lammps" <<std::endl;
-    const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","none"};
+    const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
     LAMMPS_NS::LAMMPS *this_lmp;
     this_lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv, MPI_COMM_WORLD);
@@ -120,36 +120,52 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     return this_lmp;
   }
 
-  void SNAPJastrow::update_lmp_pos(const ParticleSet& P, LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::Compute* snap_array,int iat, bool proposed){
+  void SNAPJastrow::update_lmp_pos(const ParticleSet& P, LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array,int iat, bool proposed){
       if (proposed){
       for (int dim = 0; dim < OHMMS_DIM; dim++){
-        std::cout<< "before " <<lmp_pntr->atom->x[iat][dim]<<std::endl;
         lmp_pntr->atom->x[iat][dim] = P.activeR(iat)[dim]/bohr_over_ang;
-        std::cout << "after " << lmp_pntr->atom->x[iat][dim]<<std::endl;
       }
       }
       else{
       for (int dim = 0; dim < OHMMS_DIM; dim++){
-        std::cout<< "before " <<lmp_pntr->atom->x[iat][dim]<<std::endl;
         lmp_pntr->atom->x[iat][dim] = P.R[iat][dim]/bohr_over_ang;
-        std::cout << "after " << lmp_pntr->atom->x[iat][dim]<<std::endl;
       }
       }
       snap_array->compute_array();
   }
+
+double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int col, std::vector<std::vector<double>> coeffs, double dist_delta){
+  double G_finite_diff_forward;
+  double G_finite_diff_back;
+  //forward direction
+  RealType r0 = P.R[iat][dim]/bohr_over_ang;
+  RealType rp   = r0 + (dist_delta/2);
+  lmp->atom->x[iat][dim] = rp;
+  sna_global -> compute_array();
+  G_finite_diff_forward = coeffs[iat][col]*sna_global->array[row][col]*hartree_over_ev*bohr_over_ang;
+  
+  //backward direction
+  RealType rm  = r0 - (dist_delta/2);
+  //update lammps position
+  lmp->atom->x[iat][dim] = rm;
+  sna_global -> compute_array();
+  G_finite_diff_back = coeffs[iat][col]*sna_global->array[row][col]*hartree_over_ev*bohr_over_ang;
+  // recalculate bispectrum stuff
+  double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/(dist_delta*bohr_over_ang);
+  //fill L
+  // return coordinates to original
+  lmp->atom->x[iat][dim] = r0;
+  sna_global -> compute_array();
+  return finite_diff_lap;
+}
 
   SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
                           ParticleSet::ParticleGradient& G,
                           ParticleSet::ParticleLaplacian& L,
                           bool fromscratch){
 
-    void *pos = lmp->atom->x;
-    double **x = static_cast<double **> (pos);
-    RealType delta = 0.001; // TODO: find units
-    double G_finite_diff_forward;
-    double G_finite_diff_back;
-    // compute gradient
-      // i.e. pull gradient out from lammps.
+    RealType dist_delta = 0.001; // TODO: find units
+    // compute gradient, i.e., pull gradient out from lammps.
     for (int ig = 0; ig < P.groups(); ig++) {
       for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
        // loop over elecs in each group
@@ -157,34 +173,12 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
           for (int nv =0; nv <ncoeff; nv ++){
             int row = (iel*3)+dim + 1;
             int col = nv;
-            //G[iel][dim] = lammps_object
-            double grad_val = static_cast<double>(sna_global->array[row][col]);
+            double grad_val = sna_global->array[row][col];
             G[iel][dim] += snap_beta[iel][col]*grad_val*hartree_over_ev*bohr_over_ang;
-            //forward direction
-            RealType r0 = P.R[iel][dim]/bohr_over_ang;
-            RealType rp   = r0 + (delta/2);
-            //update lammps position
-            (*x)[(iel*3)+dim] = rp;
-           // recalculate bispectrum stuff
-            sna_global -> compute_array();
-            G_finite_diff_forward = snap_beta[iel][col]*static_cast<double>(sna_global->array[row][col])*hartree_over_ev*bohr_over_ang;
-            //gradient
-            //backward direction
-            RealType rm   = r0 - (delta/2);
-            //update lammps position
-            (*x)[(3*iel)+dim] = rm;
-            sna_global -> compute_array();
-            G_finite_diff_back = snap_beta[iel][col]*static_cast<double>(sna_global->array[row][col])*hartree_over_ev*bohr_over_ang;
-            // recalculate bispectrum stuff
-            double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/delta;
-            //fill L
-            L[iel] -=  finite_diff_lap;
-            // return coordinates to original
-            (*x)[iel+dim] = r0;
-            sna_global -> compute_array();
+            L[iel] -= FD_Lap(P,iel, dim,row,col,snap_beta,dist_delta); 
           }
-            }
-          }
+        }
+      }
     }
     log_value_ = evaluateLog(P,G,L);
     return log_value_;
@@ -197,9 +191,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
                                     ParticleSet::ParticleLaplacian& L){
       double ESNAP=0;
       for (int i = 0; i < (Nelec); i++){
-        std::cout<< "updating position of particle " << i <<std::endl;
         update_lmp_pos(P,lmp,sna_global,i,false);
-        std::cout << "position outside of function is " << lmp->atom->x[i][2] <<std::endl;
       }
       calculate_ESNAP(P, sna_global, snap_beta, ESNAP);
       log_value_ = static_cast<SNAPJastrow::LogValueType>(ESNAP);
@@ -304,12 +296,9 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     }
 
   void SNAPJastrow::evaluate_fd_derivs(ParticleSet& P){
-        std::vector<std::vector<double>> fd_coeff;
-        std::vector<std::vector<double>> bd_coeff;
-        fd_coeff = std::vector<std::vector<double>>((Nelec + Nions),std::vector<double>(ncoeff,0.0));
-        bd_coeff = std::vector<std::vector<double>>((Nelec + Nions),std::vector<double>(ncoeff,0.0));
-        RealType fd_u;
-        RealType bd_u;
+        std::vector<std::vector<double>> fd_coeff((Nelec + Nions),std::vector<double>(ncoeff,0.0));
+        std::vector<std::vector<double>> bd_coeff((Nelec + Nions),std::vector<double>(ncoeff,0.0));
+        RealType fd_u, bd_u;
         RealType coeff_delta = 1e-6;
         RealType dist_delta = 1e-4;
         for (int nv = 0; nv < ncoeff; nv++){
@@ -327,7 +316,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
             }
             fd_coeff[i][nv] = snap_beta[i][nv] + coeff_delta;
             bd_coeff[i][nv] = snap_beta[i][nv] - coeff_delta;
-      
+
             calculate_ESNAP(P, sna_global, fd_coeff, fd_u);
             calculate_ESNAP(P, sna_global, bd_coeff, bd_u);
             dLogPsi[coeff_start+nv] += (fd_u - bd_u)/(2*coeff_delta); //units handled elsewhere
@@ -342,10 +331,6 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     /** brute force calculation of grad lammp where lammps object will have coefficients updated and reran.*/ 
     // 1. update coeffs to forward direction
       // double* x = new double [OHMMS_DIM*P.getTotalNum()];
-    void *pos = lmp->atom->x;
-    double **x = static_cast<double **> (pos);
-    double G_finite_diff_forward;
-    double G_finite_diff_back;
     //std::vector<SNAPJastrow::GradDerivVec> ddc_grad_forward;
     //std::vector<SNAPJastrow::GradDerivVec> ddc_grad_back;
     //std::vector<SNAPJastrow::GradDerivVec> ddc_grad_cd;
@@ -372,44 +357,15 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
         int coeff_start = (iel*ncoeff);
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           int row = (iel*3)+dim + 1;
-          //G[iel][dim] = lammps_object
           double grad_val = sna_global->array[row][col];
-          std::cout << "grad val is " << grad_val << std::endl;
-          std::cout << "for d/dc grad val is " << fd_coeff[iel][nv]*grad_val*hartree_over_ev*bohr_over_ang <<std::endl;
-          std::cout << "back d/dc grad val is " << bd_coeff[iel][nv]*grad_val*hartree_over_ev*bohr_over_ang <<std::endl;
           ddc_grad_forward_val[iel][dim] += fd_coeff[iel][nv]*grad_val*hartree_over_ev*bohr_over_ang;
           ddc_grad_back_val[iel][dim] += bd_coeff[iel][nv]*grad_val*hartree_over_ev*bohr_over_ang;
 
-
-          //forward direction
-          RealType r0 = P.R[iel][dim];
-          RealType rp   = r0 + (dist_delta/2);
-          //update lammps position
-          //std::cout<< "original  pos is " << (*x)[(iel*3)+dim] <<std::endl;
-          (*x)[(iel*3)+dim] = rp;
-          //std::cout<< "updated pos is " << (*x)[(iel*3)+dim] <<std::endl;
-            // recalculate bispectrum stuff
-          sna_global->compute_array();
-          G_finite_diff_forward = sna_global->array[row][col];
-          std::cout<< "forward grad is  " << G_finite_diff_forward <<std::endl;
-
-          //back direction
-          RealType rm = r0 - (dist_delta/2);
-          //update lammps position
-          (*x)[(iel*3)+dim] = rm;
-          // recalculate bispectrum stuff
-          sna_global->compute_array();
-          G_finite_diff_back = sna_global->array[row][col];
-          std::cout<< "back grad is  " << G_finite_diff_back <<std::endl;
-          //finit diff d/dc lap
-          double finite_diff_lap_forward = fd_coeff[iel][nv]*((G_finite_diff_forward - G_finite_diff_back)/dist_delta);
-          double finite_diff_lap_back = bd_coeff[iel][nv]*((G_finite_diff_forward - G_finite_diff_back)/dist_delta);
-          //fill L
+     
+          double finite_diff_lap_forward = FD_Lap(P, iel, dim, row, nv,fd_coeff, dist_delta);
+          double finite_diff_lap_back = FD_Lap(P, iel, dim, row, nv,bd_coeff, dist_delta);
           ddc_lap_forward_val[iel] -=  finite_diff_lap_forward*hartree_over_ev*bohr_over_ang;
           ddc_lap_back_val[iel] -=  finite_diff_lap_back*hartree_over_ev*bohr_over_ang;
-          // return coordinates to original
-          (*x)[(iel*3)+dim] = r0;
-          sna_global->compute_array();
         } //end dim
       } //end iel
     } //end nv
@@ -423,7 +379,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
   used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
   without having to internally change the lammps object.
   */
-  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::Compute* snap_global, std::vector<std::vector<double>> coeff, double& new_u ){
+  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u ){
     double ESNAP_all = 0;
     double ESNAP_elec=0;
 
