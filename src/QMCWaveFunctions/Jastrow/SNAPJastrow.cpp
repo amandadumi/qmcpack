@@ -174,8 +174,14 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           lmp_pntr->atom->x[iat][dim] = P.activeR(iat)[dim]/bohr_over_ang;
         }
+        for (int dim = 0; dim < OHMMS_DIM; dim++){
+          lmp_pntr->atom->x[iat][dim] = P.activeR(iat)[dim]/bohr_over_ang;
+        }
       }
       else{
+        for (int dim = 0; dim < OHMMS_DIM; dim++){
+          lmp_pntr->atom->x[iat][dim] = P.R[iat][dim]/bohr_over_ang;
+        }
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           lmp_pntr->atom->x[iat][dim] = P.R[iat][dim]/bohr_over_ang;
         }
@@ -224,6 +230,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
         // loop over elecs in each group
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           int row = (iel*3)+dim + 1;
+        // loop over elecs in each group
+        for (int dim = 0; dim < OHMMS_DIM; dim++){
+          int row = (iel*3)+dim + 1;
           for (int nv =0; nv <ncoeff; nv ++){
             int col = nv;
             double grad_val = sna_global->array[row][col];
@@ -254,9 +263,18 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
     log_value_ = static_cast<SNAPJastrow::LogValueType>(ESNAP);
             
     return log_value_;
+    double ESNAP=0;
+    for (int i = 0; i < (Nelec); i++){
+      update_lmp_pos(P,lmp,sna_global,i,false);
+    }
+    calculate_ESNAP(P, sna_global, snap_beta, ESNAP);
+    log_value_ = static_cast<SNAPJastrow::LogValueType>(ESNAP);
+            
+    return log_value_;
   }
 
     SNAPJastrow::GradType SNAPJastrow::evalGrad(ParticleSet& P, int iat){
+     update_lmp_pos(P, proposed_lmp, proposed_sna_global, iat, true);
      update_lmp_pos(P, proposed_lmp, proposed_sna_global, iat, true);
      GradType grad_iat;
      for (int dim=0; dim < OHMMS_DIM; dim++){
@@ -366,6 +384,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
             dLogPsi[p] = 0.0;
         }
       
+            dLogPsi[p] = 0.0;
+        }
+      
         for (int k = 0; k < myVars.size(); k++){
           int kk = myVars.where(k);
           if (kk < 0)
@@ -379,6 +400,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
       }
     }
 
+  void SNAPJastrow::evaluate_fd_derivs(ParticleSet& P, int coeff_idx){
+        std::vector<std::vector<double>> fd_coeff(snap_beta);
+        std::vector<std::vector<double>> bd_coeff(snap_beta);
   void SNAPJastrow::evaluate_fd_derivs(ParticleSet& P, int coeff_idx){
         std::vector<std::vector<double>> fd_coeff(snap_beta);
         std::vector<std::vector<double>> bd_coeff(snap_beta);
