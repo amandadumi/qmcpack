@@ -33,7 +33,7 @@ public:
 }
     std::unique_ptr<WaveFunctionComponent> buildComponent(xmlNodePtr cur) override;
     std::unique_ptr<WaveFunctionComponent> createSNAP(xmlNodePtr cur);
-    bool putkids(xmlNodePtr kids);
+    bool putkids(xmlNodePtr kids, SNAPJastrow& SJ);
 
 private:
   std::string NameOpt;

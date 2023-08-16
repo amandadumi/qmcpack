@@ -20,6 +20,22 @@
 namespace qmcplusplus
 {
 
+inline bool putContent2(std::vector<double>& a, xmlNodePtr cur)
+{
+  std::istringstream stream(XMLNodeString{cur});
+  double temp;
+  a.clear();
+  while (!stream.eof())
+  {
+    stream >> temp;
+    if (stream.fail() || stream.bad())
+      break;
+    else
+      a.push_back(temp);
+  }
+  return a.size() > 0;
+} // adapted from kspace jastrow builder
+
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::buildComponent(xmlNodePtr cur){
   OhmmsAttributeSet oAttrib;
@@ -29,36 +45,87 @@ std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::buildComponent(xmlNod
   return createSNAP(cur);
 }
 
-bool SNAPJastrowBuilder::putkids(xmlNodePtr kids)
+bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
 {
+    std::cout << "have entered into put kids function." <<std::endl;
+    std::cout << "kisdname is " << (char*)kids->name <<std::endl;
 
 while (kids != NULL){
+    std::vector<double> snap_coeffs;
+    std::vector<double>* coeffs;
+
     std::string kidsname = (char*)kids->name;
+    std::cout << "kisdname is " << (char*)kids->name <<std::endl;
     // if this section is building in correlation...
     if (kidsname == "correlation")
     {
 
-        //create strings to denote which species are set, by default elecs are both up.
-        // iSpecies isn't set yet.
-        std::string iSpecies, eSpecies1("u"), eSpecies2("u");
-        // I don't know what an attribute set is, im guessing its a way to create objects in the code?
-        // are we able to refer to them as the value in string later?
-        //rAttrib.add(kids); // this was done in eeI_jastrow builder but can't get it to work here...
-        // this seems to be if there are more than one set of coeffs given in this jastrow object. We will ned this eventually. We will ned this eventually.
-        //const auto coef_id = extracCoefficientsID(kids); // We can survive without this for now since we will make sure to do I + u + d only
-        std::string jname("SNAP");
-        //functor->put(kids);
-        // TODO: check wigner seitz radius vs jastrow cutoff
-        //TODO: a lot of jastrow set up will happen here, initially just hard coding values to test.
-        //functor->cutoff_radius = 1e-5;
-        //SJ.addFunc(iNum,eNum1,eNum2,std::move(functor));
+    std::cout << "within put kids correlation loop" <<std::endl;
+    // I don't know what an attribute set is, im guessing its a way to create objects in the code?
+    // are we able to refer to them as the value in string later?
+    //rAttrib.add(kids); // this was done in eeI_jastrow builder but can't get it to work here...
+    // this seems to be if there are more than one set of coeffs given in this jastrow object. We will ned this eventually. We will ned this eventually.
+    //const auto coef_id = extracCoefficientsID(kids); // We can survive without this for now since we will make sure to do I + u + d only
+    std::string jname("SNAP");
+    std::string id_opt;
+    if (coeffs)
+      {
+        xmlNodePtr xmlCoefs = kids->xmlChildrenNode;
+        while (xmlCoefs != NULL)
+        {
+          std::string cname((const char*)xmlCoefs->name);
+          if (cname == "coefficients")
+          {
+            std::string type("0");
+            OhmmsAttributeSet cAttrib;
+            cAttrib.add(id_opt, "id");
+            cAttrib.add(type, "type");
+            cAttrib.put(xmlCoefs);
+            coeffs = &snap_coeffs;
+            if (type != "Array")
+            {
+              app_error() << "Unknown coefficients type "
+                             ""
+                          << type
+                          << ""
+                             " in SNAPJastrowBuilder.\n"
+                          << "Resetting to "
+                             "Array"
+                             ".\n";
+              xmlNewProp(xmlCoefs, (const xmlChar*)"type", (const xmlChar*)"Array");
+            }
+            //vector<T> can be read by this
+            putContent2(*coeffs, xmlCoefs);
+            app_log() << "  Read " << coeffs->size() << " coefficients for type " << type << std::endl;
+            for (int j=0;j< 5; j++){
+              std::cout<< (*coeffs)[j] << std::endl;
+            }
+
+            int this_id;
+            // ## hard coded mapping for He 2 elec
+            if (id_opt=="He"){
+              int this_id = 2;
+            }
+            else if (id_opt=="eup")
+            {
+              this_id = 0 ;
+            }
+            else if (id_opt=="edown")
+            {
+              this_id=1;
+            }
+            std::cout << "species id is set to " <<id_opt  << std::endl;
+            SJ.set_coefficients(*coeffs, this_id);
+            std::cout << "done with set coeffs" <<std::endl;
+          }
+          xmlCoefs = xmlCoefs->next;
+        }
+      }
     }
     kids = kids->next;
-    //SJ.check_complete();
-    return true;
+} 
+return true;
 
- }
- return false;
 }
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::createSNAP(xmlNodePtr cur)
@@ -77,8 +144,7 @@ std::string jname = input_name.empty() ? "snapjastrow" : input_name;
 std::cout << "creating jastrow using target: and source:" << targetPtcl.getName() << sourcePtcl.getName() <<std::endl;
 if (ftype == "snap"){
     auto SJ  = std::make_unique<SNAPJastrow>(ftype,sourcePtcl, targetPtcl);
-    //SJ->setCoefficients(set); // eventually, currently can happen in constructor.
-    //putkids(kids, *SJ);
+    putkids(kids, *SJ);
     return SJ;
 }
 else

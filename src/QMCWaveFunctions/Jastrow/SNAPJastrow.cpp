@@ -40,6 +40,20 @@ SNAPJastrow::~SNAPJastrow(){
   delete lmp;
 }
 
+
+void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
+  std::cout<< id_coeffs.size() << "is the size of coefficients" <<std::endl;
+  std::cout<< ncoeff << "is the number of coeffs" <<std::endl;
+  if (id_coeffs.size() != ncoeff){
+    app_warning() << " Warning wrong number of coefficents for snap jastrow" << std::endl;
+  }
+  int kk=0;
+  for (int i; i < id_coeffs.size(); i++){
+    snap_beta[id][i] = id_coeffs[i];
+  }
+
+}
+
 LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     std::cout << "in initialize_lammps" <<std::endl;
     const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
@@ -158,6 +172,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
   sna_global -> compute_array();
   return finite_diff_lap;
 }
+
+
 
   SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
                           ParticleSet::ParticleGradient& G,

@@ -14,6 +14,7 @@
 #include "Particle/ParticleSet.h"
 #include "Particle/DistanceTable.h"
 #include "QMCWaveFunctions/Jastrow/SNAPJastrow.h"
+#include "QMCWaveFunctions/Jastrow/SNAPJastrowBuilder.h"
 #include "OhmmsData/Libxml2Doc.h"
 //lammps libraries
 #include "lammps.h"
@@ -328,6 +329,73 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
   set_coeffs = std::vector<std::vector<double>>(3, std::vector<double>{1.2,1.3,1.4,1.5,1.6});
   std::cout << "checking whether expected bispectrum components are present" << std::endl;
 
+}
+
+
+TEST_CASE("snap_jastrow_init_with_coeff", "[wavefunction]")
+{
+  Communicate* c = OHMMS::Controller;
+  std::cout<< "starting test" <<std::endl;
+// short input xml check that lammps positions are correct.
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+
+  electrons.create({1,1});
+  electrons.setName("e_u");
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1;
+  electrons.R[1][2] = 0.1;
+
+  ions.create({1});
+  ions.setName("ions");
+
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.update();
+  electrons.update();
+
+   // initialize SK
+  //electrons.createSK();
+
+  const char * xmltext = R"XML(<tmp>
+  <wavefunction name="psi0" target="e">
+  <jastrow name="snap" type="snap" function="snap">
+    <correlation>
+     <coefficients id="eup" type="Array"> 0.1 0.2 0.3 0.4 0.5 </coefficients>
+    </correlation>
+    <correlation>
+     <coefficients id="edown" type="Array"> 1.1 1.2 1.3 1.4 1.5 </coefficients>
+    </correlation>
+    <correlation>
+     <coefficients id="He" type="Array"> 2.1 2.2 2.3 2.4 2.5 </coefficients>
+    </correlation>
+  </jastrow>
+</wavefunction>
+</tmp>)XML";
+
+  Libxml2Document doc;
+  bool okay;
+  okay    = doc.parseFromString(xmltext);
+  REQUIRE(okay);
+  std::cout << "initialized system" << std::endl;
+
+  xmlNodePtr root = doc.getRoot();
+
+  xmlNodePtr jas_node = xmlFirstElementChild(root);
+  xmlNodePtr corr_node = xmlFirstElementChild(jas_node);
+  SNAPJastrowBuilder SJBuilder(c,electrons,ions);
+  auto sj_uptr = SJBuilder.buildComponent(corr_node);
+  SNAPJastrow* sj = static_cast<SNAPJastrow*>(sj_uptr.get());
+  REQUIRE(sj->snap_beta[0][0] == 0.1);
+  REQUIRE(sj->snap_beta[0][4] == 0.5);
+  REQUIRE(sj->snap_beta[1][4] == 1.5);
+  REQUIRE(sj->snap_beta[1][4] == 2.5);
+
+  
 }
 
 }
