@@ -24,12 +24,11 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
     snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.0));
-    for (int i=0; i<(Nelec); i++){
+    for (int i=0; i<(Nelec+Nions); i++){
       for (int nc = 0; nc < ncoeff;nc++){
         std::stringstream name;
         name << "snap_coeff_" << i;
         name << "_"  << nc ;
-        snap_beta[i][nc] = 0.0;
         myVars.insert(name.str(), snap_beta[i][nc], true);
       }
     }
