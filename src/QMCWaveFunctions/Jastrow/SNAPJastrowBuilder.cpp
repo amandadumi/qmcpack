@@ -76,7 +76,7 @@ while (kids != NULL){
           std::string cname((const char*)xmlCoefs->name);
           if (cname == "coefficients")
           {
-            std::string type("0");
+            std::string type("0"), id("0");
             OhmmsAttributeSet cAttrib;
             cAttrib.add(id_opt, "id");
             cAttrib.add(type, "type");
@@ -97,14 +97,11 @@ while (kids != NULL){
             //vector<T> can be read by this
             putContent2(*coeffs, xmlCoefs);
             app_log() << "  Read " << coeffs->size() << " coefficients for type " << type << std::endl;
-            for (int j=0;j< 5; j++){
-              std::cout<< (*coeffs)[j] << std::endl;
-            }
 
             int this_id;
             // ## hard coded mapping for He 2 elec
             if (id_opt=="He"){
-              int this_id = 2;
+              this_id = 2;
             }
             else if (id_opt=="eup")
             {
@@ -114,7 +111,6 @@ while (kids != NULL){
             {
               this_id=1;
             }
-            std::cout << "species id is set to " <<id_opt  << std::endl;
             SJ.set_coefficients(*coeffs, this_id);
             std::cout << "done with set coeffs" <<std::endl;
           }

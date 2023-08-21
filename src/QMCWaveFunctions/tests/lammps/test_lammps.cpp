@@ -393,7 +393,7 @@ TEST_CASE("snap_jastrow_init_with_coeff", "[wavefunction]")
   REQUIRE(sj->snap_beta[0][0] == 0.1);
   REQUIRE(sj->snap_beta[0][4] == 0.5);
   REQUIRE(sj->snap_beta[1][4] == 1.5);
-  REQUIRE(sj->snap_beta[1][4] == 2.5);
+  REQUIRE(sj->snap_beta[2][4] == 2.5);
 
   
 }
