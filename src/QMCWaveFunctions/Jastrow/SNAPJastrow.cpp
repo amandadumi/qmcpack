@@ -18,12 +18,10 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     ncoeff = (m*(m+1)*(2*m+1))/6;
 
     lmp = initialize_lammps(els);
-    std::cout << "lammps initialized" <<std::endl;
     proposed_lmp = initialize_lammps(els);
-    //std::cout << "can we find this compute? " << lmp->modify->find_compute("sna_global") <<std::endl;
     sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
-    snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.0));
+    snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.1));
     for (int i=0; i<(Nelec+Nions); i++){
       for (int nc = 0; nc < ncoeff;nc++){
         std::stringstream name;
@@ -288,7 +286,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
             continue;
           if (rcsingles[k]){
             evaluate_fd_derivs(P, kk);
-            std::cout << "we are on coeeff" << kk << " out of " << myVars.size() << std::endl;
+            //std::cout << "we are on coeeff" << kk << " out of " << myVars.size() << std::endl;
             dlogpsi[kk] = ValueType(dLogPsi[kk]);
           }
         } 
@@ -306,8 +304,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
         fd_coeff[el][coeff] = snap_beta[el][coeff] + coeff_delta;
         bd_coeff[el][coeff] = snap_beta[el][coeff] - coeff_delta;
 
-            std::cout << "in eval fd: we are on coeeff" << coeff_idx << " out of " << ncoeff << std::endl;
-            std::cout << "and el is " << el << std::endl;
+            //std::cout << "in eval fd: we are on coeeff" << coeff_idx << " out of " << ncoeff << std::endl;
+            //std::cout << "and el is " << el << std::endl;
             calculate_ESNAP(P, sna_global, fd_coeff, fd_u);
             calculate_ESNAP(P, sna_global, bd_coeff, bd_u);
             dLogPsi[coeff_idx] = (fd_u - bd_u)/(2*coeff_delta); //units handled elsewhere
@@ -352,6 +350,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
   void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u ){
     double ESNAP_all = 0;
     double ESNAP_elec=0;
+    double ESNAP_ion=0;
 
 
     for (int ig = 0; ig < P.groups(); ig++) {
@@ -365,22 +364,15 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
         ESNAP_all += ESNAP_elec;
       }
     }
-    /**
     int bispectrum_block = P.groups(); // number of groups for electrons will be block for ions. 2*ncoeff = start of ions.
-    std::cout << bispectrum_block << " is the bispectrum block "<< std::endl;
-    //TODO: only written for single ion at the moment.
-    for (int s = 0; s <ns; s++){
+    for (int s = 0; s <s; s++){
+      ESNAP_ion = 0;
         for (int k = 0; k < ncoeff; k++){
           RealType bispectrum_val = snap_global->array[0][(bispectrum_block*ncoeff) + k];
-          std::cout << "bispec val for ion is " << bispectrum_val << std::endl;
-          std::cout << "coeff val for ion is " << coeff[bispectrum_block][k] << std::endl;
           ESNAP_ion += coeff[bispectrum_block][k] * bispectrum_val  ;
-          std::cout << "esnap_ion val is" << ESNAP_ion << std::endl;
         }
       ESNAP_all += ESNAP_ion;
-     
     }
-    */
     new_u = ESNAP_all*hartree_over_ev;
   }
 
@@ -438,7 +430,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
      double Enew;
      calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew);
      calculate_ESNAP(P, sna_global, snap_beta, Eold);
-     SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Eold -Enew));
+     std::cout << "Eold is " << Eold << " Enew is " << Enew << std::endl;
+     SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Enew-Eold));
      std::cout << "ratio is " << ratio <<std::endl;
      return ratio;
   }
