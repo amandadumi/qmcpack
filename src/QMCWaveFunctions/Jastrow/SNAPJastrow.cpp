@@ -170,9 +170,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
   return finite_diff_lap;
 }
 
+ 
 
-
-  SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
+ SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
                           ParticleSet::ParticleGradient& G,
                           ParticleSet::ParticleLaplacian& L,
                           bool fromscratch){
@@ -303,25 +303,24 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
         int coeff = coeff_idx%ncoeff;
         fd_coeff[el][coeff] = snap_beta[el][coeff] + coeff_delta;
         bd_coeff[el][coeff] = snap_beta[el][coeff] - coeff_delta;
-
-            //std::cout << "in eval fd: we are on coeeff" << coeff_idx << " out of " << ncoeff << std::endl;
-            //std::cout << "and el is " << el << std::endl;
-            calculate_ESNAP(P, sna_global, fd_coeff, fd_u);
-            calculate_ESNAP(P, sna_global, bd_coeff, bd_u);
-            dLogPsi[coeff_idx] = (fd_u - bd_u)/(2*coeff_delta); //units handled elsewhere
-            calculate_ddc_gradlap_lammps(P, dist_delta, coeff_delta, fd_coeff, bd_coeff, coeff_idx);
+        //std::cout << "in eval fd: we are on coeeff" << coeff_idx << " out of " << ncoeff << std::endl;
+        //std::cout << "and el is " << el << std::endl;
+        calculate_ESNAP(P, sna_global, fd_coeff, fd_u);
+        calculate_ESNAP(P, sna_global, bd_coeff, bd_u);
+        dLogPsi[coeff_idx] = (fd_u - bd_u)/(2*coeff_delta); //units handled elsewhere
+        calculate_ddc_gradlap_lammps(P, dist_delta, coeff_delta, fd_coeff, bd_coeff, coeff_idx);
     }
 
 
 
   void SNAPJastrow::calculate_ddc_gradlap_lammps(ParticleSet& P,RealType dist_delta, RealType coeff_delta, std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val){
-    SNAPJastrow::GradDerivVec ddc_grad_forward_val(2);
-    SNAPJastrow::GradDerivVec ddc_grad_back_val(2);
-    SNAPJastrow::ValueDerivVec ddc_lap_forward_val(2);
-    SNAPJastrow::ValueDerivVec ddc_lap_back_val(2);
+    SNAPJastrow::GradDerivVec ddc_grad_forward_val(Nions+Nelec);
+    SNAPJastrow::GradDerivVec ddc_grad_back_val(Nions+Nelec);
+    SNAPJastrow::ValueDerivVec ddc_lap_forward_val(Nions+Nelec);
+    SNAPJastrow::ValueDerivVec ddc_lap_back_val(Nions+Nelec);
     for (int nv = 0; nv < ncoeff; nv++){
       int col = nv;
-      for (int iel =0; iel < Nelec; iel ++){ 
+      for (int iel =0; iel < Nelec+Nions; iel ++){ 
         int coeff_start = (iel*ncoeff);
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           int row = (iel*3)+dim + 1;
