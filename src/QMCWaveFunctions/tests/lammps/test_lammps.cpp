@@ -15,6 +15,7 @@
 #include "Particle/DistanceTable.h"
 #include "QMCWaveFunctions/Jastrow/SNAPJastrow.h"
 #include "QMCWaveFunctions/Jastrow/SNAPJastrowBuilder.h"
+
 #include "OhmmsData/Libxml2Doc.h"
 //lammps libraries
 #include "lammps.h"

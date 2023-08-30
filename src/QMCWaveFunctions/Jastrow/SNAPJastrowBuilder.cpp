@@ -56,6 +56,7 @@ while (kids != NULL){
 
     std::string kidsname = (char*)kids->name;
     std::cout << "kisdname is " << (char*)kids->name <<std::endl;
+
     // if this section is building in correlation...
     if (kidsname == "correlation")
     {
@@ -121,7 +122,6 @@ while (kids != NULL){
     kids = kids->next;
 } 
 return true;
-
 }
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::createSNAP(xmlNodePtr cur)
@@ -141,6 +141,7 @@ std::cout << "creating jastrow using target: and source:" << targetPtcl.getName(
 if (ftype == "snap"){
     auto SJ  = std::make_unique<SNAPJastrow>(ftype,sourcePtcl, targetPtcl);
     putkids(kids, *SJ);
+
     return SJ;
 }
 else

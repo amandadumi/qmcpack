@@ -48,6 +48,7 @@ public:
     LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els);
     void set_coefficients(std::vector<RealType>,int id);
 
+
 /******MC step related functions******/
 
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
