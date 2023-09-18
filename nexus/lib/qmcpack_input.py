@@ -1825,6 +1825,12 @@ class group(QIxml):
     identifier = 'name'
 #end class group
 
+class rotated_sposet(QIxml):
+    tag = 'rotated_sposet'
+    attributes= ['method']
+    elements= ['sposet']
+    identifier='name'
+#end class rotated_sposet
 
 
 class sposet(QIxml):
@@ -1840,31 +1846,31 @@ class sposet(QIxml):
 #end class sposet
 
 class bspline_builder(QIxml):
-    tag         = 'sposet_builder'
+    tag         = 'sposet_collection'
     identifier  = 'type'
     attributes  = ['type','href','sort','tilematrix','twistnum','twist','source',
                    'version','meshfactor','gpu','transform','precision','truncate',
                    'lr_dim_cutoff','shell','randomize','key','buffer','rmax_core','dilation','tag','hybridrep','gpusharing']
-    elements    = ['sposet']
+    elements    = ['sposet','rotated_sposet']
     write_types = obj(gpu=yesno,sort=onezero,transform=yesno,truncate=yesno,randomize=truefalse,hybridrep=yesno,gpusharing=yesno)
 #end class bspline_builder
 
 class heg_builder(QIxml):
-    tag        = 'sposet_builder'
+    tag        = 'sposet_collection'
     identifier = 'type'
     attributes = ['type','twist']
-    elements   = ['sposet']
+    elements   = ['sposet','rotated_sposet']
 #end class heg_builder
 
 class molecular_orbital_builder(QIxml):
-    tag = 'sposet_builder'
+    tag = 'sposet_collection'
     identifier = 'type'
     attributes = ['name','type','transform','source','cuspcorrection']
-    elements   = ['basisset','sposet'] 
+    elements   = ['basisset','sposet','rotated_sposet'] 
 #end class molecular_orbital_builder
 
 class composite_builder(QIxml):
-    tag = 'sposet_builder'
+    tag = 'sposet_collection'
     identifier = 'type'
     attributes = ['type']
     elements   = ['sposet']
@@ -1880,14 +1886,22 @@ sposet_builder = QIxmlFactory(
     typekey = 'type'
     )
 
-
+sposet_collection = QIxmlFactory(
+    name    = 'sposet_collection',
+    types   = dict(bspline=bspline_builder,
+                   einspline=bspline_builder,
+                   heg=heg_builder,
+                   composite=composite_builder,
+                   molecularorbital = molecular_orbital_builder),
+    typekey = 'type'
+    )
 
 class wavefunction(QIxml):
     #            rsqmc                        afqmc
     attributes = ['name','target','id','ref']+['info','type']
     #            afqmc
     parameters = ['filetype','filename','cutoff']
-    elements   = ['sposet_builder','determinantset','jastrow','override_variational_parameters']
+    elements   = ['sposet_builder','sposet_collection','determinantset','jastrow','override_variational_parameters']
     identifier = 'name','id'
 #end class wavefunction
 
@@ -1909,7 +1923,7 @@ class cubicgrid(QIxml):
 #end class cubicgrid
 
 class basisset(QIxml):
-    attributes = ['ecut','name','ref','type','source','transform','key']
+    attributes = ['ecut','name','ref','type','source','transform','keyword']
     elements   = ['grid','atomicbasisset']
     write_types = obj(transform=yesno)
 #end class basisset
@@ -2710,7 +2724,7 @@ classes = [   #standard classes
     correlation,coefficients,loop,linear,cslinear,vmc,dmc,vmc_batch,dmc_batch,linear_batch,
     atomicbasisset,basisgroup,init,var,traces,scalar_traces,particle_traces,array_traces,
     reference_points,nearestneighbors,neighbor_trace,dm1b,
-    coefficient,radfunc,spindensity,structurefactor,
+    coefficient,radfunc,spindensity,structurefactor,rotated_sposet,
     sposet,bspline_builder,composite_builder,heg_builder,include,
     multideterminant,detlist,ci,mcwalkerset,csf,det,
     optimize,cg_optimizer,flex_optimizer,optimize_qmc,wftest,kspace_jastrow,
@@ -2752,6 +2766,7 @@ plurals = obj(
     vars            = 'var',
     neighbor_traces = 'neighbor_trace',
     sposet_builders = 'sposet_builder',
+    sposet_collection = 'sposet_collection',
     sposets         = 'sposet',
     radfuncs        = 'radfunc',
     #qmcsystems      = 'qmcsystem',  # not a good idea
@@ -4532,6 +4547,21 @@ def generate_particlesets(electrons   = 'e',
     return particlesets
 #end def generate_particlesets
 
+def generate_rotated_sposets(name='rot-spo-up',
+                             method='global',
+                             sposets=generate_sposets(
+                                        type           = type,
+                                        occupation     = 'slater_ground',
+                                        spin_polarized = spin_polarized,
+                                        system         = system,
+                                        sposets        = sposets,
+                                        spindatasets   = True
+                                        )
+                            ):
+    rotated_sposets = []
+    for i in sposets:
+        rotated_sposets.append(rotated_sposet(i))
+    return make_collection(rotated_sposets)
 
 def generate_sposets(type           = None,
                      occupation     = None,
@@ -7188,6 +7218,8 @@ def generate_qmcpack_input(**kwargs):
         inp = generate_basic_afqmc_input(**kwargs)
     elif selector=='opt_jastrow':
         inp = generate_opt_jastrow_input(**kwargs)
+    elif selector=='opt_orbital':
+        inp = generate_opt_orbital_input(**kwargs)
     else:
         QmcpackInput.class_error('selection '+str(selector)+' has not been implemented for qmcpack input generation')
     #end if
@@ -7872,6 +7904,66 @@ def generate_opt_jastrow_input(id  = 'qmc',
 
     return input
 #end def generate_opt_jastrow_input
+
+def generate_opt_orbital_input():
+    orbs = generate_rotated_sposet('',system)
+    if opt_calcs is None:
+        opt_calcs = [
+            ('linear', 4,  0,  0, 1.0),
+            ('linear', 4, .8, .2,   0)
+            ]
+        for opt_calc in opt_calcs:
+            opts = []
+            for opt_calc in opt_calcs:
+                if isinstance(opt_calc,QIxml):
+                    opts.append(opt_calc)
+                elif len(opt_calc)==5:
+                    if opt_calc[0] in opt_map:
+                        opts.append(
+                            generate_opt(
+                            *opt_calc,
+                            jastrows         = jastrows,
+                            processes        = processes,
+                            walkers_per_proc = walkers_per_proc,
+                            threads          = threads,
+                            decorr           = decorr,
+                            min_walkers      = min_walkers,
+                            timestep         = timestep,
+                            nonlocalpp       = nonlocalpp,
+                            sample_factor    = sample_factor
+                            )
+                        )
+                    else:
+                        QmcpackInput.class_error('optimization method '+opt_calc[0]+' has not yet been implemented')
+                    #end if
+                else:
+                    QmcpackInput.class_error('optimization calculation is ill formatted\n  opt calc provided: \n'+str(opt_calc))
+                #end if
+    #end if
+
+    input = generate_basic_input( #TODO: how does this function call change?
+        id             = id             ,
+        series         = series         ,
+        purpose        = purpose        ,
+        seed           = seed           ,
+        bconds         = bconds         ,
+        remove_cell    = remove_cell    ,
+        meshfactor     = meshfactor     ,
+        precision      = precision      ,
+        twistnum       = twistnum       ,
+        twist          = twist          ,
+        spin_polarized = spin_polarized ,
+        orbitals_h5    = orbitals_h5    ,
+        system         = system         ,
+        pseudos        = pseudos        ,
+        jastrows       = jastrows       ,
+        corrections    = corrections    ,
+        observables    = observables    ,
+        calculations   = opts           ,
+        det_format     = det_format     ,
+        ) 
+    
+    return input
 
 
 
