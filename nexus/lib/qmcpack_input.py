@@ -1961,7 +1961,6 @@ class slaterdeterminant(QIxml):
 
 class determinant(QIxml):
     attributes = ['id','group','sposet','size','ref','spin','href','orbitals','spindataset','name','cuspinfo','debug']
-    elements   = ['occupation','coefficient']
     identifier = 'id'
     write_types = obj(debug=yesno)
 #end class determinant
@@ -3927,12 +3926,12 @@ class QmcpackInput(SimulationInput,Names):
         #end if
 
         if abs(net_spin) > 1e-1:
-            if ddet!=None:
-                if 'occupation' in ddet:
-                    ddet.occupation.spindataset = 1
-                else:
-                    ss = self.get('sposets')
-                    ss[ddet.sposet].spindataset = 1
+            #if ddet!=None:
+               # if 'occupation' in ddet:
+               #     ddet.occupation.spindataset = 1
+               # else:
+            ss = self.get('sposets')
+            ss[ddet.sposet].spindataset = 1
                 #end if
             #end if
         #end if
@@ -4547,21 +4546,8 @@ def generate_particlesets(electrons   = 'e',
     return particlesets
 #end def generate_particlesets
 
-def generate_rotated_sposets(name='rot-spo-up',
-                             method='global',
-                             sposets=generate_sposets(
-                                        type           = type,
-                                        occupation     = 'slater_ground',
-                                        spin_polarized = spin_polarized,
-                                        system         = system,
-                                        sposets        = sposets,
-                                        spindatasets   = True
-                                        )
-                            ):
-    rotated_sposets = []
-    for i in sposets:
-        rotated_sposets.append(rotated_sposet(i))
-    return make_collection(rotated_sposets)
+
+
 
 def generate_sposets(type           = None,
                      occupation     = None,
@@ -4617,6 +4603,14 @@ def generate_sposets(type           = None,
     #end if
     return make_collection(sposets)
 #end def generate_sposets
+
+def generate_rotated_sposets(name='rot-spo-up',
+                             method='global',
+                             sposets=None):
+    rotated_sposets = []
+    for i in sposets:
+        rotated_sposets.append(rotated_sposet(i))
+    return make_collection(rotated_sposets)
 
 
 def generate_sposet_builder(type,*args,**kwargs):
@@ -4795,6 +4789,55 @@ def partition_sposets(sposet_builder,partition,partition_meshfactors=None):
     return [ssb,cssb]
 #end def partition_sposets
 
+def generate_determinantset_new(up         = 'u',
+                            down           = 'd',
+                            sposets=[],
+                            delay_rank     = None,
+                            matrix_inv_cpu = None,
+                            system         = None
+                            ):
+    elns = system.particles.get_electrons()
+    nup  = elns.up_electron.count
+    ndn  = elns.down_electron.count
+    if not len(sposets)==1 and not len(sposets)==0:
+        id_u = sposets[0]
+        id_d = sposets[1]
+    elif len(sposets)==1:
+        sets = list(sposets.keys())
+        id_u = sposets[sets[0]]['name']
+        id_d = sposets[sets[0]]['name']
+    elif len(sposets)==0:
+        print('probably something wrong')
+    # end if
+    
+    determinants_list = []
+    if nup > 0:
+        determinants_list.append(
+            determinant(
+                id     =  id_u,
+                group  = up,
+                )
+        )   
+    if ndn > 0:
+        determinants_list.append(
+            determinant(
+                id     = id_d,
+                group  = down,
+                )
+        )
+        dset = determinantset(
+        slaterdeterminant = slaterdeterminant(
+            determinants = collection(*determinants_list)
+            )
+        )
+    if delay_rank is not None:
+        dset.slaterdeterminant.delay_rank = delay_rank
+    #end if
+    if matrix_inv_cpu is not None and matrix_inv_cpu:
+        dset.slaterdeterminant.matrix_inverter = 'host'
+    #end if
+    return dset
+    
 
 def generate_determinantset(up             = 'u',
                             down           = 'd',
@@ -4984,7 +5027,7 @@ def generate_determinantset_old(type           = 'bspline',
             determinant(
                 id   = 'updet',
                 size = nup,
-                occupation=section(mode='ground',spindataset=0)
+                #occupation=section(mode='ground',spindataset=0)
                 ),
         )
     #end if
@@ -4993,7 +5036,7 @@ def generate_determinantset_old(type           = 'bspline',
             determinant(
                 id   = 'downdet',
                 size = ndn,
-                occupation=section(mode='ground',spindataset=down_spin)
+                #occupation=section(mode='ground',spindataset=down_spin)
                 )
         )
     #end if
@@ -5154,8 +5197,7 @@ def generate_determinantset_old(type           = 'bspline',
             return dset
 
         #end if
-
-        occ = sdet.occupation
+        occ = sdet.sposet.occupation
         occ.pairs    = 1
         occ.mode     = 'excited'
         occ.contents = '\n'+exc2+'\n'
@@ -7474,8 +7516,11 @@ def generate_basic_input(**kwargs):
                 )
         #end if
 
-        dset = generate_determinantset(
-            spin_polarized = kw.spin_polarized,
+        print(len(ssb.sposets))
+
+        dset = generate_determinantset_new(
+            sposets= ssb.sposets,
+            # spin_polarized = kw.spin_polarized,
             delay_rank     = kw.delay_rank,
             matrix_inv_cpu = kw.matrix_inv_cpu,
             system         = kw.system,
@@ -8295,18 +8340,18 @@ if __name__=='__main__':
                                     determinant(
                                         id='updet',
                                         size=64,
-                                        occupation = section(
-                                            mode='ground',
-                                            spindataset=0
-                                            )
+                                        #occupation = section(
+                                         #   mode='ground',
+                                         #   spindataset=0
+                                         #   )
                                         ),
                                     determinant(
                                         id='downdet',
                                         size=63,
-                                        occupation = section(
-                                            mode='ground',
-                                            spindataset=1
-                                            )
+                                        #occupation = section(
+                                        #    mode='ground',
+                                        #    spindataset=1
+                                        #    )
                                         )
                                     ]
                                 ),
@@ -8535,12 +8580,13 @@ if __name__=='__main__':
                             slaterdeterminant = section(
                                 determinants=collection(
                                     updet = determinant(
-                                        size=64,
-                                        occupation=section(mode='ground',spindataset=0)
+                                        #size=64,
+                                        #occupation=section(mode='ground',spindataset=0)
                                         ),
                                     downdet = determinant(
-                                        size=63,
-                                        occupation = section(mode='ground',spindataset=1))
+                                        #size=63,
+                                        #occupation = section(mode='ground',spindataset=1)
+                                        )
                                     )
                                 ),
                             ),
