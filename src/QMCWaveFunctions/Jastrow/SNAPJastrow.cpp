@@ -45,7 +45,7 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
     app_warning() << " Warning wrong number of coefficents for snap jastrow" << std::endl;
   }
   int kk=0;
-  for (int i; i < id_coeffs.size(); i++){
+  for (int i=0; i < id_coeffs.size(); i++){
     snap_beta[id][i] = id_coeffs[i];
   }
 
@@ -285,7 +285,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
             continue;
           if (rcsingles[k]){
             evaluate_fd_derivs(P, kk);
-            //std::cout << "we are on coeeff" << kk << " out of " << myVars.size() << std::endl;
+            std::cout << "we are on coeeff" << kk << " out of " << myVars.size() << std::endl;
 
             dlogpsi[kk] = ValueType(dLogPsi[kk]);
           }
@@ -386,7 +386,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
       if (loc >=0){
        myVars[i] = o[loc];
      }
-     for (int ipart=0; ipart<(Nelec); ipart++){
+     for (int ipart=0; ipart<(Nelec+Nions); ipart++){
         for (int nc = 0; nc < ncoeff;nc++){
            snap_beta[ipart][nc] = std::real(myVars[(ipart*ncoeff)+nc]);
         } 
@@ -406,9 +406,11 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
 
   void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
       log_value_ = evaluateLog(P, P.G, P.L);
+
   }
   SNAPJastrow::LogValueType SNAPJastrow::updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch){
       log_value_ = evaluateLog(P,P.G,P.L);
+      // buf.forward()
       return log_value_;
   }
 
@@ -432,10 +434,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
      double Enew;
      calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew);
      calculate_ESNAP(P, sna_global, snap_beta, Eold);
-     std::cout << "Eold is " << Eold << " Enew is " << Enew << std::endl;
      SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Enew-Eold));
 
-     std::cout << "ratio is " << ratio <<std::endl;
      return ratio;
   }
 
@@ -452,7 +452,7 @@ void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
      myVars[i] = active[loc];
      }
     }
-  for (int ipart=0; ipart<(Nelec); ipart++){
+  for (int ipart=0; ipart<(Nelec+Nions); ipart++){
     for (int nc = 0; nc < ncoeff;nc++){
       snap_beta[ipart][nc] = std::real(myVars[(ipart*ncoeff)+nc]);
     } 

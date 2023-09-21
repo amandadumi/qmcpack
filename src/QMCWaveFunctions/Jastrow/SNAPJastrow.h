@@ -38,8 +38,8 @@ public:
 
     void resizeWFOptVectors(){
         dLogPsi.resize(myVars.size());
-        gradLogPsi.resize(myVars.size(), GradDerivVec(Nelec));
-        lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec));
+        gradLogPsi.resize(myVars.size(), GradDerivVec(Nelec+Nions));
+        lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec+Nions));
     }
 
     /** Initialize a lammps object to get bispectrom components from current particle set.
