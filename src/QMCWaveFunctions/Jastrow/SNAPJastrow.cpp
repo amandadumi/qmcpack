@@ -47,7 +47,7 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
     app_warning() << " Warning wrong number of coefficents for snap jastrow" << std::endl;
   }
   int kk=0;
-  for (int i; i < id_coeffs.size(); i++){
+  for (int i=0; i < id_coeffs.size(); i++){
     snap_beta[id][i] = id_coeffs[i];
   }
 
