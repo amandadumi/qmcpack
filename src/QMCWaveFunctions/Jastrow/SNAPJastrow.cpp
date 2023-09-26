@@ -285,7 +285,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
             continue;
           if (rcsingles[k]){
             evaluate_fd_derivs(P, kk);
-            std::cout << "we are on coeeff" << kk << " out of " << myVars.size() << std::endl;
 
             dlogpsi[kk] = ValueType(dLogPsi[kk]);
           }
