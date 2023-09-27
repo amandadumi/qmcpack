@@ -36,8 +36,7 @@ public:
     std::vector<ValueDerivVec> lapLogPsi;
 
 
-    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els);
-    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els);
+    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, int input_twojmax);
 
     ~SNAPJastrow();
 
