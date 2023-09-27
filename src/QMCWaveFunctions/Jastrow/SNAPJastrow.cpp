@@ -4,7 +4,7 @@
 namespace qmcplusplus
 {
 
-SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els) 
+SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els,int input_twojmax) 
   : WaveFunctionComponent(obj_name),
     OptimizableObject("snap_" + ions.getName()),
     myTableID(els.addTable(ions)),
@@ -13,7 +13,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     NIonGroups(ions.groups()),
     Ions(ions)
 {
-    twojmax = 2;
+    twojmax = input_twojmax;
     int m = (twojmax/2)+1;
     ncoeff = (m*(m+1)*(2*m+1))/6;
 

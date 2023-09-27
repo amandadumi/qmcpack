@@ -130,16 +130,18 @@ ReportEngine PRE(ClassName, "createSNAP(xmlNodePtr)");
 xmlNodePtr kids = cur->xmlChildrenNode;
 
 //if ions are fed to jastrow 
+int twojmax = 2;
 std::string ftype("snap");
 OhmmsAttributeSet tAttrib;
 tAttrib.add(ftype, "function");
+tAttrib.add(twojmax, "twojmax");
 tAttrib.put(cur);
 
 std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
 std::cout << "creating jastrow using target: and source:" << targetPtcl.getName() << sourcePtcl.getName() <<std::endl;
 if (ftype == "snap"){
-    auto SJ  = std::make_unique<SNAPJastrow>(ftype,sourcePtcl, targetPtcl);
+    auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, twojmax);
     putkids(kids, *SJ);
 
     return SJ;
