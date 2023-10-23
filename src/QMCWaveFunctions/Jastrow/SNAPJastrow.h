@@ -30,11 +30,15 @@ public:
 
     using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
     using ValueDerivVec = ParticleAttrib<QTFull::ValueType>;
+    //handle d/dc info
     Vector<RealType> dLogPsi;
     Vector<RealType> dLogPsi;
     std::vector<GradDerivVec> gradLogPsi;
     std::vector<ValueDerivVec> lapLogPsi;
-
+    //handle per particle info
+    Vector<RealType> u_val;
+    GradDerivVec grad_u;
+    ValueDerivVec lap_u;
 
     SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, int input_twojmax);
 
@@ -42,10 +46,11 @@ public:
 
     std::string getClassName() const override {return "SNAPJastrow";}
 
+    
     void resizeWFOptVectors(){
         dLogPsi.resize(myVars.size());
-        gradLogPsi.resize(myVars.size(), GradDerivVec(Nelec+Nions));
-        lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec+Nions));
+        gradLogPsi.resize(myVars.size(), GradDerivVec(Nelec));
+        lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec));
     }
 
     void resizeWFOptVectors(){
@@ -98,10 +103,13 @@ public:
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch) override;
+    
 
-    LogValueType evaluateLog(const ParticleSet& P,
-    ParticleSet::ParticleGradient& G,
-    ParticleSet::ParticleLaplacian& L) override;
+    void computeGL(const ParticleSet& P,
+                                  ParticleSet::ParticleGradient& G,
+                                  ParticleSet::ParticleLaplacian& L);
+
+    LogValueType evaluateLog(const ParticleSet& P, ParticleSet::ParticleGradient& G, ParticleSet::ParticleLaplacian& L) override;
     
     
     void evaluateDerivatives(ParticleSet& P,
@@ -123,8 +131,8 @@ public:
     void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
-    double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int col, std::vector<std::vector<double>> coeffs, double dist_delta);
-
+    double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta);
+    void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
 
