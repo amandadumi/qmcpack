@@ -23,12 +23,11 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
     snap_beta = std::vector<std::vector<double>>((Nions+Nelec), std::vector<double>(ncoeff,0.1));
     for (int i=0; i<(Nelec+Nions); i++){
-
-      for (int nc = 0; nc < ncoeff;nc++){
+      for (int k = 0; k < ncoeff;k++){
         std::stringstream name;
         name << "snap_coeff_" << i;
-        name << "_"  << nc ;
-        myVars.insert(name.str(), snap_beta[i][nc], true);
+        name << "_"  << k ;
+        myVars.insert(name.str(), snap_beta[i][k], true);
       }
     }
     resizeWFOptVectors(); 
@@ -39,6 +38,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
 
 SNAPJastrow::~SNAPJastrow(){
   delete lmp;
+  delete proposed_lmp;
 }
 
 void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
@@ -135,6 +135,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
   }
 
   void SNAPJastrow::update_lmp_pos(const ParticleSet& P, LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array,int iat, bool proposed){
+   std::cout<< "in update positions" <<std::endl;
       if (proposed){
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           lmp_pntr->atom->x[iat][dim] = P.activeR(iat)[dim]/bohr_over_ang;
@@ -221,7 +222,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
       update_lmp_pos(P,lmp,sna_global,i,false);
     }
     // std::cout << "evaluatelog updated positions" << std::endl;
-    calculate_ESNAP(P, sna_global, snap_beta, ESNAP);
+    calculate_ESNAP(P, sna_global, snap_beta, ESNAP,true);
     computeGL(P,G,L);
     log_value_ = static_cast<SNAPJastrow::LogValueType>(ESNAP);
             
@@ -234,12 +235,12 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
      GradType grad_iat;
      for (int dim=0; dim < OHMMS_DIM; dim++){
       int row =(3*iat)+dim+1;
-      for (int nc = 0; nc < ncoeff ; nc++){
+      for (int k = 0; k < ncoeff ; k++){
         for (int n = 0; n < lmp->atom->ntypes; n++){
-          int col = (n*nc)+nc;
-          grad_iat[dim] += snap_beta[iat][nc]*proposed_sna_global->array[row][col]*hartree_over_ev*bohr_over_ang;
+          int col = (n*ncoeff)+k;
+          grad_iat[dim] += -snap_beta[iat][k]*proposed_sna_global->array[row][col]*hartree_over_ev/bohr_over_ang;
+        }
       }
-     }
      }
      return grad_iat;
     }
@@ -319,9 +320,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
           if (rcsingles[k]){
             evaluate_fd_derivs(P, kk);
 
-            std::cout<< "start assigning dlogpsi"<<std::endl;
+            //std::cout<< "start assigning dlogpsi"<<std::endl;
             dlogpsi[kk] = ValueType(dLogPsi[kk]);
-            std::cout<< "finished assigning dlogpsi"<<std::endl;
+            //std::cout<< "finished assigning dlogpsi"<<std::endl;
           }
         } 
       }
@@ -340,8 +341,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
         bd_coeff[el][coeff] = snap_beta[el][coeff] - coeff_delta;
         //std::cout << "in eval fd: we are on coeeff" << coeff_idx << " out of " << ncoeff << std::endl;
         //std::cout << "and el is " << el << "and coeff is " << coeff <<std::endl;
-        calculate_ESNAP(P, sna_global, fd_coeff, fd_u);
-        calculate_ESNAP(P, sna_global, bd_coeff, bd_u);
+        calculate_ESNAP(P, sna_global, fd_coeff, fd_u,false);
+        calculate_ESNAP(P, sna_global, bd_coeff, bd_u,false);
         dLogPsi[coeff_idx] = (fd_u - bd_u)/(2*coeff_delta); //units handled elsewhere
         calculate_ddc_gradlap_lammps(P, dist_delta, coeff_delta, fd_coeff, bd_coeff, coeff_idx);
 
@@ -384,45 +385,67 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
   used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
   without having to internally change the lammps object.
   */
-  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u ){
+  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u,bool store_u=false){
     //std::cout << "in calculate snap" <<std::endl; 
-    double ESNAP_all = 0;
+    double esnap_all = 0;
+    double esnap_elec = 0;
+    double esnap_ion = 0;
+    // calculate electron contribution
     for (int ig = 0; ig < P.groups(); ig++) {
       for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
-        u_val[iel]= 0; 
+        esnap_elec=0;
         for (int k = 0; k < ncoeff; k++){
           double bispectrum_val = snap_global->array[0][(iel*ncoeff) + k]; //block of bispectrum + current component to add.
-          u_val[iel] += coeff[iel][k] * bispectrum_val;
+          esnap_elec += coeff[iel][k] * bispectrum_val;
+        }
+        esnap_all += esnap_elec;
+        if (store_u==true){
+          u_val[iel] = esnap_elec*hartree_over_ev;
         }
       }
     }
+
+    // calculate ion contribution
     int bispectrum_block = P.groups(); // number of groups for electrons will be block for ions. 2*ncoeff = start of ions.
     for (int s = 0; s < Nions; s++){
-      u_val[bispectrum_block+s] = 0;
-        for (int k = 0; k < ncoeff; k++){
-          RealType bispectrum_val = snap_global->array[0][((bispectrum_block+s)*ncoeff) + k];
-          u_val[bispectrum_block+s] += coeff[bispectrum_block+s][k] * bispectrum_val  ;
-        }
+      esnap_ion = 0;
+      for (int k = 0; k < ncoeff; k++){
+        RealType bispectrum_val = snap_global->array[0][((bispectrum_block+s)*ncoeff) + k];
+        esnap_ion += coeff[bispectrum_block+s][k] * bispectrum_val  ;
+      }
+      esnap_all += esnap_ion;
+      if (store_u==true){
+        u_val[bispectrum_block+s] = esnap_ion*hartree_over_ev;
+      }
     }
-    for (int i =0; i < (Nions+Nelec); i++){
-      //std::cout<< u_val[i] << std::endl;
-      ESNAP_all += u_val[i];
-    }
-    new_u = ESNAP_all*hartree_over_ev;
+    new_u = esnap_all*hartree_over_ev;
   }
 
 
   void SNAPJastrow::evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios){
-        std::cout<< "we are in evaluate ratios" << std::endl;
-        for (int i = 0; i < (Nelec); i++){
-            update_lmp_pos(VP,proposed_lmp,proposed_sna_global,i,true);
-        }
-        for (int k = 0; k < ratios.size(); ++k){
-          double ESNAP_vp; 
-          calculate_ESNAP(VP, sna_global, snap_beta, ESNAP_vp);
-          SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(u_val[VP.refPtcl]-ESNAP_vp));
+        // std::cout<< "we are in evaluate ratios" << std::endl;
+        // std::cout<< "ratios is of size " << ratios.size() << std::endl;
+        // std::cout<< "VP.refptcl is  " << VP.refPtcl << std::endl;
 
-        }
+        // for (int i = 0; i < (VP.getTotalNum()); i++){
+        //   std::cout << "position" << VP.R[i] <<std::endl;
+        //     update_lmp_pos(VP,proposed_lmp,proposed_sna_global,ref_ptcl,true);
+        //     //TODO: i don't know if true is correct here can i access this directly since in VP or is it stored as default
+        // }
+        // std::cout<< "we updated according to ratios" << std::endl;
+        // int R_to_replace=0;
+        // if (VP.refPtcl==0){}
+        //   R_to_replace;
+        // for (int i = 0; i < ratios.size(); i++){
+        //   if VP.refPtcl==0;
+        //   R_to_replace;
+
+        //   update_lmp_pos(VP,proposed_lmp,proposed_sna_global,VP.refPtcl,true);
+        //   double ESNAP_vp; 
+        //   calculate_ESNAP(VP,  proposed_sna_global, snap_beta, ESNAP_vp,false);
+        //   std::cout<< "we calculated ESNAP" << std::endl;
+        //   ratios[i] = std::exp( static_cast<SNAPJastrow::PsiValueType>(u_val[i]-ESNAP_vp) );
+        // }
   }
 
 
@@ -436,8 +459,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
        myVars[i] = o[loc];
      }
      for (int ipart=0; ipart<(Nelec+Nions); ipart++){
-        for (int nc = 0; nc < ncoeff;nc++){
-           snap_beta[ipart][nc] = std::real(myVars[(ipart*ncoeff)+nc]);
+        for (int k = 0; k < ncoeff; k++){
+           snap_beta[ipart][k] = std::real(myVars[(ipart*ncoeff)+k]);
         } 
       }
     }
@@ -447,18 +470,19 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
 
   void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
       // create new lammps object with accepted positions
+      //std::cout<< "in accept move"<<std::endl;
       update_lmp_pos(P,lmp,sna_global,iat,false);
-      P.G[iat] += evalGrad(P,iat);
+      log_value_ = evaluateLog(P,P.G,P.L);
 
       // the G, dlogpsi, gradlogpsi, and laplogpsi need to be updated but only for single particle.
   }
 
   void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
-      log_value_ = evaluateLog(P, P.G, P.L);
+      // log_value_ = evaluateLog(P, P.G, P.L);
 
   }
   SNAPJastrow::LogValueType SNAPJastrow::updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch){
-      log_value_ = evaluateLog(P,P.G,P.L);
+      // log_value_ = evaluateLog(P,P.G,P.L);
       return log_value_;
   }
 
@@ -468,22 +492,33 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
 
   SNAPJastrow::PsiValueType SNAPJastrow::ratioGrad(ParticleSet& P, int iat, GradType& grad_iat){
      SNAPJastrow::PsiValueType ratio = SNAPJastrow::ratio(P,iat);
-     for (int dim=0; dim < OHMMS_DIM; dim++){
-      for (int nc = 0; nc < ncoeff ; nc++){
-        grad_iat[dim] += snap_beta[iat][nc]*proposed_sna_global->array[(3*iat)+dim+1][nc]*hartree_over_ev*bohr_over_ang;
+     for (int dim = 0; dim < OHMMS_DIM; dim++){
+      for (int k = 0; k < ncoeff ; k++){
+        for (int n = 0; n < lmp->atom->ntypes; n++)
+          grad_iat[dim] += -snap_beta[iat][k]*proposed_sna_global->array[(3*iat)+dim+1][(n*ncoeff)+k]*hartree_over_ev/bohr_over_ang;
       }
      }
      return ratio;
   }
 
   SNAPJastrow::PsiValueType SNAPJastrow::ratio(ParticleSet& P, int iat){
-     update_lmp_pos(P,proposed_lmp, proposed_sna_global,iat, true);
+    //std::cout<< "in calc ratio  "  <<std::endl;
+    //std::cout<< "iat is   "  <<  iat <<std::endl;
+    for (int i = 0; i < (Nelec);i++){
+      update_lmp_pos(P, proposed_lmp, proposed_sna_global, i, true);
+    }
      double Eold;
+     calculate_ESNAP(P, sna_global, snap_beta, Eold, true);
+     double Eiold = u_val[iat];
      double Enew;
-     calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew);
-     calculate_ESNAP(P, sna_global, snap_beta, Eold);
+     calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew, true);
+     double Einew = u_val[iat];
+     //  calculate_ESNAP(P, sna_global, snap_beta, Eold, false);
      SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Enew-Eold));
-
+      // std::cout<< "ratio in function is " << ratio <<std::endl;
+      // std::cout<< "inverse  is " << std::exp(static_cast<SNAPJastrow::PsiValueType>(Eold-Enew))<<std::endl;
+      // std::cout<< "particle specific  is " << std::exp(static_cast<SNAPJastrow::PsiValueType>(Eiold-Einew))<<std::endl;
+      // std::cout<< "inverse particle specific is " << std::exp(static_cast<SNAPJastrow::PsiValueType>(Einew-Einew))<<std::endl;
      return ratio;
   }
 

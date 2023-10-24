@@ -104,11 +104,18 @@ while (kids != NULL){
             if (id_opt=="He"){
               this_id = 2;
             }
+            if (id_opt=="C"){
+              this_id = 2;
+            }
             else if (id_opt=="eup")
             {
               this_id = 0 ;
             }
-            else if (id_opt=="edown")
+            else if (id_opt=="u")
+            {
+              this_id = 0 ;
+            }
+            else if (id_opt=="d")
             {
               this_id=1;
             }

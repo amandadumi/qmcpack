@@ -109,25 +109,23 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u,bool store_u);
     void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta);
     void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
-/******Checkout related functons******/
+    
+    /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
-
     LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
-
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
-
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
-
     void checkInVariablesExclusive(opt_variables_type& active) override;
     void resetParametersExclusive(const opt_variables_type& active) override;
 
     bool put(xmlNodePtr cur);
+
     //variables
     const int Nions;
     const int Nelec;
