@@ -114,9 +114,11 @@ public:
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta);
-    void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
     
-    /******Checkout related functons******/
+    
+    /****** NLPP-related functions ******/
+    void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
+    /******Checkout-related functions ******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
     LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
@@ -133,19 +135,29 @@ public:
     int ncoeff;
     int twojmax;
     const int myTableID;
-    std::string iSpecies, eSpecies1, eSpecies2;
     const ParticleSet& Ions;
     std::vector<std::vector<double>> snap_beta;
     double hartree_over_ev = 1.000000589/27.211399998784;
     double bohr_over_ang = 1.88973; 
+    // global arrays
     LAMMPS_NS::ComputeSnap* sna_global;
     LAMMPS_NS::ComputeSnap* proposed_sna_global;
-    LAMMPS_NS::LAMMPS *lmp;                  // pointer to lammps object
-    LAMMPS_NS::LAMMPS *proposed_lmp;                  // pointer to lammps object
+    LAMMPS_NS::ComputeSnap* vp_sna_global;
+    //lammps instance
+    LAMMPS_NS::LAMMPS *lmp;
+    LAMMPS_NS::LAMMPS *proposed_lmp;
+    LAMMPS_NS::LAMMPS *vp_lmp;
+    
+    // per-atom compute snap array instance
+    // sna-global incorporate sna-atom information summed over atom type.
+    // need to carry sna-atom too if we want esnap/particle.
+    // LAMMPS_NS:ComputeSNAAtom* sna_atom;
+    // LAMMPS_NS:ComputeSNAAtom* proposed_sna_atom;
+
+
     
     opt_variables_type myVars;
 
-    Vector<double> Vat;
     
 
 
