@@ -17,15 +17,6 @@ add_executable(
   ${UTEST_EXE}
   test_lammps.cpp
   )
-set(FILES_TO_COPY
-  initial_configuration.txt
-  diffusing_particle.lam
-  Mo_Chen_PRM2017.snap
-  Mo_Chen_PRM2017.snapparam
-  Mo_Chen_PRM2017.snapcoeff
-  WBe_Wood_PRB2019.snap
-  WBe_Wood_PRB2019.snapparam
-  WBe_Wood_PRB2019.snapcoeff)
 
 foreach(fname ${FILES_TO_COPY})
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${fname}" ${UTEST_DIR}/lammps)
