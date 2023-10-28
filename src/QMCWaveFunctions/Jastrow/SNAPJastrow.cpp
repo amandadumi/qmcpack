@@ -261,7 +261,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
     RealType dist_delta = 0.001; // TODO: find units
     // compute gradient, i.e., pull gradient out from lammps.
     RealType dist_delta = 0.001; // TODO: find units
-    std::cout << "in computeGL" <<std::endl;
+    //std::cout << "in computeGL" <<std::endl;
     // compute gradient, i.e., pull gradient out from lammps.
     double grad_val;
     for (int ig = 0; ig < P.groups(); ig++) {
@@ -558,12 +558,12 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
       esnap_elec=0;
       for (int k = 0; k < ncoeff; k++){
         bispectrum_val = snap_global->array[0][(ig*ncoeff) + k]; //block of bispectrum + current component to add.
-        std::cout << "bispectrum val in elec "<< bispectrum_val << std::endl;
+        //std::cout << "bispectrum val in elec "<< bispectrum_val << std::endl;
         esnap_elec += coeff[ig][k] * bispectrum_val;
       }
       esnap_all += esnap_elec;
     }
-    std::cout << "end of electron summation" << std::endl;
+    //std::cout << "end of electron summation" << std::endl;
     esnap_ion = 0;
     for (int k = 0; k < ncoeff; k++){
       bispectrum_val = snap_global->array[0][((lmp->atom->ntypes-1)*ncoeff) + k];// will need fixed for more than one ion group
@@ -572,7 +572,7 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
     esnap_all += esnap_ion;
     new_u = esnap_all*hartree_over_ev;
 
-    std::cout << "exiting calculate snap" <<std::endl; 
+    //std::cout << "exiting calculate snap" <<std::endl; 
     return;
   }
 
