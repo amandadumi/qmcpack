@@ -730,6 +730,8 @@ class QIxml(Names):
                 self.init_from_inputs(args,kwargs)
             #end if
         else:
+            for i in kwargs.keys():
+                print(i, ' ', kwargs[i])
             self.init_from_inputs(args,kwargs)
         #end if
         QIcollections.add(self)
@@ -1827,7 +1829,7 @@ class group(QIxml):
 
 class rotated_sposet(QIxml):
     tag = 'rotated_sposet'
-    attributes= ['method']
+    attributes= ['name','method']
     elements= ['sposet']
     identifier='name'
 #end class rotated_sposet
@@ -1960,7 +1962,7 @@ class slaterdeterminant(QIxml):
 #end class slaterdeterminant
 
 class determinant(QIxml):
-    attributes = ['id','group','sposet','size','ref','spin','href','orbitals','spindataset','name','cuspinfo','debug']
+    attributes = ['id','group','sposet','ref','spin','href','orbitals','spindataset','name','cuspinfo','debug']
     identifier = 'id'
     write_types = obj(debug=yesno)
 #end class determinant
@@ -2767,6 +2769,7 @@ plurals = obj(
     sposet_builders = 'sposet_builder',
     sposet_collection = 'sposet_collection',
     sposets         = 'sposet',
+    rotated_sposets = 'rotated_sposet',
     radfuncs        = 'radfunc',
     #qmcsystems      = 'qmcsystem',  # not a good idea
     atomicbasissets = 'atomicbasisset',
@@ -3918,11 +3921,11 @@ class QmcpackInput(SimulationInput,Names):
             
         udet,ddet = self.get('updet','downdet')
 
-        if udet!=None:
-            udet.size = elns.up_electron.count
+        #if udet!=None:
+            #udet.size = elns.up_electron.count
         #end if
-        if ddet!=None:
-            ddet.size = elns.down_electron.count
+        #if ddet!=None:
+            #ddet.size = elns.down_electron.count
         #end if
 
         if abs(net_spin) > 1e-1:
@@ -4607,10 +4610,10 @@ def generate_sposets(type           = None,
 def generate_rotated_sposets(name='rot-spo-up',
                              method='global',
                              sposets=None):
-    rotated_sposets = []
+    rotated_sposets_list = []
     for i in sposets:
-        rotated_sposets.append(rotated_sposet(i))
-    return make_collection(rotated_sposets)
+        rotated_sposets_list.append(rotated_sposet(name=f'rot_{i.name}', sposet=i, method='global'))
+    return make_collection(rotated_sposets_list)
 
 
 def generate_sposet_builder(type,*args,**kwargs):
@@ -4637,6 +4640,7 @@ def generate_bspline_builder(type           = 'bspline',
                              hybridrep      = None,
                              href           = 'MISSING.h5',
                              ions           = 'ion0',
+                             opt            = False,
                              spo_up         = 'spo_u',
                              spo_down       = 'spo_d',
                              sposets        = None,
@@ -4648,6 +4652,21 @@ def generate_bspline_builder(type           = 'bspline',
     if system!=None:
         tilematrix = system.structure.tilematrix()
     #end if
+    # build the sposets
+    bare_sposets = generate_sposets(
+        type           = type,
+        occupation     = 'slater_ground',
+        spin_polarized = spin_polarized,
+        system         = system,
+        sposets        = sposets,
+        spindatasets   = True
+        )
+    # determine if sposet or rotated sposet should be used.
+    if opt == False:
+        builder_sposets= bare_sposets
+    elif opt == True:
+        builder_sposets = generate_rotated_sposets(sposets=bare_sposets)
+
     bsb = bspline_builder(
         type       = type,
         meshfactor = meshfactor,
@@ -4657,15 +4676,13 @@ def generate_bspline_builder(type           = 'bspline',
         version    = version,
         truncate   = truncate,
         source     = ions,
-        sposets    = generate_sposets(
-            type           = type,
-            occupation     = 'slater_ground',
-            spin_polarized = spin_polarized,
-            system         = system,
-            sposets        = sposets,
-            spindatasets   = True
-            )
         )
+    
+    if opt == False:
+        bsb.sposets = bare_sposets
+    elif opt == True:
+        builder_sposets = generate_rotated_sposets(sposets=bare_sposets)
+        bsb.rotated_sposets = builder_sposets
     if sort is not None:
         bsb.sort = sort
     #end if
@@ -4675,6 +4692,8 @@ def generate_bspline_builder(type           = 'bspline',
     if hybridrep is not None:
         bsb.hybridrep = hybridrep
     #end if
+    if opt == True:
+        bsb.opt = True
     if twist is not None:
         bsb.twistnum = system.structure.select_twist(twist)
     elif twistnum is not None:
@@ -4799,6 +4818,7 @@ def generate_determinantset_new(up         = 'u',
     elns = system.particles.get_electrons()
     nup  = elns.up_electron.count
     ndn  = elns.down_electron.count
+
     if not len(sposets)==1 and not len(sposets)==0:
         id_u = sposets[0]
         id_d = sposets[1]
@@ -4868,7 +4888,7 @@ def generate_determinantset(up             = 'u',
                 id     = 'updet',
                 group  = up,
                 sposet = spo_u,
-                size   = nup
+                #size   = nup
                 )
         )
     #end if
@@ -4878,7 +4898,7 @@ def generate_determinantset(up             = 'u',
                 id     = 'downdet',
                 group  = down,
                 sposet = spo_d,
-                size   = ndn
+                #size   = ndn
                 )
         )
     #end if
@@ -5026,7 +5046,7 @@ def generate_determinantset_old(type           = 'bspline',
         determinants_list.append(
             determinant(
                 id   = 'updet',
-                size = nup,
+                #size = nup,
                 #occupation=section(mode='ground',spindataset=0)
                 ),
         )
@@ -5035,7 +5055,7 @@ def generate_determinantset_old(type           = 'bspline',
         determinants_list.append(
             determinant(
                 id   = 'downdet',
-                size = ndn,
+                #size = ndn,
                 #occupation=section(mode='ground',spindataset=down_spin)
                 )
         )
@@ -7338,6 +7358,7 @@ gen_basic_input_defaults = obj(
     J2_rcut_open   = 10.0,
     driver         = 'legacy', # legacy,batched
     # batched driver inputs
+    opt            = False, ## temp variable to indicate orb opt path
     orbitals_cpu   = None,     # place/evaluate orbitals on cpu if on gpu
     matrix_inv_cpu = None,     # evaluate matrix inverse on cpu if on gpu
     # legacy cuda inputs
@@ -7488,6 +7509,10 @@ def generate_basic_input(**kwargs):
                 #end if
                 if kw.run_path is not None:
                     kw.orbitals_h5 = os.path.relpath(kw.orbitals_h5,kw.run_path)
+                kw.opt = False
+                if kw.qmc == 'opt':
+                    kw.opt = True
+
                 #end if
             #end if
             ssb = generate_sposet_builder(
@@ -7502,6 +7527,7 @@ def generate_basic_input(**kwargs):
                 href           = kw.orbitals_h5,
                 spin_polarized = kw.spin_polarized,
                 system         = kw.system,
+                opt            = kw.opt,
                 orbitals_cpu   = kw.orbitals_cpu,
                 gpusharing     = kw.gpusharing,
                 )
@@ -7516,15 +7542,22 @@ def generate_basic_input(**kwargs):
                 )
         #end if
 
-        print(len(ssb.sposets))
-
-        dset = generate_determinantset_new(
-            sposets= ssb.sposets,
-            # spin_polarized = kw.spin_polarized,
-            delay_rank     = kw.delay_rank,
-            matrix_inv_cpu = kw.matrix_inv_cpu,
-            system         = kw.system,
-            )
+        if kw.opt:
+            dset = generate_determinantset_new(
+                sposets= ssb.rotated_sposets,
+                # spin_polarized = kw.spin_polarized,
+                delay_rank     = kw.delay_rank,
+                matrix_inv_cpu = kw.matrix_inv_cpu,
+              system         = kw.system,
+              )
+        else:
+            dset = generate_determinantset_new(
+                sposets= ssb.sposets,
+                # spin_polarized = kw.spin_polarized,
+                delay_rank     = kw.delay_rank,
+                matrix_inv_cpu = kw.matrix_inv_cpu,
+                system         = kw.system,
+                 )
     elif kw.det_format=='old':
         spobuilders = None
         if kw.orbspline is None:
@@ -8339,7 +8372,7 @@ if __name__=='__main__':
                                 determinants=[
                                     determinant(
                                         id='updet',
-                                        size=64,
+                                        #size=64,
                                         #occupation = section(
                                          #   mode='ground',
                                          #   spindataset=0
@@ -8347,7 +8380,7 @@ if __name__=='__main__':
                                         ),
                                     determinant(
                                         id='downdet',
-                                        size=63,
+                                        #size=63,
                                         #occupation = section(
                                         #    mode='ground',
                                         #    spindataset=1
