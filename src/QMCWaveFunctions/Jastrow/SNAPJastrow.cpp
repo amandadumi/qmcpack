@@ -51,8 +51,8 @@ SNAPJastrow::~SNAPJastrow(){
 
 
 void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
-  //std::cout<< id_coeffs.size() << "is the size of coefficients" <<std::endl;
-  //std::cout<< ncoeff << "is the number of coeffs" <<std::endl;
+  std::cout<< id_coeffs.size() << "is the size of coefficients" <<std::endl;
+  std::cout<< id << "is group we are replacing. number of coeffs" <<std::endl;
   if (id_coeffs.size() != ncoeff){
     app_warning() << " Warning wrong number of coefficents for snap jastrow" << std::endl;
   }
@@ -234,14 +234,14 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
   RealType rp   = r0 + (dist_delta/2);
   lmp->atom->x[iat][dim] = rp;
   sna_global -> compute_array();
-  G_finite_diff_forward = -coeffs[ntype][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
+  G_finite_diff_forward = -coeffs[P.GroupID[iat]][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
   
   //backward direction
   RealType rm  = r0 - (dist_delta/2);
   //update lammps position
   lmp->atom->x[iat][dim] = rm;
   sna_global -> compute_array();
-  G_finite_diff_back = -coeffs[ntype][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
+  G_finite_diff_back = -coeffs[P.GroupID[iat]][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
   // recalculate bispectrum stuff
   double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/(dist_delta);
   //fill L
@@ -510,32 +510,29 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
 
 
   void SNAPJastrow::calculate_ddc_gradlap_lammps(ParticleSet& P,RealType dist_delta, RealType coeff_delta, std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val){
-    SNAPJastrow::GradDerivVec ddc_grad_forward_val(Nions+Nelec);
-    SNAPJastrow::GradDerivVec ddc_grad_back_val(Nions+Nelec);
-    SNAPJastrow::ValueDerivVec ddc_lap_forward_val(Nions+Nelec);
-    SNAPJastrow::ValueDerivVec ddc_lap_back_val(Nions+Nelec);
-    for (int nv = 0; nv < ncoeff; nv++){
-      int col = nv;
-      for (int iel =0; iel < Nelec+Nions; iel ++){ 
-        int coeff_start = (iel*ncoeff);
-        for (int dim = 0; dim < OHMMS_DIM; dim++){
-          int row = (iel*3)+dim + 1;
-          double grad_val = sna_global->array[row][col];
-          ddc_grad_forward_val[iel][dim] += fd_coeff[iel][nv]*grad_val*hartree_over_ev*bohr_over_ang;
-          ddc_grad_back_val[iel][dim] += bd_coeff[iel][nv]*grad_val*hartree_over_ev*bohr_over_ang;
+    //std::cout << "in calculate_ddc_gradlap_lammps"<<std::endl;
+    SNAPJastrow::GradDerivVec ddc_grad_forward_val(Nelec);
+    SNAPJastrow::GradDerivVec ddc_grad_back_val(Nelec);
+    SNAPJastrow::ValueDerivVec ddc_lap_forward_val(Nelec);
+    SNAPJastrow::ValueDerivVec ddc_lap_back_val(Nelec);
+    for (int iel =0; iel < Nelec; iel ++){ 
+      for (int k = 0; k < ncoeff; k++){
+        for (int n = 0; n < lmp->atom->ntypes; n++){
+          for (int dim = 0; dim < OHMMS_DIM; dim++){
+            //std::cout<< "iel " << iel << " k " << k << " n " << n << " dim "<< dim << std::endl; 
+            int row = (iel*3)+dim + 1;
+            double grad_val = sna_global->array[row][(n*ncoeff)+k];
+            ddc_grad_forward_val[iel][dim] += -fd_coeff[P.GroupID[iel]][k]*grad_val*hartree_over_ev/bohr_over_ang;
+            ddc_grad_back_val[iel][dim] += -bd_coeff[P.GroupID[iel]][k]*grad_val*hartree_over_ev/bohr_over_ang;
 
      
-          double finite_diff_lap_forward = FD_Lap(P, iel, dim, row, nv,fd_coeff, dist_delta);
-          double finite_diff_lap_back = FD_Lap(P, iel, dim, row, nv,bd_coeff, dist_delta);
-     
-          double finite_diff_lap_forward = FD_Lap(P, iel, dim, row, nv,fd_coeff, dist_delta);
-          double finite_diff_lap_back = FD_Lap(P, iel, dim, row, nv,bd_coeff, dist_delta);
-          ddc_lap_forward_val[iel] -=  finite_diff_lap_forward*hartree_over_ev*bohr_over_ang;
-          ddc_lap_back_val[iel] -=  finite_diff_lap_back*hartree_over_ev*bohr_over_ang;
-        } //end dim
-      } //end iel
-    } //end nv
-    lapLogPsi[cur_val] = (ddc_lap_forward_val-ddc_lap_back_val)/(2*coeff_delta);
+            ddc_lap_forward_val[iel] += FD_Lap(P, iel, dim, row, k, n, fd_coeff, dist_delta)/bohr_over_ang;
+            ddc_lap_back_val[iel] += FD_Lap(P, iel, dim, row, k, n, bd_coeff, dist_delta)/bohr_over_ang;
+          } //end dim
+        } //end ntype 
+      } //end ncoeff
+    } //end nelec
+    //std::cout<< "made it to assinging the value to dalpha array" <<std::endl;
     lapLogPsi[cur_val] = (ddc_lap_forward_val-ddc_lap_back_val)/(2*coeff_delta);
     gradLogPsi[cur_val] = (ddc_grad_forward_val - ddc_grad_back_val)/(2*coeff_delta);
     //std::cout<< "finished assinging the value to dalpha array" <<std::endl;
