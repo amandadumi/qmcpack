@@ -234,14 +234,14 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
   RealType rp   = r0 + (dist_delta/2);
   lmp->atom->x[iat][dim] = rp;
   sna_global -> compute_array();
-  G_finite_diff_forward = -coeffs[P.GroupID[iat]][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
+  G_finite_diff_forward = -coeffs[ntype][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
   
   //backward direction
   RealType rm  = r0 - (dist_delta/2);
   //update lammps position
   lmp->atom->x[iat][dim] = rm;
   sna_global -> compute_array();
-  G_finite_diff_back = -coeffs[P.GroupID[iat]][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
+  G_finite_diff_back = -coeffs[ntype][coeff]*sna_global->array[row][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
   // recalculate bispectrum stuff
   double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/(dist_delta);
   //fill L
