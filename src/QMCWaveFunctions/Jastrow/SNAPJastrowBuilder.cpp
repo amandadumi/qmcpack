@@ -62,11 +62,6 @@ while (kids != NULL){
     {
 
     std::cout << "within put kids correlation loop" <<std::endl;
-    // I don't know what an attribute set is, im guessing its a way to create objects in the code?
-    // are we able to refer to them as the value in string later?
-    //rAttrib.add(kids); // this was done in eeI_jastrow builder but can't get it to work here...
-    // this seems to be if there are more than one set of coeffs given in this jastrow object. We will ned this eventually. We will ned this eventually.
-    //const auto coef_id = extracCoefficientsID(kids); // We can survive without this for now since we will make sure to do I + u + d only
     std::string jname("SNAP");
     std::string id_opt;
     if (coeffs)
@@ -104,7 +99,7 @@ while (kids != NULL){
             if (id_opt=="He"){
               this_id = 2;
             }
-            if (id_opt=="C"){
+            else if (id_opt=="C"){
               this_id = 2;
             }
             else if (id_opt=="eup")
@@ -119,8 +114,17 @@ while (kids != NULL){
             {
               this_id=1;
             }
+            else if (id_opt=="ed"){
+              this_id=1;
+            }
+            else if (id_opt=="edown"){
+              this_id=1;
+            }
+            else{
+              app_log()<< " particle type not recognized, correlation coefficient may not have been set as intended." <<std::endl;
+            }
             SJ.set_coefficients(*coeffs, this_id);
-            std::cout << "done with set coeffs" <<std::endl;
+            std::cout << "done with set coeffs" << std::endl;
           }
           xmlCoefs = xmlCoefs->next;
         }
