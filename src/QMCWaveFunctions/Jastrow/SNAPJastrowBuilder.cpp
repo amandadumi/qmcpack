@@ -143,9 +143,11 @@ xmlNodePtr kids = cur->xmlChildrenNode;
 //if ions are fed to jastrow 
 int twojmax = 2;
 std::string ftype("snap");
+std::string snap_type("linear");
 OhmmsAttributeSet tAttrib;
 tAttrib.add(ftype, "function");
 tAttrib.add(twojmax, "twojmax");
+tAttrib.add(snap_type, "snap_type");
 tAttrib.put(cur);
 std::string ftype("snap");
 OhmmsAttributeSet tAttrib;
@@ -156,7 +158,8 @@ std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
 std::cout << "creating jastrow using target: and source:" << targetPtcl.getName() << sourcePtcl.getName() <<std::endl;
 if (ftype == "snap"){
-    auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, twojmax);
+    auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, snap_type,twojmax);
+
     putkids(kids, *SJ);
     return SJ;
 }
