@@ -34,7 +34,7 @@ public:
     GradDerivVec grad_u;
     ValueDerivVec lap_u;
 
-    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, int input_twojmax);
+    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, const std::string input_snap_type, int input_twojmax);
 
     ~SNAPJastrow();
 
@@ -113,6 +113,7 @@ public:
     void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
+    void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta);
     
     
@@ -136,6 +137,7 @@ public:
     int twojmax;
     const int myTableID;
     const ParticleSet& Ions;
+    std::string snap_type;
     std::vector<std::vector<double>> snap_beta;
     double hartree_over_ev = 1.000000589/27.211399998784;
     double bohr_over_ang = 1.88973; 
@@ -148,13 +150,6 @@ public:
     LAMMPS_NS::LAMMPS *proposed_lmp;
     LAMMPS_NS::LAMMPS *vp_lmp;
     
-    // per-atom compute snap array instance
-    // sna-global incorporate sna-atom information summed over atom type.
-    // need to carry sna-atom too if we want esnap/particle.
-    // LAMMPS_NS:ComputeSNAAtom* sna_atom;
-    // LAMMPS_NS:ComputeSNAAtom* proposed_sna_atom;
-
-
     
     opt_variables_type myVars;
 
