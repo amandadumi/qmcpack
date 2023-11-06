@@ -332,7 +332,7 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
 
   xmlNodePtr jas_node = xmlFirstElementChild(root);
   std::cout << "some xml parsing stuff" << std::endl;
-  auto jas = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons,2);
+  auto jas = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons,std::string("linear"),2);
   std::cout << "initial jastrow called finished" << std::endl;
   jas->put(root); 
   std::cout << "some xml parsing stuff" << std::endl;
@@ -559,8 +559,6 @@ TEST_CASE("snap_jastrow_checkinvariables ", "[wavefunction]"){
   auto sj_uptr = SJBuilder.buildComponent(corr_node);
   SNAPJastrow* sj = static_cast<SNAPJastrow*>(sj_uptr.get());
 
-  // how can i force an update of myvars?
-  // put random numbers in for each electron bispectrum
   opt_variables_type a;
   sj->checkInVariablesExclusive(a);
 
@@ -593,5 +591,53 @@ TEST_CASE("snap_jastrow_multiple_of_one_particle_type", "[wavefunction]"){
   //TODO test: in a case where you have two particles of one type, ensure youre accessing the correct type block in the lammps snap global array
   int x=0;
 };
+
+
+TEST_CASE("snap_jastrow_linear_vs_quad_form", "[wavefunction]"){
+  Communicate* c = OHMMS::Controller;
+  std::cout<< "starting test" <<std::endl;
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+
+  electrons.create({1,1});
+  electrons.setName("e_u");
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1;
+  electrons.R[1][2] = 0.1;
+
+  ions.create({1});
+  ions.setName("ions");
+
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.update();
+  electrons.update();
+
+
+  const char * xmltext = R"XML(<tmp>
+  <wavefunction name="psi0" target="e">
+  <jastrow name="snap" type="snap" function="snap" snap_type="linear">
+  </jastrow>
+</wavefunction>
+</tmp>)XML";
+
+  Libxml2Document doc;
+  bool okay;
+  okay    = doc.parseFromString(xmltext);
+  REQUIRE(okay);
+  std::cout << "initialized system" << std::endl;
+  xmlNodePtr root = doc.getRoot();
+  xmlNodePtr jas_node = xmlFirstElementChild(root);
+  xmlNodePtr corr_node = xmlFirstElementChild(jas_node);
+  SNAPJastrowBuilder SJBuilder(c,electrons,ions);
+  auto sj_uptr = SJBuilder.buildComponent(corr_node);
+  SNAPJastrow* sj = static_cast<SNAPJastrow*>(sj_uptr.get());
+
+};
+
 
 }
