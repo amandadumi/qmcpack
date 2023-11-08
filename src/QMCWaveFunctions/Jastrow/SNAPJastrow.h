@@ -4,6 +4,7 @@
 #include "ParticleBase/ParticleAttribOps.h"
 #include "Particle/DistanceTable.h"
 #include "Configuration.h"
+#include "Message/MPIObjectBase.h"
 //lammps related headers needed.
 #include "lammps.h"
 #include "input.h"
