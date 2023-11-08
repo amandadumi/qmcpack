@@ -70,9 +70,34 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
     LAMMPS_NS::LAMMPS *this_lmp;
-    this_lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv, MPI_COMM_WORLD);
-    std::cout << "created lammps instance" <<std::endl;
-    std::cout << "created lammps instance" <<std::endl;
+
+   int n,me,nprocs;
+   int nprocs_lammps, lammps;
+   MPI_Comm comm_lammps;
+   // get rank and total of all procs
+   MPI_Comm_rank(MPI_COMM_WORLD,&me);
+   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
+    // requesting just one process be used for lammps
+    nprocs_lammps = 1;
+    if (nprocs_lammps > nprocs) {
+    if (me == 0)
+      printf("ERROR: LAMMPS cannot use more procs than available\n");
+    MPI_Abort(MPI_COMM_WORLD,1);
+  }
+  //if the rank is less than the nprocessors requested for lammps.
+  if (me < nprocs_lammps) lammps = 1;
+  else lammps = MPI_UNDEFINED;
+  MPI_Comm_split(MPI_COMM_WORLD,lammps,0,&comm_lammps);
+
+  /* open LAMMPS input script */
+
+
+
+    this_lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv, comm_lammps);
+
+
+
+    //std::cout << "created lammps instance" <<std::endl;
     this_lmp->input->one("units  metal");
     this_lmp->input->one("atom_style  atomic");
     // TODO: will this be set by a qmc box? probably.
