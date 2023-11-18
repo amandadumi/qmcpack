@@ -51,7 +51,7 @@ public:
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
     | */
-    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els);
+    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els, MPI_Comm comm_lammps);
     void set_coefficients(std::vector<RealType>,int id);
 
 
@@ -90,9 +90,7 @@ public:
                                   bool fromscratch) override;
     
 
-    void computeGL(const ParticleSet& P,
-                                  ParticleSet::ParticleGradient& G,
-                                  ParticleSet::ParticleLaplacian& L);
+    void computeGL(const ParticleSet& P);
 
     LogValueType evaluateLog(const ParticleSet& P, ParticleSet::ParticleGradient& G, ParticleSet::ParticleLaplacian& L) override;
     
@@ -115,7 +113,7 @@ public:
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
-    double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta);
+    double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta, bool bispectrum_only);
     
     
     /****** NLPP-related functions ******/
