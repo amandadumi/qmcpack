@@ -4,7 +4,7 @@
 namespace qmcplusplus
 {
 
-SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els,const std::string input_snap_type, int input_twojmax) 
+SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els,const std::string input_snap_type, int input_twojmax, double input_rcut) 
   : WaveFunctionComponent(obj_name),
     OptimizableObject("snap_" + ions.getName()),
     Nions(ions.getTotalNum()),
@@ -22,8 +22,8 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     MPI_Comm_rank(MPI_COMM_WORLD,&me);
     MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
 //     // requesting just one process be used for lammps
-    std::cout << "nprocs from mpi_comm_world is " << nprocs << std::endl;
-    std::cout << "this rank is " << me << std::endl;
+    //std::cout << "nprocs from mpi_comm_world is " << nprocs << std::endl;
+   // std::cout << "this rank is " << me << std::endl;
     nprocs_lammps = 1;
     if (nprocs_lammps > nprocs) {
     if (me == 0)
@@ -43,11 +43,11 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     twojmax = input_twojmax;
     int m = (twojmax/2)+1;
     ncoeff = (m*(m+1)*(2*m+1))/6;
-
+    rcut = input_rcut;
     snap_type = input_snap_type;
-    lmp = initialize_lammps(els, comm_lammps);
-    proposed_lmp = initialize_lammps(els, comm_lammps);
-    vp_lmp = initialize_lammps(els, comm_lammps); //may not need, but lets be extra sure wires don't get crossed
+    lmp = initialize_lammps(els, comm_lammps, rcut);
+    proposed_lmp = initialize_lammps(els, comm_lammps, rcut);
+    vp_lmp = initialize_lammps(els, comm_lammps,rcut); //may not need, but lets be extra sure wires don't get crossed
     sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
     vp_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(vp_lmp->modify->get_compute_by_id("sna_global"));
@@ -73,8 +73,8 @@ SNAPJastrow::~SNAPJastrow(){
 }
 
 void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
-  std::cout<< id_coeffs.size() << "is the size of coefficients" <<std::endl;
-  std::cout<< ncoeff << "is the number of coeffs" <<std::endl;
+  //std::cout<< id_coeffs.size() << "is the size of coefficients" <<std::endl;
+ // std::cout<< ncoeff << "is the number of coeffs" <<std::endl;
   if (id_coeffs.size() != ncoeff){
     app_warning() << " Warning wrong number of coefficents for snap jastrow" << std::endl;
   }
@@ -85,7 +85,7 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
 
 }
 
-LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, MPI_Comm comm_lammps){
+LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, MPI_Comm comm_lammps, double rcut){
     //std::cout << "in initialize_lammps" <<std::endl;
     const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
@@ -142,17 +142,22 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, MPI_Co
       this_lmp->input->one("variable 	rcutfac equal 1.0");
       this_lmp->input->one("variable 	rfac0 equal 0.99363");
       this_lmp->input->one("variable 	rmin0 equal 0");
-      this_lmp->input->one("variable 	radelem1 equal 2.3");
-      this_lmp->input->one("variable 	radelem2 equal 2.3");
-      this_lmp->input->one("variable 	radelem3 equal 2.0");
+      //setting rcut to be the same for each type, though may be interesting to try to automate this
+      temp_command = std::string("variable rad_type_1 equal ") + std::to_string(rcut/bohr_over_ang);
+      this_lmp->input->one(temp_command);
+      temp_command = std::string("variable rad_type_2 equal ") + std::to_string(rcut/bohr_over_ang);
+      this_lmp->input->one(temp_command);
+      temp_command = std::string("variable rad_type_3 equal ") + std::to_string(rcut/bohr_over_ang);
+      this_lmp->input->one(temp_command);
       this_lmp->input->one("variable	wj1 equal 1.0");
       this_lmp->input->one("variable	wj2 equal 1.0");
       this_lmp->input->one("variable	wj3 equal 0.96");
       this_lmp->input->one("variable	quadratic equal 0");
       this_lmp->input->one("variable	bzero equal 1");
       this_lmp->input->one("variable	switch equal 0");
-      this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${radelem1} ${radelem2} ${radelem3} ${wj1} ${wj2} ${wj3} rmin0 ${rmin0} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switch}\"");
+      this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} rmin0 ${rmin0} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switch}\"");
 
+    //snap needs some reference pair potential, but doesn't effect parts we are using. 
       this_lmp->input->one("pair_style zero ${rcutfac}");
       //TODO: generalize with loop over atom types
       this_lmp->input->one("pair_coeff * *"); 
@@ -362,11 +367,11 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             continue;
           if (rcsingles[k]){
             if (snap_type == "quadratic"){
-              std::cout << "we are in quadratic fd"<<std::endl;
+              // std::cout << "we are in quadratic fd"<<std::endl;
               evaluate_fd_derivs(P, kk);
             }
             else if (snap_type == "linear"){
-              std::cout << "we are in linear"<<std::endl;
+              //std::cout << "we are in linear"<<std::endl;
               evaluate_linear_derivs(P, kk);
             }
             //std::cout<< "start assigning dlogpsi"<<std::endl;
@@ -596,6 +601,19 @@ void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
       snap_beta[n][k] = std::real(myVars[(n*ncoeff)+k]);
     } 
   }
+}
+
+std::unique_ptr<WaveFunctionComponent> SNAPJastrow::makeClone(ParticleSet& tpq) const
+{
+  auto snap_copy = std::make_unique<SNAPJastrow>(std::string("snap"),Ions, tpq, std::string("linear"), twojmax, rcut);
+  snap_copy->myVars = myVars;
+  snap_copy->lmp = lmp;
+  snap_copy->lmp = proposed_lmp;
+  snap_copy->sna_global = sna_global;
+  snap_copy->proposed_sna_global = proposed_sna_global;
+  snap_copy->snap_beta = snap_beta;
+
+  return snap_copy;
 }
 
 

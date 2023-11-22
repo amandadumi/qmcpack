@@ -302,7 +302,7 @@ TEST_CASE("snap_jastrow_init", "[wavefunction]")
 
   xmlNodePtr jas_node = xmlFirstElementChild(root);
   std::cout << "some xml parsing stuff" << std::endl;
-  auto jas = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons,std::string("linear"),2);
+  auto jas = std::make_unique<SNAPJastrow>(std::string("snap"),ions,electrons,std::string("linear"),2, 7.0);
   std::cout << "initial jastrow called finished" << std::endl;
   jas->put(root); 
   std::cout << "some xml parsing stuff" << std::endl;
