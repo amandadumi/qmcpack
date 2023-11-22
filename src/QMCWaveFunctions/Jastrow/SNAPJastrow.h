@@ -38,7 +38,7 @@ public:
     GradDerivVec grad_u;
     ValueDerivVec lap_u;
 
-    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, const std::string input_snap_type, int input_twojmax);
+    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, const std::string input_snap_type, int input_twojmax,double input_rcut);
 
     ~SNAPJastrow();
 
@@ -60,7 +60,7 @@ public:
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
     | */
-    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els, MPI_Comm comm_lammps);
+    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els, MPI_Comm comm_lammps,double rcut);
     void set_coefficients(std::vector<RealType>,int id);
 
 /******MC step related functions******/
@@ -143,8 +143,7 @@ public:
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
     void checkInVariablesExclusive(opt_variables_type& active) override;
     void resetParametersExclusive(const opt_variables_type& active) override;
-
-
+    std::unique_ptr<WaveFunctionComponent> makeClone(ParticleSet& tpq) const override;
     bool put(xmlNodePtr cur);
 
     //variables
@@ -154,8 +153,8 @@ public:
     const int Nelec;
     int NIonGroups;
     int ncoeff;
-    int twojmax;
-    int twojmax;
+    int twojmax=2;
+    double rcut=7;
     const int myTableID;
     const ParticleSet& Ions;
     std::string snap_type;
