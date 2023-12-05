@@ -171,6 +171,7 @@ class Qmcpack(Simulation):
 
 
     def incorporate_result(self,result_name,result,sim):
+        print('do we enter incorporate result?')
         input = self.input
         system = self.system
         if result_name=='orbitals':
@@ -237,7 +238,7 @@ class Qmcpack(Simulation):
                 #end if
 
             elif isinstance(sim,Convert4qmc):
-
+                print('in convert4qmc section')
                 res = QmcpackInput(result.location)
                 qs  = input.simulation.qmcsystem
                 oldwfn = qs.wavefunction
@@ -245,7 +246,9 @@ class Qmcpack(Simulation):
                 if hasattr(oldwfn.determinantset,'multideterminant'):
                     del newwfn.determinantset.slaterdeterminant
                     newwfn.determinantset.multideterminant = oldwfn.determinantset.multideterminant
-                    newwfn.determinantset.sposets = oldwfn.determinantset.sposets
+                if 'rotated_sposets' in oldwfn.sposet_builders.bspline:
+                    for i in newwfn.sposet_collection.sposets:
+                        newwfn.sposet_collection.rotated_sposet.append(newwfn.sposet_collection.sposets)
                 dset = newwfn.determinantset
 
                 if 'jastrows' in newwfn:
@@ -273,6 +276,7 @@ class Qmcpack(Simulation):
                     #end if
                 #end if
                 qs.wavefunction = newwfn
+                print(f'newwfn is\n {newwfn}')
 
             else:
                 self.error('incorporating orbitals from '+sim.__class__.__name__+' has not been implemented')
@@ -355,6 +359,7 @@ class Qmcpack(Simulation):
             #end try
 
         elif result_name=='wavefunction':
+            print('in result name is wf')
             if isinstance(sim,Qmcpack):
                 opt = QmcpackInput(result.opt_file)
                 qs = input.get('qmcsystem')
@@ -575,7 +580,7 @@ class Qmcpack(Simulation):
                         eigs_spin = edata[spin_channel].Energy
 
                         # Construct the correct set of occupied orbitals by hand based on
-                        # orb1 and orb2 values that were input by the user
+                        # orb1 and orb that were input by the user
                         excited = eigs_spin
                         order = eigs_spin.argsort()
                         ground = excited[order]

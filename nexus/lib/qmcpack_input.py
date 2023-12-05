@@ -1886,22 +1886,19 @@ sposet_builder = QIxmlFactory(
     typekey = 'type'
     )
 
-sposet_collection = QIxmlFactory(
-    name    = 'sposet_collection',
-    types   = dict(bspline=bspline_builder,
-                   einspline=bspline_builder,
-                   heg=heg_builder,
-                   composite=composite_builder,
-                   molecularorbital = molecular_orbital_builder),
-    typekey = 'type'
-    )
+# sposet_collection = QIxmlFactory(
+
+class sposet_collection(QIxml):
+    tag    = 'sposet_collection'
+    attributes = ['type','href','name','source','transform']
+    elements   = ['sposet','rotated_sposet','basisset','sposet_builder']
 
 class wavefunction(QIxml):
     #            rsqmc                        afqmc
     attributes = ['name','target','id','ref']+['info','type']
     #            afqmc
     parameters = ['filetype','filename','cutoff']
-    elements   = ['sposet_builder','sposet_collection','determinantset','jastrow','override_variational_parameters']
+    elements   = ['sposet_builder','sposet_collection','sposet','rotated_sposet','determinantset','jastrow','override_variational_parameters']
     identifier = 'name','id'
 #end class wavefunction
 
@@ -2724,7 +2721,7 @@ classes = [   #standard classes
     atomicbasisset,basisgroup,init,var,traces,scalar_traces,particle_traces,array_traces,
     reference_points,nearestneighbors,neighbor_trace,dm1b,
     coefficient,radfunc,spindensity,structurefactor,rotated_sposet,
-    sposet,bspline_builder,composite_builder,heg_builder,include,
+    sposet,sposet_collection,bspline_builder,composite_builder,heg_builder,include,
     multideterminant,detlist,ci,mcwalkerset,csf,det,
     optimize,cg_optimizer,flex_optimizer,optimize_qmc,wftest,kspace_jastrow,
     header,local,force,forwardwalking,observable,record,rmc,pressure,dmccorrection,
@@ -4599,6 +4596,7 @@ def generate_rotated_sposets(name='rot-spo-up',
     return make_collection(rotated_sposets_list)
 
 
+
 def generate_sposet_builder(type,*args,**kwargs):
     if type=='bspline' or type=='einspline':
         return generate_bspline_builder(type,*args,**kwargs)
@@ -4623,7 +4621,7 @@ def generate_bspline_builder(type           = 'bspline',
                              hybridrep      = None,
                              href           = 'MISSING.h5',
                              ions           = 'ion0',
-                             opt_orb        = False,
+                             opt_orbital     = False,
                              spo_up         = 'spo_u',
                              spo_down       = 'spo_d',
                              sposets        = None,
@@ -4637,14 +4635,15 @@ def generate_bspline_builder(type           = 'bspline',
         tilematrix = system.structure.tilematrix()
     #end if
     # build the sposets
-    bare_sposets = generate_sposets(
-        type           = type,
-        occupation     = 'slater_ground',
-        spin_polarized = spin_polarized,
-        system         = system,
-        sposets        = sposets,
-        spindatasets   = True
-        )
+    if sposets == None:
+        bare_sposets = generate_sposets(
+            type           = type,
+            occupation     = 'slater_ground',
+            spin_polarized = spin_polarized,
+            system         = system,
+            sposets        = sposets,
+            spindatasets   = True
+            )
     # determine if sposet or rotated sposet should be used.
 
     bsb = bspline_builder(
@@ -4658,9 +4657,10 @@ def generate_bspline_builder(type           = 'bspline',
         source     = ions,
         )
     
-    if opt_orb == False:
+    if opt_orbital == False:
         bsb.sposets = bare_sposets
-    elif opt_orb == True:
+    elif opt_orbital == True:
+        print('we are in opt orbital place')
         builder_sposets = generate_rotated_sposets(sposets=bare_sposets)
         bsb.rotated_sposets = builder_sposets
     if sort is not None:
@@ -4785,7 +4785,6 @@ def partition_sposets(sposet_builder,partition,partition_meshfactors=None):
 
     return [ssb,cssb]
 #end def partition_sposets
-
 def generate_determinantset_new(up         = 'u',
                             down           = 'd',
                             sposets=[],
@@ -7252,8 +7251,6 @@ def generate_qmcpack_input(**kwargs):
         inp = generate_basic_afqmc_input(**kwargs)
     elif selector=='opt_jastrow':
         inp = generate_opt_jastrow_input(**kwargs)
-    elif selector=='opt_orbital':
-        inp = generate_opt_orbital_input(**kwargs)
     else:
         QmcpackInput.class_error('selection '+str(selector)+' has not been implemented for qmcpack input generation')
     #end if
@@ -7288,6 +7285,7 @@ gen_basic_input_defaults = obj(
     randomsrc      = True,            
     meshfactor     = 1.0,              
     orbspline      = None,             
+    opt_orbital    = False,
     precision      = 'float',          
     twistnum       = None,             
     twist          = None,             
@@ -7330,7 +7328,6 @@ gen_basic_input_defaults = obj(
     J2_rcut_open   = 10.0,
     driver         = 'legacy', # legacy,batched
     # batched driver inputs
-    opt            = False, ## temp variable to indicate orb opt path
     orbitals_cpu   = None,     # place/evaluate orbitals on cpu if on gpu
     matrix_inv_cpu = None,     # evaluate matrix inverse on cpu if on gpu
     # legacy cuda inputs
@@ -7481,9 +7478,6 @@ def generate_basic_input(**kwargs):
                 #end if
                 if kw.run_path is not None:
                     kw.orbitals_h5 = os.path.relpath(kw.orbitals_h5,kw.run_path)
-            thisopt = False
-            if kw.qmc == 'opt_orb':
-                thisopt = True
 
                 #end if
             #end if
@@ -7499,7 +7493,7 @@ def generate_basic_input(**kwargs):
                 href           = kw.orbitals_h5,
                 spin_polarized = kw.spin_polarized,
                 system         = kw.system,
-                opt_orb        = thisopt,
+                opt_orbital    = kw.opt_orbital,
                 orbitals_cpu   = kw.orbitals_cpu,
                 gpusharing     = kw.gpusharing,
                 )
@@ -7508,13 +7502,11 @@ def generate_basic_input(**kwargs):
             spobuilders = [ssb]
         else:
             spobuilders = partition_sposets(
-                sposet_builder = ssb,
                 partition      = kw.partition,
                 partition_meshfactors = kw.partition_mf,
                 )
         #end if
-
-        if thisopt:
+        if kw.opt_orbital:
             dset = generate_determinantset_new(
                 sposets= ssb.rotated_sposets,
                 # spin_polarized = kw.spin_polarized,
@@ -7529,7 +7521,7 @@ def generate_basic_input(**kwargs):
                 delay_rank     = kw.delay_rank,
                 matrix_inv_cpu = kw.matrix_inv_cpu,
                 system         = kw.system,
-                 )
+                )
     elif kw.det_format=='old':
         spobuilders = None
         if kw.orbspline is None:
@@ -7619,7 +7611,8 @@ def generate_basic_input(**kwargs):
     if spobuilders is not None:
         wfn.sposet_builders = make_collection(spobuilders)
     #end if
-
+    print('wave function now is')
+    print(wfn)
     qmcsys = qmcsystem(
         simulationcell  = simcell,
         wavefunction    = wfn,
@@ -7943,6 +7936,7 @@ def generate_opt_jastrow_input(id  = 'qmc',
         twist          = twist          ,
         spin_polarized = spin_polarized ,
         orbitals_h5    = orbitals_h5    ,
+        opt_orbitals   = False          ,
         system         = system         ,
         pseudos        = pseudos        ,
         jastrows       = jastrows       ,
@@ -7954,93 +7948,6 @@ def generate_opt_jastrow_input(id  = 'qmc',
 
     return input
 #end def generate_opt_jastrow_input
-
-def generate_opt_orbital_input(id  = 'qmc',
-                               series           = 0,
-                               purpose          = '',
-                               seed          = None,
-                               bconds           = None,
-                               remove_cell      = False,
-                               meshfactor       = 1.0,
-                               precision        = 'float',
-                               twistnum         = None, 
-                               twist            = None,
-                               spin_polarized   = False,
-                               orbitals_h5      = 'MISSING.h5',
-                               system           = None,
-                               pseudos          = None,
-                               jastrows         = 'generateJ12',
-                               corrections      = None,
-                               observables      = None,
-                               processes        = None,
-                               walkers_per_proc = None,
-                               threads          = None,
-                               decorr           = 10,
-                               min_walkers      = None, #use e.g. 128 for gpu's
-                               timestep         = 0.5,
-                               nonlocalpp       = False,
-                               sample_factor    = 1.0,
-                               opt_calcs        = None,
-                               det_format       = 'new'):):
-    if opt_calcs is None:
-        opt_calcs = [
-            ('linear', 4,  0,  0, 1.0),
-            ('linear', 4, .8, .2,   0)
-            ]
-        for opt_calc in opt_calcs:
-            opts = []
-            for opt_calc in opt_calcs:
-                if isinstance(opt_calc,QIxml):
-                    opts.append(opt_calc)
-                elif len(opt_calc)==5:
-                    if opt_calc[0] in opt_map:
-                        opts.append(
-                            generate_opt(
-                            *opt_calc,
-                            jastrows         = jastrows,
-                            processes        = processes,
-                            walkers_per_proc = walkers_per_proc,
-                            threads          = threads,
-                            decorr           = decorr,
-                            min_walkers      = min_walkers,
-                            timestep         = timestep,
-                            nonlocalpp       = nonlocalpp,
-                            sample_factor    = sample_factor
-                            )
-                        )
-                    else:
-                        QmcpackInput.class_error('optimization method '+opt_calc[0]+' has not yet been implemented')
-                    #end if
-                else:
-                    QmcpackInput.class_error('optimization calculation is ill formatted\n  opt calc provided: \n'+str(opt_calc))
-                #end if
-    #end if
-
-    input = generate_basic_input( #TODO: how does this function call change?
-        id             = id             ,
-        series         = series         ,
-        purpose        = purpose        ,
-        seed           = seed           ,
-        bconds         = bconds         ,
-        remove_cell    = remove_cell    ,
-        meshfactor     = meshfactor     ,
-        precision      = precision      ,
-        twistnum       = twistnum       ,
-        twist          = twist          ,
-        spin_polarized = spin_polarized ,
-        orbitals_h5    = orbitals_h5    ,
-        system         = system         ,
-        pseudos        = pseudos        ,
-        jastrows       = jastrows       ,
-        opt_orbs       = True           ,
-        corrections    = corrections    ,
-        observables    = observables    ,
-        calculations   = opts           ,
-        det_format     = det_format     ,
-        ) 
-    
-    return input
-
 
 
 
