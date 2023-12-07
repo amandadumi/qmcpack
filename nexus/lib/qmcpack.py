@@ -34,8 +34,8 @@ from physical_system import PhysicalSystem
 from simulation import Simulation,NullSimulationAnalyzer
 from qmcpack_input import QmcpackInput,generate_qmcpack_input
 from qmcpack_input import TracedQmcpackInput
-from qmcpack_input import loop,linear,cslinear,vmc,dmc,collection,determinantset,hamiltonian,init,pairpot,bspline_builder
-from qmcpack_input import generate_jastrows,generate_jastrow,generate_jastrow1,generate_jastrow2,generate_jastrow3
+from qmcpack_input import loop,linear,cslinear,vmc,dmc,collection,determinantset,hamiltonian,init,pairpot,bspline_builder, rotated_sposet
+from qmcpack_input import generate_jastrows,generate_jastrow,generate_jastrow1,generate_jastrow2,generate_jastrow3,generate_rotated_sposets
 from qmcpack_input import generate_opt,generate_opts
 from qmcpack_input import check_excitation_type
 from qmcpack_analyzer import QmcpackAnalyzer
@@ -239,17 +239,23 @@ class Qmcpack(Simulation):
 
             elif isinstance(sim,Convert4qmc):
                 print('in convert4qmc section')
+                print(result)
                 res = QmcpackInput(result.location)
                 qs  = input.simulation.qmcsystem
                 oldwfn = qs.wavefunction
                 newwfn = res.qmcsystem.wavefunction
+                print(f'newwfn is\n {newwfn}')
                 if hasattr(oldwfn.determinantset,'multideterminant'):
                     del newwfn.determinantset.slaterdeterminant
                     newwfn.determinantset.multideterminant = oldwfn.determinantset.multideterminant
-                if 'rotated_sposets' in oldwfn.sposet_builders.bspline:
-                    for i in newwfn.sposet_collection.sposets:
-                        newwfn.sposet_collection.rotated_sposet.append(newwfn.sposet_collection.sposets)
                 dset = newwfn.determinantset
+                detlist = dset.get('determinants')
+                if 'rotated_sposets' in oldwfn.sposet_builders.bspline:
+                    newwfn.sposet_collection.rotated_sposets = generate_rotated_sposets(sposets=newwfn.sposet_collection.sposets)
+                    del newwfn.sposet_collection.sposets
+                    for ridx,rspo in enumerate(newwfn.sposet_collection.rotated_sposets):
+                        rspo.sposet.size=rspo.sposet.coefficent.size
+                        detlist[rspo.name.strip('rot_')].id = rspo.name
 
                 if 'jastrows' in newwfn:
                     del newwfn.jastrows
@@ -269,10 +275,10 @@ class Qmcpack(Simulation):
                         self.error('orbital h5 file from convert4qmc does not exist\nlocation checked: {}'.format(orb_h5file))
                     #end if
                     orb_path = os.path.relpath(orb_h5file,self.locdir)
-                    dset.href = orb_path
-                    detlist = dset.get('detlist')
-                    if detlist is not None and 'href' in detlist:
-                        detlist.href = orb_path
+                    # dset.href = orb_path
+                    # detlist = dset.get('detlist')
+                    # if detlist is not None and 'href' in detlist:
+                        # detlist.href = orb_path
                     #end if
                 #end if
                 qs.wavefunction = newwfn
