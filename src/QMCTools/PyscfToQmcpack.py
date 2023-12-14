@@ -20,7 +20,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
   from pyscf.pbc import tools
   from numpy import empty
   import numpy
-
+  
 
   PBC=False
   Gamma=False
@@ -31,12 +31,12 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
   if len(sp_twist)== 0:
        sp_twist=[0.0,0.0,0.0]
   if sys.version_info >= (3, 0):
-     sys.stdout.write("Using Python 3.x\n")
+     sys.stdout.write("Using Python 3.x\n") 
      Python3=True
   else:
-     sys.stdout.write("Using Python 2.x\n")
+     sys.stdout.write("Using Python 2.x\n") 
      Python2=True
-
+ 
 
   val=str(mf.dump_flags)
   ComputeMode= re.split('[. ]',val)
@@ -52,7 +52,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
 
   if PBC and len(kpts) == 0:
         Gamma=True
-
+  
   def get_supercell(cell,kmesh=[]):
     latt_vec = cell.lattice_vectors()
     if len(kmesh)==0:
@@ -78,7 +78,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
         The unitary transformation that transforms the supercell basis k-mesh
         adapted basis.
         '''
-
+ 
         latt_vec = cell.lattice_vectors()
         if kmesh is None:
             # Guess kmesh
@@ -86,7 +86,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
             kmesh = (len(numpy.unique(scaled_k[:,0])),
                      len(numpy.unique(scaled_k[:,1])),
                      len(numpy.unique(scaled_k[:,2])))
-
+ 
         R_rel_a = numpy.arange(kmesh[0])
         R_rel_b = numpy.arange(kmesh[1])
         R_rel_c = numpy.arange(kmesh[2])
@@ -94,11 +94,11 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
 
         R_vec_rel = lib.cartesian_prod((R_rel_a, R_rel_b, R_rel_c))
         R_vec_abs = numpy.einsum('nu, uv -> nv', R_vec_rel, latt_vec)
-
+ 
         NR = len(R_vec_abs)
         phase = numpy.exp(1j*numpy.einsum('Ru, ku -> Rk', R_vec_abs, kpts))
         phase /= numpy.sqrt(NR)  # normalization in supercell
-
+ 
         # R_rel_mesh has to be construct exactly same to the Ts in super_cell function
         scell = tools.super_cell(cell, kmesh)
         return scell, phase
@@ -106,16 +106,16 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
 
   def mo_k2gamma(cell, mo_energy, mo_coeff, kpts, kmesh=None):
         scell, phase = get_phase(cell, kpts, kmesh)
-
+ 
         E_g = numpy.hstack(mo_energy)
         C_k = numpy.asarray(mo_coeff)
         Nk, Nao, Nmo = C_k.shape
         NR = phase.shape[0]
-
+ 
         # Transform AO indices
         C_gamma = numpy.einsum('Rk, kum -> Rukm', phase, C_k)
         C_gamma = C_gamma.reshape(Nao*NR, Nk*Nmo)
-
+ 
         E_sort_idx = numpy.argsort(E_g)
         E_desort_idx=numpy.argsort(  E_sort_idx )
         E_g = E_g[E_sort_idx]
@@ -123,7 +123,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
         s = scell.pbc_intor('int1e_ovlp')
         #assert(abs(reduce(numpy.dot, (C_gamma.conj().T, s, C_gamma))
         #           - numpy.eye(Nmo*Nk)).max() < 1e-7)
-
+ 
         # Transform MO indices
         E_k_degen = abs(E_g[1:] - E_g[:-1]).max() < 1e-5
         if numpy.any(E_k_degen):
@@ -133,15 +133,15 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
             f = numpy.dot(C_gamma[:,degen_mask] * (E_g[degen_mask] - shift),
                        C_gamma[:,degen_mask].conj().T)
             #assert(abs(f.imag).max() < 1e-5)
-
+ 
             e, na_orb = la.eigh(f.real, s, type=2)
             C_gamma[:,degen_mask] = na_orb[:, e>0]
-
+ 
         #assert(abs(C_gamma.imag).max() < 1e-2)
         #C_gamma = C_gamma.real
         #assert(abs(reduce(numpy.dot, (C_gamma.conj().T, s, C_gamma))
         #           - numpy.eye(Nmo*Nk)).max() < 1e-2)
-
+ 
         s_k = cell.pbc_intor('int1e_ovlp', kpts=kpts)
         # overlap between k-point unitcell and gamma-point supercell
         s_k_g = numpy.einsum('kuv,Rk->kuRv', s_k, phase.conj()).reshape(Nk,Nao,NR*Nao)
@@ -149,17 +149,17 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
         mo_phase = lib.einsum('kum,kuv,vi->kmi', C_k.conj(), s_k_g, C_gamma)
         C_gamma_unsorted=C_gamma[:,E_desort_idx]
         E_g_unsorted=E_g[E_desort_idx]
-        #return E_g_unsorted, C_gamma_unsorted,
+        #return E_g_unsorted, C_gamma_unsorted, 
         return E_g, C_gamma, E_g_unsorted,C_gamma_unsorted
 
 
-  IonName=dict([('H',1),  ('He',2),  ('Li',3),('Be',4),  ('B', 5),  ('C', 6),  ('N', 7),('O', 8),  ('F', 9),   ('Ne',10),   ('Na',11),('Mg',12),   ('Al',13),   ('Si',14),   ('P', 15),   ('S', 16),('Cl',17),   ('Ar',18),   ('K', 19),   ('Ca',20),   ('Sc',21),   ('Ti',22),   ('V', 23),   ('Cr',24),   ('Mn',25),   ('Fe',26),   ('Co',27),   ('Ni',28),   ('Cu',29),   ('Zn',30),   ('Ga',31),   ('Ge',32),   ('As',33),   ('Se',34),   ('Br',35),   ('Kr',36),   ('Rb',37),   ('Sr',38),   ('Y', 39),  ('Zr',40),   ('Nb',41),   ('Mo',42),   ('Tc',43),   ('Ru',44),   ('Rh',45),   ('Pd',46),   ('Ag',47),   ('Cd',48),   ('In',49),   ('Sn',50),   ('Sb',51),   ('Te',52),   ('I', 53),   ('Xe',54),   ('Cs',55),   ('Ba',56),   ('La',57),   ('Ce',58), ('Pr',59),   ('Nd',60),   ('Pm',61),   ('Sm',62),   ('Eu',63),   ('Gd',64),   ('Tb',65),   ('Dy',66),   ('Ho',67),  ('Er',68),   ('Tm',69),   ('Yb',70),   ('Lu',71),   ('Hf',72),   ('Ta',73),   ('W', 74),   ('Re',75),   ('Os',76),   ('Ir',77),   ('Pt',78),   ('Au',79),   ('Hg',80), ('Tl',81),   ('Pb',82),  ('Bi',83),   ('Po',84),   ('At',85),   ('Rn',86),   ('Fr',87),   ('Ra',88),   ('Ac',89),   ('Th',90),   ('Pa',91),   ('U', 92),   ('Np',93)])
+  IonName=dict([('H',1),  ('He',2),  ('Li',3),('Be',4),  ('B', 5),  ('C', 6),  ('N', 7),('O', 8),  ('F', 9),   ('Ne',10),   ('Na',11),('Mg',12),   ('Al',13),   ('Si',14),   ('P', 15),   ('S', 16),('Cl',17),   ('Ar',18),   ('K', 19),   ('Ca',20),   ('Sc',21),   ('Ti',22),   ('V', 23),   ('Cr',24),   ('Mn',25),   ('Fe',26),   ('Co',27),   ('Ni',28),   ('Cu',29),   ('Zn',30),   ('Ga',31),   ('Ge',32),   ('As',33),   ('Se',34),   ('Br',35),   ('Kr',36),   ('Rb',37),   ('Sr',38),   ('Y', 39),  ('Zr',40),   ('Nb',41),   ('Mo',42),   ('Tc',43),   ('Ru',44),   ('Rh',45),   ('Pd',46),   ('Ag',47),   ('Cd',48),   ('In',49),   ('Sn',50),   ('Sb',51),   ('Te',52),   ('I', 53),   ('Xe',54),   ('Cs',55),   ('Ba',56),   ('La',57),   ('Ce',58), ('Pr',59),   ('Nd',60),   ('Pm',61),   ('Sm',62),   ('Eu',63),   ('Gd',64),   ('Tb',65),   ('Dy',66),   ('Ho',67),  ('Er',68),   ('Tm',69),   ('Yb',70),   ('Lu',71),   ('Hf',72),   ('Ta',73),   ('W', 74),   ('Re',75),   ('Os',76),   ('Ir',77),   ('Pt',78),   ('Au',79),   ('Hg',80), ('Tl',81),   ('Pb',82),  ('Bi',83),   ('Po',84),   ('At',85),   ('Rn',86),   ('Fr',87),   ('Ra',88),   ('Ac',89),   ('Th',90),   ('Pa',91),   ('U', 92),   ('Np',93)]) 
 
 
 
   H5_qmcpack=h5py.File(title+'.h5','w')
   groupApp=H5_qmcpack.create_group("application")
-  if Python3:
+  if Python3: 
      strList=['PySCF']
      asciiList = [n.encode("ascii", "ignore") for n in strList]
      groupApp.create_dataset('code', (1,),'S5', asciiList)
@@ -178,7 +178,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
      loc_cell,kmesh=get_supercell(cell,kmesh)
   else:
      loc_cell=cell
-
+  
   natom=loc_cell.natm
 
   dt = h5py.special_dtype(vlen=bytes)
@@ -188,7 +188,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
   #Dataset Number Of Atoms
   groupAtom.create_dataset("number_of_atoms",(1,),dtype="i4",data=natom)
 
-  #Dataset Number Of Species
+  #Dataset Number Of Species 
   #Species contains (Atom_Name, Atom_Number,Atom_Charge,Atom_Core)
   l_atoms = [ (loc_cell.atom_pure_symbol(x),IonName[loc_cell.atom_pure_symbol(x)],loc_cell.atom_charge(x),loc_cell.atom_nelec_core(x)) for x in  range(natom)  ] 
 
@@ -208,14 +208,14 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
   for k, l_v in idxSpeciestoAtoms.items():
         for v in l_v:
             idxAtomstoSpecies[v] = k
-
+ 
   NbSpecies=len(idxSpeciestoAtoms.keys())
 
   groupAtom.create_dataset("number_of_species",(1,),dtype="i4",data=NbSpecies)
 
-  #Dataset positions
+  #Dataset positions 
   MyPos=groupAtom.create_dataset("positions",(natom,3),dtype="f8")
-  for x in range(natom):
+  for x in range(natom): 
     MyPos[x:]=loc_cell.atom_coord(x)
 
   #Group Atoms
@@ -245,14 +245,14 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
   GroupParameter=H5_qmcpack.create_group("parameters")
   GroupParameter.create_dataset("ECP",(1,),dtype="b1",data=bool(loc_cell.has_ecp()))
   bohrUnit=True
-  Spin=loc_cell.spin
+  Spin=loc_cell.spin 
 
-  GroupParameter.create_dataset("Unit",(1,),dtype="b1",data=bohrUnit)
-  GroupParameter.create_dataset("NbAlpha",(1,),dtype="i4",data=loc_cell.nelec[0])
-  GroupParameter.create_dataset("NbBeta",(1,),dtype="i4",data=loc_cell.nelec[1])
+  GroupParameter.create_dataset("Unit",(1,),dtype="b1",data=bohrUnit) 
+  GroupParameter.create_dataset("NbAlpha",(1,),dtype="i4",data=loc_cell.nelec[0]) 
+  GroupParameter.create_dataset("NbBeta",(1,),dtype="i4",data=loc_cell.nelec[1]) 
   GroupParameter.create_dataset("NbTotElec",(1,),dtype="i4",data=loc_cell.nelec[0]+loc_cell.nelec[1])
-  GroupParameter.create_dataset("spin",(1,),dtype="i4",data=Spin)
-
+  GroupParameter.create_dataset("spin",(1,),dtype="i4",data=Spin) 
+   
 
   #basisset Group
   GroupBasisSet=H5_qmcpack.create_group("basisset")
@@ -348,15 +348,15 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
       Normalized[0:]="no"
 
 
+       
 
 
-
-
+ 
 
     nshell = loc_cell.atom_shell_ids(MyIdx)
     n=0
     for i in nshell:
-        l = loc_cell.bas_angular(i)
+        l = loc_cell.bas_angular(i)   
         contracted_coeffs = loc_cell.bas_ctr_coeff(i)
         contracted_exp =loc_cell.bas_exp(i)
         for line in zip(*contracted_coeffs):
@@ -365,12 +365,12 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
 
           mylen="S"+str(len((uniq_atoms[x][0]+str(n)+str(l))))
           if Python3:
-            strList=['Gaussian']
+            strList=['Gaussian'] 
             asciiList = [n.encode("ascii", "ignore") for n in strList]
             BasisGroup.create_dataset('type',(1,),'S8',asciiList)
 
 
-            strList=[uniq_atoms[x][0]+str(n)+str(l)]
+            strList=[uniq_atoms[x][0]+str(n)+str(l)] 
             asciiList = [n.encode("ascii", "ignore") for n in strList]
             BasisGroup.create_dataset('rid', (1,),mylen, asciiList)
           else:
@@ -404,7 +404,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
       except:
               return bool(l.imag)
 
-
+    
 
 
 
@@ -419,9 +419,9 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
         5:["xxxxx","yyyyy","zzzzz","xxxxy","xxxxz","yyyyx","yyyyz","zzzzx","zzzzy","xxxyy","xxxzz","yyyxx","yyyzz","zzzxx","zzzyy","xxxyz","yyyxz","zzzxy","xxyyz","xxzzy","yyzzx"],
         6:["xxxxxx","yyyyyy","zzzzzz","xxxxxy","xxxxxz","yyyyyx","yyyyyz","zzzzzx","zzzzzy","xxxxyy","xxxxzz","yyyyxx","yyyyzz","zzzzxx","zzzzyy","xxxxyz","yyyyxz","zzzzxy","xxxyyy","xxxzzz","yyyzzz","xxxyyz","xxxzzy","yyyxxz","yyyzzx","zzzxxy","zzzyyx","xxyyzz"],
     }
-
+    
     d_l = {'s':0, 'p':1, 'd':2, 'f':3, 'g':4, 'h':5, 'i':6}
-
+  
     def n_orbital(n):
       if n==0:
           return 1
@@ -429,8 +429,8 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
           return 3
       else:
           return 2*n_orbital(n-1)-n_orbital(n-2)+1
-
-
+  
+  
     def compare_gamess_style(item1, item2):
       # Warning:
       # 	- d_gms_order is a global variable
@@ -444,23 +444,23 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
           a = l.index(item1)
           b = l.index(item2)
           return ((a>b) - (a<b)) #cmp( a, b )
-
+ 
     def compare_python3(item1, item2):
          return compare_gamess_style(item1[0],item2[0])
-
+ 
     ao_label = loc_cell.ao_labels(False)
-
-
+  
+  
     # Create a list of shell
     l_l = []
     for label, name, t, l in ao_label:
           # Change yyx -> xyy "
           q =  "".join(sorted(l, key=l.count, reverse=True))
           l_l.append(q)
-
+  
     # Pyscf ordering of shell
     l_order = list(range(len(l_l)))
-
+  
     # Shell ordering indexed
     n = 1
     l_order_new = []
@@ -474,22 +474,22 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
                   n = n_orbital(r)
                   unordered_l = l_l[i:i+n]
                   unordered = l_order[i:i+n]
-                  #print i,n,unordered
+                  #print i,n,unordered 
                   ordered = [x for _,x in sorted(zip(unordered_l,unordered),key=cmp_to_key(compare_python3))]
                   l_order_new.extend(ordered)
-
-
+  
+    
     def order_mo_coef(ll):
           # Order a list of transposed mo_coeff (Ao,Mo) -> (Mo,Ao) ordered
           # Warning:
           #	- l_order_new is used as global variable
           #	- gamess order
-
+  
           ll_new= []
           for l in zip(*ll):
               ll_new.append([l[i] for i in l_order_new])
           return ll_new
-
+  
   mo_coeff = mf.mo_coeff
   if len(kpts)==0:
      Complex=False
@@ -497,12 +497,12 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
      Complex=True
   GroupParameter.create_dataset("IsComplex",(1,),dtype="b1",data=Complex)
 
-
+ 
   GroupParameter.create_dataset("SpinRestricted",(1,),dtype="b1",data=Restricted)
   GroupDet=H5_qmcpack.create_group("Super_Twist")
   if not PBC:
     if Restricted==True:
-      NbAO, NbMO =mo_coeff.shape
+      NbAO, NbMO =mo_coeff.shape 
       if loc_cell.cart==True:
         eigenset=GroupDet.create_dataset("eigenset_0",(NbMO,NbAO),dtype="f8",data=order_mo_coef(mo_coeff))
       else:
@@ -510,7 +510,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
 
       eigenvalue=GroupDet.create_dataset("eigenval_0",(1,NbMO),dtype="f8",data=mf.mo_energy)
     else:
-      NbAO, NbMO =mo_coeff[0].shape
+      NbAO, NbMO =mo_coeff[0].shape 
       if loc_cell.cart==True:
         eigenset_up=GroupDet.create_dataset("eigenset_0",(NbMO,NbAO),dtype="f8",data=order_mo_coef(mo_coeff[0]))
         eigenset_dn=GroupDet.create_dataset("eigenset_1",(NbMO,NbAO),dtype="f8",data=order_mo_coef(mo_coeff[1]))
@@ -520,7 +520,7 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
 
       eigenvalue_up=GroupDet.create_dataset("eigenval_0",(1,NbMO),dtype="f8",data=mf.mo_energy[0])
       eigenvalue_dn=GroupDet.create_dataset("eigenval_1",(1,NbMO),dtype="f8",data=mf.mo_energy[1])
-
+ 
   else:
     #Cell Parameters
     GroupCell=H5_qmcpack.create_group("Cell")
@@ -532,41 +532,41 @@ def savetoqmcpack(cell,mf,title="Default",kpts=[],kmesh=[],sp_twist=[],weight=1.
     #Supertwist Coordinate
     GroupDet.create_dataset("Coord",(1,3),dtype="f8",data=sp_twist)
 
-    if Gamma:
+    if Gamma:  
        E_g=mf.mo_energy
        E_g_unsorted=E_g
-       mo_coeff_ = get_mo(mo_coeff, loc_cell.cart)
-       mo_coeff_unsorted = mo_coeff_
-       NbAO, NbMO =mo_coeff.shape
-    else:
+       mo_coeff_ = get_mo(mo_coeff, loc_cell.cart) 
+       mo_coeff_unsorted = mo_coeff_ 
+       NbAO, NbMO =mo_coeff.shape 
+    else: 
       mo_k = numpy.array([c[:,cas_idx] for c in mf.mo_coeff] if cas_idx is not None else mf.mo_coeff)
       e_k =  numpy.array([e[cas_idx] for e in mf.mo_energy] if cas_idx is not None else mf.mo_energy)
       E_g, C_gamma,E_g_unsorted,C_unsorted = mo_k2gamma(cell, e_k, mo_k, kpts,kmesh)
       mo_coeff=C_gamma
-      NbAO, NbMO =mo_coeff.shape
+      NbAO, NbMO =mo_coeff.shape 
 
-      mo_coeff_ = get_mo(mo_coeff.real, loc_cell.cart)
-      mo_coeff_imag = get_mo(mo_coeff.imag, loc_cell.cart)
-      mo_coeff_unsorted = get_mo(C_unsorted.real, loc_cell.cart)
-      mo_coeff_unsorted_imag = get_mo(C_unsorted.imag, loc_cell.cart)
-      eigenset_imag=GroupDet.create_dataset("eigenset_0_imag",(NbMO,NbAO),dtype="f8",data=mo_coeff_imag)
-      eigenset_unsorted_imag=GroupDet.create_dataset("eigenset_unsorted_0_imag",(NbMO,NbAO),dtype="f8",data=mo_coeff_unsorted_imag)
-
-
+      mo_coeff_ = get_mo(mo_coeff.real, loc_cell.cart) 
+      mo_coeff_imag = get_mo(mo_coeff.imag, loc_cell.cart) 
+      mo_coeff_unsorted = get_mo(C_unsorted.real, loc_cell.cart) 
+      mo_coeff_unsorted_imag = get_mo(C_unsorted.imag, loc_cell.cart) 
+      eigenset_imag=GroupDet.create_dataset("eigenset_0_imag",(NbMO,NbAO),dtype="f8",data=mo_coeff_imag) 
+      eigenset_unsorted_imag=GroupDet.create_dataset("eigenset_unsorted_0_imag",(NbMO,NbAO),dtype="f8",data=mo_coeff_unsorted_imag) 
 
 
-    eigenset=GroupDet.create_dataset("eigenset_0",(NbMO,NbAO),dtype="f8",data=mo_coeff_)
+
+
+    eigenset=GroupDet.create_dataset("eigenset_0",(NbMO,NbAO),dtype="f8",data=mo_coeff_) 
     eigenvalue=GroupDet.create_dataset("eigenval_0",(1,NbMO),dtype="f8",data=E_g)
-
+ 
     #Unsorted Mo_coeffs for Multideterminants order matching QP
-    eigenset_unsorted=GroupDet.create_dataset("eigenset_unsorted_0",(NbMO,NbAO),dtype="f8",data=mo_coeff_unsorted)
+    eigenset_unsorted=GroupDet.create_dataset("eigenset_unsorted_0",(NbMO,NbAO),dtype="f8",data=mo_coeff_unsorted) 
     eigenvalue_unsorted=GroupDet.create_dataset("eigenval_unsorted_0",(1,NbMO),dtype="f8",data=E_g_unsorted)
-
-
+ 
+    
 
   GroupParameter.create_dataset("numMO",(1,),dtype="i4",data=NbMO)
   GroupParameter.create_dataset("numAO",(1,),dtype="i4",data=NbAO)
-
+  
   make_multidet(cell,mf,H5_qmcpack)
   H5_qmcpack.close()
 
