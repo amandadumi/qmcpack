@@ -51,7 +51,7 @@ public:
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
     | */
-    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els, MPI_Comm comm_lammps,double rcut);
+    LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els,double rcut);
     void set_coefficients(std::vector<RealType>,int id);
 
 
@@ -74,7 +74,6 @@ public:
     void checkOutVariables(const opt_variables_type& o) override;
 
     // void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
-
 
 /****** Evaluate E_L functions ******/
     /** Calculate the ratio of proposed to current wave function element*/
@@ -149,6 +148,7 @@ public:
     LAMMPS_NS::LAMMPS *lmp;
     LAMMPS_NS::LAMMPS *proposed_lmp;
     LAMMPS_NS::LAMMPS *vp_lmp;
+    MPI_Comm comm_lammps;
     
     
     opt_variables_type myVars;
