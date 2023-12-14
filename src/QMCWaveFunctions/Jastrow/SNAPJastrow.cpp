@@ -16,24 +16,25 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
 {
 // // reserve just one process for lammps
     int n,me,nprocs;
-    int nprocs_lammps, lammps;
-    MPI_Comm comm_lammps;
+    int nprocs_lammps;
 //     // get rank and total of all procs
     MPI_Comm_rank(MPI_COMM_WORLD,&me);
     MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
 //     // requesting just one process be used for lammps
-    //std::cout << "nprocs from mpi_comm_world is " << nprocs << std::endl;
-   // std::cout << "this rank is " << me << std::endl;
+    std::cout << "nprocs from mpi_comm_world is " << nprocs << std::endl;
+   std::cout << "this rank is " << me << std::endl;
     nprocs_lammps = 1;
     if (nprocs_lammps > nprocs) {
     if (me == 0)
       printf("ERROR: LAMMPS cannot use more procs than available\n");
     MPI_Abort(MPI_COMM_WORLD,1);
   }
-  //if the rank we are on is less than the Nprocs we want for lamps, this process can be placed in the subgroup of 1, otherwise, it is undefined. 
-  // i want each MPI rank to become a comm just for lammps, this each will belong to colour equal to that of it's own rank. 
-  // not sure what to do with the key() issue.
-  MPI_Comm_split(MPI_COMM_WORLD,me,0,&comm_lammps);
+  // snce qmc is treated as emparassingle parallel we can split eachh rank into its won comm so that this lammps instance is treated right here.
+  // so me is the current rank and create a specific comm for this, which willl belong to this lammps instance. 
+  // 0 is the key argument sincce we don't really care about ranks here.
+    MPI_Comm_split(MPI_COMM_WORLD,me,0,&comm_lammps);
+    MPI_Comm_rank(comm_lammps,&me);
+  
   //
   //comm_lammps = MPI_COMM_WORLD;
 
@@ -45,9 +46,9 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     ncoeff = (m*(m+1)*(2*m+1))/6;
     rcut = input_rcut;
     snap_type = input_snap_type;
-    lmp = initialize_lammps(els, comm_lammps, rcut);
-    proposed_lmp = initialize_lammps(els, comm_lammps, rcut);
-    vp_lmp = initialize_lammps(els, comm_lammps,rcut); //may not need, but lets be extra sure wires don't get crossed
+    lmp = initialize_lammps(els, rcut);
+    proposed_lmp = initialize_lammps(els, rcut);
+    vp_lmp = initialize_lammps(els,rcut); //may not need, but lets be extra sure wires don't get crossed
     sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
     vp_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(vp_lmp->modify->get_compute_by_id("sna_global"));
@@ -67,9 +68,13 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
 }
 
 SNAPJastrow::~SNAPJastrow(){
+  // MPI_Comm_free(&comm_lammps);
   delete lmp;
   delete proposed_lmp;
   delete vp_lmp;
+//  MPI_Comm_free(&comm_lammps);
+  std::cout << "able to deconstruct our lammps functions" << std::endl;
+
 }
 
 
@@ -86,7 +91,7 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
 
 }
 
-LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, MPI_Comm comm_lammps, double rcut){
+LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double rcut){
     //std::cout << "in initialize_lammps" <<std::endl;
     const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
@@ -214,24 +219,15 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, MPI_Co
       this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} rmin0 ${rmin0} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switch}\"");
 
     //snap needs some reference pair potential, but doesn't effect parts we are using. 
-      this_lmp->input->one("pair_style zero ${rcutfac}");
-      //TODO: generalize with loop over atom types
-      this_lmp->input->one("pair_coeff * *"); 
-      this_lmp->input->one("pair_style zero ${rcutfac}");
-      //TODO: generalize with loop over atom types
-      this_lmp->input->one("pair_coeff * *"); 
 
-      this_lmp->input->one("variable 	zblcutinner equal 4");
-      this_lmp->input->one("variable 	zblcutouter equal 4.8");
-      this_lmp->input->one("variable 	zblz equal 73");
-      this_lmp->input->one("pair_style zbl ${zblcutinner} ${zblcutouter}");
-      this_lmp->input->one("pair_coeff 	* * ${zblz} ${zblz}");
+      this_lmp->input->one(" pair_style zero 10.0");
+      this_lmp->input->one("pair_style zero 5.0 nocoeff");
+      this_lmp->input->one("pair_coeff * *");
+      //TODO: generalize with loop over atom types
       this_lmp->input->one("compute sna_global all snap ${snap_options}"); 
       this_lmp->input->one("thermo 100");
       this_lmp->input->one("thermo_style   custom  c_sna_global[1][11] c_sna_global[2][1]");
-      this_lmp->input->one("thermo 100");
-      this_lmp->input->one("thermo_style   custom  c_sna_global[1][11] c_sna_global[2][1]");
-      this_lmp->input->one("run            0");
+      this_lmp->input->one("run            0 pre no post no");
       //std::cout<< "lammps ntypes is " << this_lmp->atom->ntypes << std::endl;
 
     return this_lmp;
