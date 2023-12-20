@@ -30,7 +30,7 @@ public:
     ClassName = "SnapJastrowBuilder";
     NameOpt = "0";
     TypeOpt = "SNAP";
-    SNAPType = "linear";
+    SNAPType = "quadratic";
     
 }
     std::unique_ptr<WaveFunctionComponent> buildComponent(xmlNodePtr cur) override;
