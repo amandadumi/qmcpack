@@ -50,7 +50,7 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
     std::cout << "have entered into put kids function." <<std::endl;
     std::cout << "kisdname is " << (char*)kids->name <<std::endl;
 
-while (kids != NULL){
+  while (kids != NULL){
     std::vector<double> snap_coeffs;
     std::vector<double>* coeffs;
 
@@ -154,7 +154,7 @@ tAttrib.put(cur);
 
 std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
-std::cout << "creating jastrow using target: and source:" << targetPtcl.getName() << sourcePtcl.getName() <<std::endl;
+std::cout << "creating jastrow using target: and source:" << targetPtcl.getName() << " " << sourcePtcl.getName() <<std::endl;
 if (ftype == "snap"){
     auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, snap_type,twojmax,rcut);
 
