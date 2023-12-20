@@ -52,6 +52,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
     vp_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(vp_lmp->modify->get_compute_by_id("sna_global"));
+    std::cout<< "we ,made the lammps objects"<<std::endl;
     snap_beta = std::vector<std::vector<double>>(lmp->atom->ntypes, std::vector<double>(ncoeff,0.001));
     for (int i=0; i < lmp->atom->ntypes; i++){
       for (int k = 0; k < ncoeff;k++){
@@ -65,6 +66,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     resizeWFOptVectors(); 
     grad_u.resize(Nelec);
     lap_u.resize(Nelec);
+    std::cout<< "we finished initialization"<<std::endl;
 }
 
 SNAPJastrow::~SNAPJastrow(){
@@ -104,7 +106,7 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
 
 
 
-    //std::cout << "created lammps instance" <<std::endl;
+    // std::cout << "created bare lammps instance" <<std::endl;
     this_lmp->input->one("units  metal");
     this_lmp->input->one("atom_style  atomic");
     // TODO: will this be set by a qmc box? probably.
@@ -114,7 +116,7 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     //TODO: what will box region be pased on QMC object. Cell?
     this_lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
     // create a box that will contain the number of species equal to the number of groups.
-    std::string temp_command = std::string("create_box ") + std::to_string(3) +  " mybox";
+    std::string temp_command = std::string("create_box ") + std::to_string(NIonGroups + els.groups()) +  " mybox";
     this_lmp->input->one(temp_command);
     // add atoms to the groups
     double bohr_over_ang = 1.88973;// to convert qmcpack storage of bohr into angstrom for lammps
@@ -166,10 +168,9 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     //TODO: what will box region be pased on QMC object. Cell?
     this_lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
     // create a box that will contain the number of species equal to the number of groups.
-    std::string temp_command = std::string("create_box ") + std::to_string(3) +  " mybox";
+    std::string temp_command = std::string("create_box ") + std::to_string(NIonGroups + els.groups()) +  " mybox";
     this_lmp->input->one(temp_command);
     // add atoms to the groups
-    double bohr_over_ang = 1.88973;// to convert qmcpack storage of bohr into angstrom for lammps
     this_lmp->input->one("group e_u type 1");
     this_lmp->input->one("group e_d type 2");
     this_lmp->input->one("group i type 3");
@@ -178,23 +179,30 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     this_lmp->input->one("mass 1 .95");
     this_lmp->input->one("mass 2 .95");
     this_lmp->input->one("mass 3 1");
-    std::cout << "before ion creation" <<std::endl;
+   // std::cout << "before ion creation" <<std::endl;
+    // std::cout << "total electron groups is" << std::to_string(els.groups()) << std::endl;
     for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
       // label groups in lamps
       for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
         // place atom in boxes according to their group.
         temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
-        //std::cout << temp_command << std::endl;
+        std::cout << temp_command << std::endl;
         this_lmp->input->one(temp_command);
       }
     }
+      const SpeciesSet& tspecies(Ions.getSpeciesSet());
       for (int ig = 0; ig < Ions.groups(); ig++) { // loop over groups
-        for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
-          temp_command = std::string("create_atoms 3 single ") + std::to_string(Ions.R[iat][0]/bohr_over_ang) + "  " + std::to_string(Ions.R[iat][1]/bohr_over_ang)  + " " + std::to_string(Ions.R[iat][2]/bohr_over_ang) + " units box";  
+          std::cout << "ion species is" << tspecies.speciesName[ Ions.GroupID[ig] ] << std::endl;
+          temp_command = std::string("group ions_"+ std::to_string(ig)  + " type " + std::to_string(els.groups()+ig+1));
           std::cout << temp_command << std::endl;
+          temp_command = std::string("mass "+ std::to_string(els.groups()+ig+1)) + " 1.00";
           std::cout << temp_command << std::endl;
           this_lmp->input->one(temp_command);
-        }
+          for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
+            temp_command = std::string("create_atoms "  + std::to_string(els.groups()+ig+1) + " single ") + std::to_string(Ions.R[iat][0]/bohr_over_ang) + "  " + std::to_string(Ions.R[iat][1]/bohr_over_ang)  + " " + std::to_string(Ions.R[iat][2]/bohr_over_ang) + " units box";  
+            std::cout << temp_command << std::endl;
+            this_lmp->input->one(temp_command);
+          }
       }
       std::cout << "after ion creation" <<std::endl;
       std::cout << "after ion creation" <<std::endl;
@@ -221,7 +229,6 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     //snap needs some reference pair potential, but doesn't effect parts we are using. 
 
       this_lmp->input->one(" pair_style zero 10.0");
-      this_lmp->input->one("pair_style zero 5.0 nocoeff");
       this_lmp->input->one("pair_coeff * *");
       //TODO: generalize with loop over atom types
       this_lmp->input->one("compute sna_global all snap ${snap_options}"); 
