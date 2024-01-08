@@ -42,8 +42,14 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
       app_log() << "WARNING: SNAP jastrow does not currently support more than one ion group" <<std::endl;
     }
     twojmax = input_twojmax;
-    int m = (twojmax/2)+1;
-    ncoeff = (m*(m+1)*(2*m+1))/6;
+    if (twojmax%2==0){
+     int m = (twojmax/2)+1;
+      ncoeff = (m*(m+1)*(2*m+1))/6;
+    }
+    else{
+      int m = (twojmax+1)/2;
+      ncoeff = (m*(m+1)*(2*m))/3;
+    }
     rcut = input_rcut;
     snap_type = input_snap_type;
     lmp = initialize_lammps(els, rcut);
