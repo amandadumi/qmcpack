@@ -153,8 +153,27 @@ public:
     
     opt_variables_type myVars;
 
-    
+  struct SNAPJastrowTimers
+  {
+    NewTimer& eval_timer;
+    NewTimer& init_lammps_timer;
+    NewTimer& eval_esnap_timer;
+    NewTimer& eval_log_timer;
+    NewTimer& eval_ratio_timer;
+    NewTimer& eval_gradient_timer;
+    SNAPJastrowTimers(const std::string& prefix)
+        : eval_timer(createGlobalTimer(prefix + "Eval", timer_level_fine)),
+          eval_esnap_timer(createGlobalTimer(prefix + "evalESNAP", timer_level_fine)),
+          init_lammps_timer(createGlobalTimer(prefix + "InitLammps", timer_level_fine)),
+          eval_log_timer(createGlobalTimer(prefix + "evalLogSNAP", timer_level_fine)),
+          eval_ratio_timer(createGlobalTimer(prefix + "evalRatioSNAP", timer_level_fine)),
+          eval_gradient_timer(createGlobalTimer(prefix + "evalGradientSNAP", timer_level_fine))
+    {}
+  }; 
 
+
+
+  SNAPJastrowTimers timers_;
 
 
 

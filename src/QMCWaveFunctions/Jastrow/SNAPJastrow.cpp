@@ -11,7 +11,8 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     Nelec(els.getTotalNum()),
     NIonGroups(ions.groups()),
     myTableID(els.addTable(ions)),
-    Ions(ions)
+    Ions(ions),
+    timers_("SNAPJatrowTimers")
 
 {
 // // reserve just one process for lammps
@@ -99,6 +100,7 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
 }
 
 LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double rcut){
+    ScopedTimer local_timer(timers_.init_lammps_timer);
     //std::cout << "in initialize_lammps" <<std::endl;
     const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
@@ -248,6 +250,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
  
  
  void SNAPJastrow::computeGL(const ParticleSet& P){
+    ScopedTimer local_timer(timers_.eval_gradient_timer);
     RealType dist_delta = 0.001; // TODO: find units
     //std::cout << "in computeGL" <<std::endl;
     // compute gradient, i.e., pull gradient out from lammps.
@@ -279,6 +282,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
                                     ParticleSet::ParticleGradient& G,
                                     ParticleSet::ParticleLaplacian& L){
+    ScopedTimer local_timer(timers_.eval_log_timer);
     //std::cout << "we  in evaluate log" << std::endl;
     double esnap;
     //std::cout << "we  in evaluate log" << std::endl;
@@ -471,6 +475,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   without having to internally change the lammps object.
   */
   void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u,bool store_u=false){
+    ScopedTimer local_timer(timers_.eval_esnap_timer);
     //std::cout << "in calculate snap" <<std::endl; 
     double esnap_all = 0;
     double esnap_elec;
@@ -503,6 +508,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
 
   void SNAPJastrow::evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios){
+    ScopedTimer local_timer(timers_.eval_ratio_timer);
          //std::cout<< "we are in evaluate ratios" << std::endl;
          //std::cout<< "ratios is of size " << ratios.size() << std::endl;
          //std::cout<< "VP.refptcl is  " << VP.refPtcl << std::endl;
