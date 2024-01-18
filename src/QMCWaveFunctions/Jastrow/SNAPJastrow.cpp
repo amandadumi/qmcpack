@@ -4,7 +4,7 @@
 namespace qmcplusplus
 {
 
-SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els,const std::string input_snap_type, int input_twojmax, double input_rcut) 
+SNAPJasstrow::SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, const std::string input_snap_type, int input_twojmax,double input_rcut, double rmin0, int switchflag, int bzeroflag, int quadraticfllag, int chemflag, int bnormflag,int wselfallfllag, int nelements);
   : WaveFunctionComponent(obj_name),
     OptimizableObject("snap_" + ions.getName()),
     Nions(ions.getTotalNum()),
@@ -81,7 +81,6 @@ SNAPJastrow::~SNAPJastrow(){
   delete proposed_lmp;
   delete vp_lmp;
 //  MPI_Comm_free(&comm_lammps);
-  std::cout << "able to deconstruct our lammps functions" << std::endl;
 
 }
 
@@ -503,28 +502,16 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
 
   void SNAPJastrow::evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios){
-         //std::cout<< "we are in evaluate ratios" << std::endl;
-         //std::cout<< "ratios is of size " << ratios.size() << std::endl;
-         //std::cout<< "VP.refptcl is  " << VP.refPtcl << std::endl;
-        // create lmp object 
-        // done in constructer.
         double Eold;
         calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold, true);
         for (int r = 0; r < ratios.size(); r++){
           for (int dim= 0; dim < OHMMS_DIM; dim ++){
-            //std::cout << "lamp pos" << vp_lmp->atom->x[VP.refPtcl][dim]<<std::endl; 
-            //std::cout << "vp pos " << VP.R[r][dim]<<std::endl;
-            // manually update posiition of ref particle to k position.
             vp_lmp->atom->x[VP.refPtcl][dim] = VP.R[r][dim];
           }
-          //std::cout<< "made it through pos reassingment" <<std::endl;
           vp_sna_global->compute_array();
-         //calculate Enew
           double Enew;
           calculate_ESNAP(VP.getRefPS(),vp_sna_global, snap_beta, Enew, false);
-          //store ratio
           ratios[r] = std::exp(static_cast<ValueType>(Enew-Eold));
-          //std::cout<< "made it through filling ratios" <<std::endl;
         }
         for (int dim= 0; dim < OHMMS_DIM; dim ++){
           vp_lmp->atom->x[VP.refPtcl][dim] = VP.getRefPS().R[VP.refPtcl][dim];

@@ -120,7 +120,6 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
               app_log()<< " particle type not recognized, correlation coefficient may not have been set as intended." <<std::endl;
             }
             SJ.set_coefficients(*coeffs, this_id);
-            std::cout << "done with set coeffs" << std::endl;
           }
           xmlCoefs = xmlCoefs->next;
         }
@@ -139,19 +138,36 @@ xmlNodePtr kids = cur->xmlChildrenNode;
 //if ions are fed to jastrow 
 int twojmax = 2;
 double rcut=7;
+  double rmin0 = 0.0
+int switchflag=1
+int bzeroflag =1
+int quadradticflag =0
+int chemflag =0
+int bnormflag =0
+int wselfallflag = 0
+int nelements = 1
 std::string ftype("snap");
 std::string snap_type("linear");
 OhmmsAttributeSet tAttrib;
 tAttrib.add(ftype, "function");
 tAttrib.add(twojmax, "twojmax");
 tAttrib.add(rcut, "rcut");
+tAttrib.add(rmin0, "rmin0");
+tAttrib.add(switchflag, "switchflag");
+tAttrib.add(bzerofalg, "bzeroflag");
+tAttrib.add(quadraticflag, "quadraticfllag");
+tAttrib.add(chemflag, "chemflag");
+tAttrib.add(bnormflag, "bnormflag");
+tAttrib.add(wselfallfalg, "wselfallflag");
+tAttrib.add(nelements, "nelements");
 tAttrib.add(snap_type, "snap_type");
 tAttrib.put(cur);
 
 std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
 if (ftype == "snap"){
-    auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, snap_type,twojmax,rcut);
+    auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, snap_type,twojmax,rcut
+                                             rmin0,switchfllag,bzeroflag,quadraticfllag,chemflag,bnormflag,wselfalllflag,nelemens);
 
     putkids(kids, *SJ);
 
