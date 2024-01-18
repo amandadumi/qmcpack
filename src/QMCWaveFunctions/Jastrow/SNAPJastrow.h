@@ -37,6 +37,8 @@ public:
     Vector<RealType> u_val;
     GradDerivVec grad_u;
     ValueDerivVec lap_u;
+    using PsiValueType = WaveFunctionComponent::PsiValueType;
+    using LogValueType = WaveFunctionComponent::LogValueType;
 
     SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, const std::string input_snap_type, int input_twojmax,double input_rcut);
 
