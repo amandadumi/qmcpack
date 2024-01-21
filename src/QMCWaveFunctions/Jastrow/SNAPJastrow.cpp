@@ -250,7 +250,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
  
  
  void SNAPJastrow::computeGL(const ParticleSet& P){
-    ScopedTimer local_timer(timers_.eval_gradient_timer);
+    ScopedTimer local_timer(timers_.eval_gl_timer);
     RealType dist_delta = 0.001; // TODO: find units
     //std::cout << "in computeGL" <<std::endl;
     // compute gradient, i.e., pull gradient out from lammps.
@@ -328,6 +328,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
   {
     //std::cout<< "in evaluateDerivatives" <<std::endl;
+    ScopedTimer local_timer(timers_.eval_wf_grad_timer);
       evaluateDerivativesWF(P, optvars, dlogpsi);
       bool recalculate(false);
       std::vector<bool> rcsingles(myVars.size(), false);
@@ -362,6 +363,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
     void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
     {
+
     bool recalculate(false);
     resizeWFOptVectors();
     std::vector<bool> rcsingles(myVars.size(), false);
@@ -421,6 +423,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
   void SNAPJastrow::evaluate_fd_derivs(ParticleSet& P, int coeff_idx){
         // std::cout << "in evaluate_fd_derivs"<<std::endl;
+        ScopedTimer local_timer(timers_.eval_finite_diff_timer);
+
         std::vector<std::vector<double>> fd_coeff(snap_beta);
         std::vector<std::vector<double>> bd_coeff(snap_beta);
         RealType fd_u, bd_u;
