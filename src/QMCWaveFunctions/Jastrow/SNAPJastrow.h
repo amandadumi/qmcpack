@@ -37,8 +37,6 @@ public:
     Vector<RealType> u_val;
     GradDerivVec grad_u;
     ValueDerivVec lap_u;
-    using PsiValueType = WaveFunctionComponent::PsiValueType;
-    using LogValueType = WaveFunctionComponent::LogValueType;
 
     SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, const std::string input_snap_type, int input_twojmax,double input_rcut);
 
@@ -183,14 +181,18 @@ public:
     NewTimer& eval_esnap_timer;
     NewTimer& eval_log_timer;
     NewTimer& eval_ratio_timer;
-    NewTimer& eval_gradient_timer;
+    NewTimer& eval_gl_timer;
+    NewTimer& eval_wf_grad_timer;
+    NewTimer& eval_finite_diff_timer;
     SNAPJastrowTimers(const std::string& prefix)
         : eval_timer(createGlobalTimer(prefix + "Eval", timer_level_fine)),
-          eval_esnap_timer(createGlobalTimer(prefix + "evalESNAP", timer_level_fine)),
           init_lammps_timer(createGlobalTimer(prefix + "InitLammps", timer_level_fine)),
+          eval_esnap_timer(createGlobalTimer(prefix + "evalESNAP", timer_level_fine)),
           eval_log_timer(createGlobalTimer(prefix + "evalLogSNAP", timer_level_fine)),
           eval_ratio_timer(createGlobalTimer(prefix + "evalRatioSNAP", timer_level_fine)),
-          eval_gradient_timer(createGlobalTimer(prefix + "evalGradientSNAP", timer_level_fine))
+          eval_gl_timer(createGlobalTimer(prefix + "evalGLSNAP", timer_level_fine)),
+          eval_wf_grad_timer(createGlobalTimer(prefix + "evalWFGradSNAP", timer_level_fine)),
+          eval_finite_diff_timer(createGlobalTimer(prefix + "evalFiniteDiffSNAP", timer_level_fine))
     {}
   }; 
 
