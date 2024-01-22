@@ -390,7 +390,11 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
           if (kk < 0)
             continue;
           if (rcsingles[k]){
-              evaluate_fd_derivs(P, kk);
+            if (snap_type=="linear"){
+                evaluate_linear_derivs(P, kk);
+            } else if (snap_type=="quadratic"){
+                evaluate_fd_derivs(P, kk);
+            }
             //std::cout<< "start assigning dlogpsi"<<std::endl;
             dlogpsi[kk] = ValueType(dLogPsi[kk]);
             //std::cout<< "finished assigning dlogpsi"<<std::endl;
@@ -401,23 +405,15 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
   void SNAPJastrow::evaluate_linear_derivs(ParticleSet& P, int coeff_idx){
     //TODO: this has a bug in that the el will try to be used to explore the atom info to in which case the getGroupID throws a fitting assertion error?
-    //std::cout<< "coeff id is " << coeff_idx <<std::endl;
-    int el = int(coeff_idx/ncoeff); // this coeff is apart of snap with el as central atom. This will also work with multple species of same type as coeeffs/ncoeff will be the type 
-    int row_id;
-    if (el < P.getTotalNum()){ // assuming elecs are stored first.
-      row_id = P.getGroupID(el);
-    }
-    else{
-      row_id = Ions.getGroupID(el);
-    }
-    int coeff = coeff_idx%ncoeff; // which coeff of this el are we on.
-    computeGL(P);
-    dLogPsi[coeff_idx] = sna_global->array[0][coeff_idx];// dlogpsi will be bispectrum component  
-    for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
-      gradLogPsi[coeff_idx][el][dim] += sna_global->array[(el*OHMMS_DIM)+dim+1][(row_id*ncoeff)+coeff];
-      lapLogPsi[coeff_idx][el] -=0; 
+    int ntype = int(coeff_idx/ncoeff); // this coeff is apart of snap with el as central atom. This will also work with multple species of same type as coeeffs/ncoeff will be the type 
+    int coeff = coeff_idx%ncoeff; //ddd which coeff of this el are we on.
+    dLogPsi[coeff_idx] = -sna_global->array[0][(ntype*ncoeff)+coeff]*hartree_over_ev;// dlogpsi will be bispectrum component  
+    for (int iat = P.first(ntype); iat < P.last(ntype);iat++){
+      for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
+       gradLogPsi[coeff_idx][iat][dim] -= sna_global->array[(iat*OHMMS_DIM)+dim+1][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
+       lapLogPsi[coeff_idx][iat] -=0; 
       //lapLogPsi[coeff_idx] -= FD_Lap(P, el, dim, coeff, el, snap_beta, 1e-6, true)/bohr_over_ang;
-    
+      }
     }
   }
 
