@@ -536,11 +536,10 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     int ntype = int(coeff_idx/ncoeff); // this coeff is apart of snap with el as central atom. This will also work with multple species of same type as coeeffs/ncoeff will be the type 
     int coeff = coeff_idx%ncoeff; //ddd which coeff of this el are we on.
     dLogPsi[coeff_idx] = -sna_global->array[0][(ntype*ncoeff)+coeff]*hartree_over_ev;// dlogpsi will be bispectrum component  
-    for (int iel =0; iel <Nelec;iel++){
+    for (int iel =0; iel <Nelec; iel++){
       for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
-       gradLogPsi[coeff_idx][iel][dim] -= sna_global->array[(iel*OHMMS_DIM)+dim+1][(ntype*ncoeff)+coeff]/bohr_over_ang;
-       lapLogPsi[coeff_idx][iel] -=0; 
-      //lapLogPsi[coeff_idx] -= FD_Lap(P, el, dim, coeff, el, snap_beta, 1e-6, true)/bohr_over_ang;
+       gradLogPsi[coeff_idx][iel][dim] += sna_global->array[(iel*OHMMS_DIM)+dim+1][(ntype*ncoeff)+coeff]*hartree_over_ev/bohr_over_ang;
+       lapLogPsi[coeff_idx][iel] += FD_Lap(P, iel, dim, coeff, ntype, snap_beta, 1e-7, true)/bohr_over_ang;
       }
     }
   }
@@ -550,7 +549,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         ScopedTimer local_timer(timers_.eval_finite_diff_timer);
 
         std::vector<std::vector<double>> fd_coeff(snap_beta);
-        std::vector<std::vector<double>> bd_coeff(snap_beta);
+        std::vector<std::vector<double>> bd_coeff(snap_beta); 
         RealType fd_u, bd_u;
         RealType coeff_delta = 1e-6;
         RealType dist_delta = 1e-4;
