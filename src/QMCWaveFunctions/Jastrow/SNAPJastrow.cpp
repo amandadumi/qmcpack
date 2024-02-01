@@ -39,9 +39,6 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
   //
   //comm_lammps = MPI_COMM_WORLD;
 
-    if (NIonGroups >1){
-      app_log() << "WARNING: SNAP jastrow does not currently support more than one ion group" <<std::endl;
-    }
     twojmax = input_twojmax;
     if (twojmax%2==0){
      int m = (twojmax/2)+1;
@@ -82,7 +79,6 @@ SNAPJastrow::~SNAPJastrow(){
   delete proposed_lmp;
   delete vp_lmp;
 //  MPI_Comm_free(&comm_lammps);
-  std::cout << "able to deconstruct our lammps functions" << std::endl;
 
 }
 
@@ -391,12 +387,12 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             continue;
           if (rcsingles[k]){
             if (snap_type=="linear"){
-                evaluate_linear_derivs(P, kk);
+                evaluate_linear_derivs(P, k);
             } else if (snap_type=="quadratic"){
-                evaluate_fd_derivs(P, kk);
+                evaluate_fd_derivs(P, k);
             }
             //std::cout<< "start assigning dlogpsi"<<std::endl;
-            dlogpsi[kk] = ValueType(dLogPsi[kk]);
+            dlogpsi[k] = ValueType(dLogPsi[k]);
             //std::cout<< "finished assigning dlogpsi"<<std::endl;
           }
         } 
@@ -599,12 +595,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
      calculate_ESNAP(P, sna_global, snap_beta, Eold, true);
      double Enew;
      calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew, true);
-     //  calculate_ESNAP(P, sna_global, snap_beta, Eold, false);
      SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Enew-Eold));
-      // std::cout<< "ratio in function is " << ratio <<std::endl;
-      // std::cout<< "inverse  is " << std::exp(static_cast<SNAPJastrow::PsiValueType>(Eold-Enew))<<std::endl;
-      // std::cout<< "particle specific  is " << std::exp(static_cast<SNAPJastrow::PsiValueType>(Eiold-Einew))<<std::endl;
-      // std::cout<< "inverse particle specific is " << std::exp(static_cast<SNAPJastrow::PsiValueType>(Einew-Einew))<<std::endl;
      return ratio;
   }
 
@@ -619,14 +610,12 @@ void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
     int loc = myVars.where(i);
     if (loc >=0){
      myVars[i] = active[loc];
+     int ntype = int(i/ncoeff); // this coeff is apart of snap with el as central atom. This will also work with multple species of same type as coeeffs/ncoeff will be the type 
+     int coeff = i%ncoeff; //ddd which coeff of this el are we on.
+     snap_beta[ntype][coeff] = myVars[i];
      }
     }
-  for (int n=0; n< lmp->atom->ntypes; n++){
-    for (int k = 0; k < ncoeff; k++){
-      snap_beta[n][k] = std::real(myVars[(n*ncoeff)+k]);
-    } 
   }
-}
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrow::makeClone(ParticleSet& tpq) const
 {
