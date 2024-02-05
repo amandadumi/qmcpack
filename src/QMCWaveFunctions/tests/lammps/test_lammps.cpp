@@ -170,7 +170,7 @@ TEST_CASE("snap_jastrow_init_with_coeff", "[wavefunction]")
 TEST_CASE("snap_jastrow_set_twojmax", "[wavefunction]")
 {
   Communicate* c = OHMMS::Controller;
-  std::cout<< "starting test" <<std::endl;
+  std::cout<< "starting test on test twojmax" <<std::endl;
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
 
@@ -300,7 +300,7 @@ TEST_CASE("snap_jastrow_multiple_of_one_particle_type", "[wavefunction]"){
 
 TEST_CASE("snap_jastrow_linear_vs_quad_form", "[wavefunction]"){
   Communicate* c = OHMMS::Controller;
-  std::cout<< "starting test" <<std::endl;
+  std::cout<< "starting test to insight linear of quadratic" <<std::endl;
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
 
@@ -336,7 +336,6 @@ TEST_CASE("snap_jastrow_linear_vs_quad_form", "[wavefunction]"){
   bool okay;
   okay    = doc.parseFromString(xmltext);
   REQUIRE(okay);
-  std::cout << "initialized system" << std::endl;
   xmlNodePtr root = doc.getRoot();
   xmlNodePtr jas_node = xmlFirstElementChild(root);
   xmlNodePtr corr_node = xmlFirstElementChild(jas_node);
@@ -348,11 +347,11 @@ TEST_CASE("snap_jastrow_linear_vs_quad_form", "[wavefunction]"){
 
 TEST_CASE("snap_jastrow_ion_nelec", "[wavefunction]"){
   Communicate* c = OHMMS::Controller;
-  std::cout<< "starting test" <<std::endl;
+  std::cout<< "starting test more than one elec of certain type" <<std::endl;
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
 
-  electrons.create({1,1});
+  electrons.create({2,2});
   electrons.setName("e_u");
   electrons.R[0][0] = 0.2;
   electrons.R[0][1] = 0.2;
@@ -402,7 +401,7 @@ TEST_CASE("snap_jastrow_ion_nelec", "[wavefunction]"){
 
 TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
   Communicate* c = OHMMS::Controller;
-  std::cout<< "starting test" <<std::endl;
+  std::cout<< "starting test for molecule" <<std::endl;
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
 
@@ -420,6 +419,7 @@ TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
   SpeciesSet& tspecies  = ions.getSpeciesSet();
   int ion_a  = tspecies.addSpecies("H");
   int ion_b  = tspecies.addSpecies("C");
+  std::cout << ions.groups() <<std::endl;
   ions.R[0][0] = 0.0;
   ions.R[0][1] = 0.0;
   ions.R[0][2] = 0.0;

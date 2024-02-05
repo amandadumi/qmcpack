@@ -52,10 +52,10 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     snap_type = input_snap_type;
     lmp = initialize_lammps(els, rcut);
     proposed_lmp = initialize_lammps(els, rcut);
-    vp_lmp = initialize_lammps(els,rcut); //may not need, but lets be extra sure wires don't get crossed
+    //vp_lmp = initialize_lammps(els,rcut); //may not need, but lets be extra sure wires don't get crossed
     sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
-    vp_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(vp_lmp->modify->get_compute_by_id("sna_global"));
+    //vp_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(vp_lmp->modify->get_compute_by_id("sna_global"));
     //std::cout<< "made the lammps objects"<<std::endl;
     snap_beta = std::vector<std::vector<double>>(lmp->atom->ntypes, std::vector<double>(ncoeff,0.001));
     for (int i=0; i < lmp->atom->ntypes; i++){
@@ -77,7 +77,7 @@ SNAPJastrow::~SNAPJastrow(){
   // MPI_Comm_free(&comm_lammps);
   delete lmp;
   delete proposed_lmp;
-  delete vp_lmp;
+  //delete vp_lmp;
 //  MPI_Comm_free(&comm_lammps);
 
 }
@@ -510,24 +510,27 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         // done in constructer.
         double Eold;
         calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold, true);
+        for (int i = 0 ; i < Nelec; i ++){
+          update_lmp_pos(VP.getRefPS(),proposed_lmp,proposed_sna_global,i,false);
+        }
         for (int r = 0; r < ratios.size(); r++){
           for (int dim= 0; dim < OHMMS_DIM; dim ++){
             //std::cout << "lamp pos" << vp_lmp->atom->x[VP.refPtcl][dim]<<std::endl; 
             //std::cout << "vp pos " << VP.R[r][dim]<<std::endl;
             // manually update posiition of ref particle to k position.
-            vp_lmp->atom->x[VP.refPtcl][dim] = VP.R[r][dim];
+            proposed_lmp->atom->x[VP.refPtcl][dim] = VP.R[r][dim];
           }
           //std::cout<< "made it through pos reassingment" <<std::endl;
-          vp_sna_global->compute_array();
+          proposed_sna_global->compute_array();
          //calculate Enew
           double Enew;
-          calculate_ESNAP(VP.getRefPS(),vp_sna_global, snap_beta, Enew, false);
+          calculate_ESNAP(VP.getRefPS(),proposed_sna_global, snap_beta, Enew, false);
           //store ratio
           ratios[r] = std::exp(static_cast<ValueType>(Enew-Eold));
           //std::cout<< "made it through filling ratios" <<std::endl;
         }
         for (int dim= 0; dim < OHMMS_DIM; dim ++){
-          vp_lmp->atom->x[VP.refPtcl][dim] = VP.getRefPS().R[VP.refPtcl][dim];
+          proposed_lmp->atom->x[VP.refPtcl][dim] = VP.getRefPS().R[VP.refPtcl][dim];
         }
     return;
   }
