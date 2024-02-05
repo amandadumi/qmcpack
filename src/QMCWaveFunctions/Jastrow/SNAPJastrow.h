@@ -164,11 +164,11 @@ public:
     LAMMPS_NS::ComputeSnap* proposed_sna_global;
     LAMMPS_NS::ComputeSnap* sna_global;
     LAMMPS_NS::ComputeSnap* proposed_sna_global;
-    LAMMPS_NS::ComputeSnap* vp_sna_global;
+//    LAMMPS_NS::ComputeSnap* vp_sna_global;
     //lammps instance
     LAMMPS_NS::LAMMPS *lmp;
     LAMMPS_NS::LAMMPS *proposed_lmp;
-    LAMMPS_NS::LAMMPS *vp_lmp;
+//    LAMMPS_NS::LAMMPS *vp_lmp;
     MPI_Comm comm_lammps;
     
     
