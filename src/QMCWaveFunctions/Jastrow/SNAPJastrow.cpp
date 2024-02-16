@@ -18,12 +18,9 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
 // // reserve just one process for lammps
     int n,me,nprocs;
     int nprocs_lammps;
-//     // get rank and total of all procs
     MPI_Comm_rank(MPI_COMM_WORLD,&me);
     MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
 //     // requesting just one process be used for lammps
-    //std::cout << "nprocs from mpi_comm_world is " << nprocs << std::endl;
-   //std::cout << "this rank is " << me << std::endl;
     nprocs_lammps = 1;
     if (nprocs_lammps > nprocs) {
     if (me == 0)
@@ -36,9 +33,6 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     MPI_Comm_split(MPI_COMM_WORLD,me,0,&comm_lammps);
     MPI_Comm_rank(comm_lammps,&me);
   
-  //
-  //comm_lammps = MPI_COMM_WORLD;
-
     twojmax = input_twojmax;
     if (twojmax%2==0){
      int m = (twojmax/2)+1;
@@ -52,39 +46,29 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     snap_type = input_snap_type;
     lmp = initialize_lammps(els, rcut);
     proposed_lmp = initialize_lammps(els, rcut);
-    //vp_lmp = initialize_lammps(els,rcut); //may not need, but lets be extra sure wires don't get crossed
     sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(lmp->modify->get_compute_by_id("sna_global"));
     proposed_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(proposed_lmp->modify->get_compute_by_id("sna_global"));
-    //vp_sna_global = static_cast<LAMMPS_NS::ComputeSnap*>(vp_lmp->modify->get_compute_by_id("sna_global"));
-    //std::cout<< "made the lammps objects"<<std::endl;
     snap_beta = std::vector<std::vector<double>>(lmp->atom->ntypes, std::vector<double>(ncoeff,0.0));
     for (int i=0; i < lmp->atom->ntypes; i++){
       for (int k = 0; k < ncoeff;k++){
         std::stringstream name;
         name << "snap_coeff_" << i;
         name << "_"  << k ;
-        //std::cout<< name.str() <<std::endl;
         myVars.insert(name.str(), snap_beta[i][k], true);
       }
     }
     resizeWFOptVectors(); 
     grad_u.resize(Nelec);
     lap_u.resize(Nelec);
-    //std::cout<< "we finished initialization"<<std::endl;
 }
 
 SNAPJastrow::~SNAPJastrow(){
-  // MPI_Comm_free(&comm_lammps);
   delete lmp;
   delete proposed_lmp;
-  //delete vp_lmp;
-//  MPI_Comm_free(&comm_lammps);
 
 }
 
 void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
-  //std::cout<< id_coeffs.size() << "is the size of coefficients" <<std::endl;
- // std::cout<< ncoeff << "is the number of coeffs" <<std::endl;
   if (id_coeffs.size() != ncoeff){
     app_warning() << " Warning wrong number of coefficents for snap jastrow" << std::endl;
   }
@@ -97,7 +81,6 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
 
 LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double rcut){
     ScopedTimer local_timer(timers_.init_lammps_timer);
-    //std::cout << "in initialize_lammps" <<std::endl;
     const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
     LAMMPS_NS::LAMMPS *this_lmp;
@@ -128,32 +111,24 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     this_lmp->input->one("mass 1 .95");
     this_lmp->input->one("mass 2 .95");
     this_lmp->input->one("mass 3 1");
-   // std::cout << "before ion creation" <<std::endl;
-    // std::cout << "total electron groups is" << std::to_string(els.groups()) << std::endl;
     for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
       // label groups in lamps
       for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
         // place atom in boxes according to their group.
         temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
-        //std::cout << temp_command << std::endl;
         this_lmp->input->one(temp_command);
       }
     }
       const SpeciesSet& tspecies(Ions.getSpeciesSet());
       for (int ig = 0; ig < Ions.groups(); ig++) { // loop over groups
-          //std::cout << "ion species is" << tspecies.speciesName[ Ions.GroupID[ig] ] << std::endl;
           temp_command = std::string("group ions_"+ std::to_string(ig)  + " type " + std::to_string(els.groups()+ig+1));
-          //std::cout << temp_command << std::endl;
           temp_command = std::string("mass "+ std::to_string(els.groups()+ig+1)) + " 1.00";
-          //std::cout << temp_command << std::endl;
           this_lmp->input->one(temp_command);
           for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
             temp_command = std::string("create_atoms "  + std::to_string(els.groups()+ig+1) + " single ") + std::to_string(Ions.R[iat][0]/bohr_over_ang) + "  " + std::to_string(Ions.R[iat][1]/bohr_over_ang)  + " " + std::to_string(Ions.R[iat][2]/bohr_over_ang) + " units box";  
-            //std::cout << temp_command << std::endl;
             this_lmp->input->one(temp_command);
           }
       }
-      //std::cout << "after ion creation" <<std::endl;
       temp_command = std::string("variable twojmax equal ") + std::to_string(twojmax);
       this_lmp->input->one(temp_command);
       this_lmp->input->one("variable 	rcutfac equal 1.0");
@@ -174,7 +149,6 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       this_lmp->input->one("variable	switch equal 0");
       this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} rmin0 ${rmin0} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switch}\"");
 
-    //snap needs some reference pair potential, but doesn't effect parts we are using. 
 
       this_lmp->input->one(" pair_style zero 10.0");
       this_lmp->input->one("pair_coeff * *");
@@ -183,20 +157,17 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       this_lmp->input->one("thermo 100");
       this_lmp->input->one("thermo_style   custom  c_sna_global[1][11] c_sna_global[2][1]");
       this_lmp->input->one("run            0 pre no post no");
-      //std::cout<< "lammps ntypes is " << this_lmp->atom->ntypes << std::endl;
 
     return this_lmp;
   }
 
   void SNAPJastrow::update_lmp_pos(const ParticleSet& P, LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array,int iat, bool proposed){
       if (proposed){
-        //std::cout<< "in update positions: proposed" <<std::endl;
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           lmp_pntr->atom->x[iat][dim] = P.activeR(iat)[dim]/bohr_over_ang;
         }
       }
       else{
-        //std::cout<< "in update positions: set val" <<std::endl;
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           lmp_pntr->atom->x[iat][dim] = P.R[iat][dim]/bohr_over_ang;
         }
@@ -205,7 +176,6 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
   }
 
 double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta, bool bispectrum_only){
-  //std::cout << "in FD_Lap"<<std::endl;
   int row = (iat*3)+dim + 1;
   double G_finite_diff_forward;
   double G_finite_diff_back;
@@ -240,16 +210,13 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
                           ParticleSet::ParticleGradient& G,
                           ParticleSet::ParticleLaplacian& L,
                           bool fromscratch){
-                          // std::cout << "in evaluateGL" <<std::endl;
                           return evaluateLog(P,G,L);
                           }
  
  
  void SNAPJastrow::computeGL(const ParticleSet& P){
     ScopedTimer local_timer(timers_.eval_gl_timer);
-    RealType dist_delta = 0.001; // TODO: find units
-    //std::cout << "in computeGL" <<std::endl;
-    // compute gradient, i.e., pull gradient out from lammps.
+    RealType dist_delta = 0.000001; // TODO: find units
     double grad_val;
     for (int ig = 0; ig < P.groups(); ig++) {
       for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
@@ -257,11 +224,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         lap_u[iel] = 0;
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           int row = (iel*3)+dim + 1;
-            // std::cout << "considering electron "  << iel << std::endl;
           for (int n = 0; n < lmp->atom->ntypes; n++){
             for (int k =0; k < ncoeff; k ++){
               int col = (n*ncoeff)+k;
-              // std::cout<< "row " << row << " col " << col <<std::endl;
               grad_val = sna_global->array[row][col];
               grad_u[iel][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
               lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, dist_delta, false)/bohr_over_ang; 
