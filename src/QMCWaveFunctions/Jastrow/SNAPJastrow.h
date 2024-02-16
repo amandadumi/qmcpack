@@ -121,13 +121,12 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
-    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
-    void calculate_ddc_gradlap_lammps(ParticleSet& P, double dist_delta, double coeff_delta,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
+    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u,bool store_u);
+    void calculate_ddc_gradlap_lammps(ParticleSet& P,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
-    double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta, bool bispectrum_only);
+    double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
     
     
     /****** NLPP-related functions ******/
@@ -154,6 +153,8 @@ public:
     int ncoeff;
     int twojmax=2;
     double rcut=7;
+    double dist_delta = 0.00000001;
+    double coeff_delta = 0.00000001;
     const int myTableID;
     const ParticleSet& Ions;
     std::string snap_type;
@@ -164,11 +165,9 @@ public:
     LAMMPS_NS::ComputeSnap* proposed_sna_global;
     LAMMPS_NS::ComputeSnap* sna_global;
     LAMMPS_NS::ComputeSnap* proposed_sna_global;
-//    LAMMPS_NS::ComputeSnap* vp_sna_global;
     //lammps instance
     LAMMPS_NS::LAMMPS *lmp;
     LAMMPS_NS::LAMMPS *proposed_lmp;
-//    LAMMPS_NS::LAMMPS *vp_lmp;
     MPI_Comm comm_lammps;
     
     
