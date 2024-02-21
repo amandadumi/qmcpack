@@ -15,15 +15,10 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     timers_("SNAPJatrowTimers")
 
 {
-// // reserve just one process for lammps
     int n,me,nprocs;
     int nprocs_lammps;
-//     // get rank and total of all procs
     MPI_Comm_rank(MPI_COMM_WORLD,&me);
     MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
-//     // requesting just one process be used for lammps
-    //std::cout << "nprocs from mpi_comm_world is " << nprocs << std::endl;
-   //std::cout << "this rank is " << me << std::endl;
     nprocs_lammps = 1;
     if (nprocs_lammps > nprocs) {
     if (me == 0)
@@ -36,12 +31,9 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     MPI_Comm_split(MPI_COMM_WORLD,me,0,&comm_lammps);
     MPI_Comm_rank(comm_lammps,&me);
   
-  //
-  //comm_lammps = MPI_COMM_WORLD;
-
     twojmax = input_twojmax;
     if (twojmax%2==0){
-     int m = (twojmax/2)+1;
+      int m = (twojmax/2)+1;
       ncoeff = (m*(m+1)*(2*m+1))/6;
     }
     else{
@@ -60,7 +52,6 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
         std::stringstream name;
         name << "snap_coeff_" << i;
         name << "_"  << k ;
-        //std::cout<< name.str() <<std::endl;
         myVars.insert(name.str(), snap_beta[i][k], true);
       }
     }
@@ -262,7 +253,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     for (int i = 0; i < Nelec; i++){
       update_lmp_pos(P,lmp,sna_global,i,false);
     }
-    calculate_ESNAP(P, sna_global, snap_beta, esnap, true);
+    calculate_ESNAP(P, sna_global, snap_beta, esnap);
     computeGL(P);
     for (int iel = 0; iel < Nelec; iel++){
       G[iel] += grad_u[iel];
@@ -396,8 +387,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         bd_coeff[el][coeff] = snap_beta[el][coeff] - coeff_delta;
         // std::cout << "in eval fd: we are on coeeff" << coeff_idx << " out of " << ncoeff << std::endl;
         // std::cout << "and el is " << el << "and coeff is " << coeff <<std::endl;
-        calculate_ESNAP(P, sna_global, fd_coeff, fd_u, false);
-        calculate_ESNAP(P, sna_global, bd_coeff, bd_u, false);
+        calculate_ESNAP(P, sna_global, fd_coeff, fd_u);
+        calculate_ESNAP(P, sna_global, bd_coeff, bd_u);
         dLogPsi[coeff_idx] = (fd_u - bd_u)/(2*coeff_delta); //units handled elsewhere
         calculate_ddc_gradlap_lammps(P, fd_coeff, bd_coeff, coeff_idx);
     }
@@ -434,7 +425,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
   without having to internally change the lammps object.
   */
-  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u,bool store_u=false){
+  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u){
     ScopedTimer local_timer(timers_.eval_esnap_timer);
     //std::cout << "in calculate snap" <<std::endl; 
     double esnap_all = 0;
@@ -475,7 +466,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         // create lmp object 
         // done in constructer.
         double Eold;
-        calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold, true);
+        calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold;
         for (int i = 0 ; i < Nelec; i ++){
           update_lmp_pos(VP.getRefPS(),proposed_lmp,proposed_sna_global,i,false);
         }
@@ -490,7 +481,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
           proposed_sna_global->compute_array();
          //calculate Enew
           double Enew;
-          calculate_ESNAP(VP.getRefPS(),proposed_sna_global, snap_beta, Enew, false);
+          calculate_ESNAP(VP.getRefPS(),proposed_sna_global, snap_beta, Enew);
           //store ratio
           ratios[r] = std::exp(static_cast<ValueType>(Enew-Eold));
           //std::cout<< "made it through filling ratios" <<std::endl;
@@ -552,9 +543,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
       update_lmp_pos(P, proposed_lmp, proposed_sna_global, i, true);
     }
      double Eold;
-     calculate_ESNAP(P, sna_global, snap_beta, Eold, true);
+     calculate_ESNAP(P, sna_global, snap_beta, Eold);
      double Enew;
-     calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew, true);
+     calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew);
      SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Enew-Eold));
      return ratio;
   }
@@ -590,6 +581,13 @@ void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
      snap_beta[ntype][coeff] = myVars[i];
      }
     }
+  }
+  
+  void reportStatus(std::ostream& os) 
+  {
+    if (notOpt)
+      return;
+    myVars.print(os);
   }
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrow::makeClone(ParticleSet& tpq) const
