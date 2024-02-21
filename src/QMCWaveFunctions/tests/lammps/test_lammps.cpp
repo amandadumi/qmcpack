@@ -38,6 +38,7 @@ TEST_CASE("simple_file_run", "[wavefunction]")
 }
 
 TEST_CASE("lammps_one_command", "[wavefunction]")
+TEST_CASE("lammps_one_command", "[wavefunction]")
 {
 
   const char *lmpargv[] {"liblammps", "-log", "none"};
@@ -48,6 +49,7 @@ TEST_CASE("lammps_one_command", "[wavefunction]")
 
 }
 
+TEST_CASE("lammps_access_pair_class", "[wavefunction]")
 TEST_CASE("lammps_access_pair_class", "[wavefunction]")
 {
   const char *lmpargv[] {"liblammps", "-log", "none"};
@@ -66,6 +68,7 @@ TEST_CASE("lammps_access_pair_class", "[wavefunction]")
   delete lmp;
 }
 
+TEST_CASE("lammps_update_pos", "[wavefunction]")
 TEST_CASE("lammps_update_pos", "[wavefunction]")
 {
   const char *lmpargv[] {"liblammps", "-log", "none"};
