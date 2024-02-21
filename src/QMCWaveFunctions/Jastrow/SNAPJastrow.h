@@ -115,6 +115,7 @@ public:
     LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
 
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
+    
 
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
 
