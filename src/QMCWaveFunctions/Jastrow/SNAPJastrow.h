@@ -78,7 +78,7 @@ public:
     GradType evalGrad(ParticleSet& P, int iat) override;
 
 
-    PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
+    //PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
@@ -112,7 +112,7 @@ public:
 /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
 
-    LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
+    LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch = false) override;
 
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
     
