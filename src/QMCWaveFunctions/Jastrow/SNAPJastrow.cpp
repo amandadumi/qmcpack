@@ -15,6 +15,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
     Ions(ions)
 {
     twojmax = 2;
+    twojmax = 2;
     int m = (twojmax/2)+1;
     ncoeff = (m*(m+1)*(2*m+1))/6;
 
