@@ -405,76 +405,15 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
       // the G, dlogpsi, gradlogpsi, and laplogpsi need to be updated but only for single particle.
   }
 
-  void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
-      log_value_ = evaluateLog(P, P.G, P.L);
-  }
-  SNAPJastrow::LogValueType SNAPJastrow::updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch){
-      log_value_ = evaluateLog(P,P.G,P.L);
-      return log_value_;
-  }
+void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
+    log_value_ = evaluateLog(P, P.G, P.L);
+}
+void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
+    log_value_ evaluateLog(P,P.G,P.L);
+}
 
   void SNAPJastrow::copyFromBuffer(ParticleSet& P, WFBufferType& buf){
     
-  }
-
-  SNAPJastrow::PsiValueType SNAPJastrow::ratioGrad(ParticleSet& P, int iat, GradType& grad_iat){
-     SNAPJastrow::PsiValueType ratio = SNAPJastrow::ratio(P,iat);
-     for (int dim=0; dim < OHMMS_DIM; dim++){
-      for (int nc = 0; nc < ncoeff ; nc++){
-        grad_iat[dim] += snap_beta[iat][nc]*proposed_sna_global->array[(3*iat)+dim+1][nc]*hartree_over_ev*bohr_over_ang;
-      }
-     }
-     return ratio;
-  }
-
-  SNAPJastrow::PsiValueType SNAPJastrow::ratio(ParticleSet& P, int iat){
-     update_lmp_pos(P,proposed_lmp, proposed_sna_global,iat, true);
-     double Eold;
-     double Enew;
-     calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew);
-     calculate_ESNAP(P, sna_global, snap_beta, Eold);
-     std::cout << "Eold is " << Eold << " Enew is " << Enew << std::endl;
-     SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Enew-Eold));
-     std::cout << "ratio is " << ratio <<std::endl;
-     return ratio;
-  }
-
-  void SNAPJastrow::extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs){opt_obj_refs.push_back(*this);}
-
-void SNAPJastrow::checkInVariablesExclusive(opt_variables_type& active){
-  active.insertFrom(myVars);
 }
-
-void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
-  for (int i=0; i < myVars.size(); i++){
-    int loc = myVars.where(i);
-    if (loc >=0){
-     myVars[i] = active[loc];
-     }
-    }
-  for (int ipart=0; ipart<(Nelec); ipart++){
-    for (int nc = 0; nc < ncoeff;nc++){
-      snap_beta[ipart][nc] = std::real(myVars[(ipart*ncoeff)+nc]);
-    } 
-  }
-}
-
-
-bool SNAPJastrow::put(xmlNodePtr cur) {return true;}
-/**
-void SNAPJastrow::setCoefficients(){
-const char *var = "beta";
-void *snap_beta_pntr;
-double** snap_beta;
-int b;
-snap_beta_pntr = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(var,b);
-snap_beta = static_cast<double**>(snap_beta_pntr);
-for (int i = 0; i<ncoeff; i++){
-  default_coeff[i] = *snap_beta[i];
-  myVars[i] = *snap_beta[i];
-
-}
-}
-*/
 }
 
