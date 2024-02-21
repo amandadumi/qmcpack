@@ -59,6 +59,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
     LAMMPS_NS::LAMMPS *this_lmp;
     this_lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv, MPI_COMM_WORLD);
     std::cout << "created lammps instance" <<std::endl;
+    std::cout << "created lammps instance" <<std::endl;
     this_lmp->input->one("units  metal");
     this_lmp->input->one("atom_style  atomic");
     // TODO: will this be set by a qmc box? probably.
@@ -97,6 +98,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
           this_lmp->input->one(temp_command);
         }
       }
+      std::cout << "after ion creation" <<std::endl;
       std::cout << "after ion creation" <<std::endl;
       temp_command = std::string("variable twojmax equal ") + std::to_string(twojmax);
       this_lmp->input->one(temp_command);
