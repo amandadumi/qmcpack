@@ -23,6 +23,7 @@
 namespace qmcplusplus
 {
 class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
+class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
 {
 public:
 
@@ -33,6 +34,7 @@ public:
     std::vector<ValueDerivVec> lapLogPsi;
 
 
+    SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els);
     SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els);
 
     ~SNAPJastrow();
@@ -126,7 +128,8 @@ public:
     LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
 
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
-    
+
+    void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
 
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
 

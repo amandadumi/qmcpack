@@ -7,6 +7,7 @@ namespace qmcplusplus
 SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els) 
   : WaveFunctionComponent(obj_name),
     OptimizableObject("snap_" + ions.getName()),
+    OptimizableObject("snap_" + ions.getName()),
     myTableID(els.addTable(ions)),
     Nelec(els.getTotalNum()),
     Nions(ions.getTotalNum()),
