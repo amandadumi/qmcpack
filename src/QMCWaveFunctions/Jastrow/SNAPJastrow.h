@@ -133,22 +133,21 @@ public:
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int row, int coeff, int ntype, std::vector<std::vector<double>> coeffs, double dist_delta);
     void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
-/******Checkout related functons******/
+    
+    /******Checkout related functons******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
-
     LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
-
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
 
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
 
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
-
     void checkInVariablesExclusive(opt_variables_type& active) override;
     void resetParametersExclusive(const opt_variables_type& active) override;
 
 
     bool put(xmlNodePtr cur);
+
     //variables
     const int Nions;
     const int Nelec;
