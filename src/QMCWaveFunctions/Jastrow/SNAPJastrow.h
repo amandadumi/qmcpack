@@ -21,6 +21,7 @@ namespace qmcplusplus
 {
 class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
 {
+
 public:
 
     using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
