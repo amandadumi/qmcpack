@@ -129,7 +129,6 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
     kids = kids->next;
 } 
 return true;
-
 }
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::createSNAP(xmlNodePtr cur)
@@ -148,10 +147,6 @@ tAttrib.add(twojmax, "twojmax");
 tAttrib.add(rcut, "rcut");
 tAttrib.add(snap_type, "snap_type");
 tAttrib.put(cur);
-std::string ftype("snap");
-OhmmsAttributeSet tAttrib;
-tAttrib.add(ftype, "function");
-tAttrib.put(cur);
 
 std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
@@ -159,6 +154,7 @@ if (ftype == "snap"){
     auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, snap_type,twojmax,rcut);
 
     putkids(kids, *SJ);
+
     return SJ;
 }
 else

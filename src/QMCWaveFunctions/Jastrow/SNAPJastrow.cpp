@@ -70,7 +70,6 @@ SNAPJastrow::~SNAPJastrow(){
 
 }
 
-
 void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
   if (id_coeffs.size() != ncoeff){
   }
@@ -97,56 +96,6 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     // TODO: will this be set by a qmc box? probably.
     this_lmp->input->one("boundary  f f f ");
     this_lmp->input->one("neighbor 1.9 bin");
-    this_lmp->input->one("neigh_modify every 1 delay 1 check yes ");
-    //TODO: what will box region be pased on QMC object. Cell?
-    this_lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
-    // create a box that will contain the number of species equal to the number of groups.
-    std::string temp_command = std::string("create_box ") + std::to_string(NIonGroups + els.groups()) +  " mybox";
-    this_lmp->input->one(temp_command);
-    // add atoms to the groups
-    double bohr_over_ang = 1.88973;// to convert qmcpack storage of bohr into angstrom for lammps
-    this_lmp->input->one("group e_u type 1");
-    this_lmp->input->one("group e_d type 2");
-    this_lmp->input->one("group i type 3");
-    this_lmp->input->one("group elecs type 1 2");
-    this_lmp->input->one("group all type 1 2 3");
-    this_lmp->input->one("mass 1 .95");
-    this_lmp->input->one("mass 2 .95");
-    this_lmp->input->one("mass 3 1");
-    std::cout << "before ion creation" <<std::endl;
-    for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
-      // label groups in lamps
-      for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
-        // place atom in boxes according to their group.
-        temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
-        std::cout << temp_command << std::endl;
-        this_lmp->input->one(temp_command);
-      }
-    }
-    this_lmp->input->one("neigh_modify every 1 delay 1 check yes ");
-    //TODO: what will box region be pased on QMC object. Cell?
-    this_lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
-    // create a box that will contain the number of species equal to the number of groups.
-    std::string temp_command = std::string("create_box ") + std::to_string(3) +  " mybox";
-    this_lmp->input->one(temp_command);
-    // add atoms to the groups
-    double bohr_over_ang = 1.88973;// to convert qmcpack storage of bohr into angstrom for lammps
-    this_lmp->input->one("group e_u type 1");
-    this_lmp->input->one("group e_d type 2");
-    this_lmp->input->one("group i type 3");
-    this_lmp->input->one("group elecs type 1 2");
-    this_lmp->input->one("group all type 1 2 3");
-    this_lmp->input->one("mass 1 .95");
-    this_lmp->input->one("mass 2 .95");
-    this_lmp->input->one("mass 3 1");
-    std::cout << "before ion creation" <<std::endl;
-    for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
-      for (int iat = els.first(ig); iat < els.last(ig); iat++) { // loop over elements in each group
-        temp_command = std::string("create_atoms ") + std::to_string(ig+1) + " single " + std::to_string((els.R[iat][0]+.1)/bohr_over_ang) + "  " + std::to_string((els.R[iat][1]+.01*iat)/bohr_over_ang)  + " " + std::to_string((els.R[iat][2]+.1*iat+.01)/bohr_over_ang)+ " units box";  
-        std::cout << temp_command << std::endl;
-        this_lmp->input->one(temp_command);
-      }
-    }
     this_lmp->input->one("neigh_modify every 1 delay 1 check yes ");
     //TODO: what will box region be pased on QMC object. Cell?
     this_lmp->input->one("region	mybox block -50 50 -50 50 -50 50");
@@ -262,7 +211,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 }
 
 
- SNAPJastrow::LogValueType SNAPJastrow::evaluateGL(const ParticleSet& P,
+ SNAPJastrow::LogValue SNAPJastrow::evaluateGL(const ParticleSet& P,
                           ParticleSet::ParticleGradient& G,
                           ParticleSet::ParticleLaplacian& L,
                           bool fromscratch){
@@ -291,14 +240,12 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         }
       }
     }
-    log_value_ = evaluateLog(P,G,L);
-    return log_value_;
-   }
+    return;
    }
 
 
 
-  SNAPJastrow::LogValueType SNAPJastrow::evaluateLog(const ParticleSet& P,
+  SNAPJastrow::LogValue SNAPJastrow::evaluateLog(const ParticleSet& P,
                                     ParticleSet::ParticleGradient& G,
                                     ParticleSet::ParticleLaplacian& L){
     ScopedTimer local_timer(timers_.eval_log_timer);
@@ -313,13 +260,13 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
       L[iel] += lap_u[iel];
     }
     
-    log_value_ = static_cast<SNAPJastrow::LogValueType>(esnap);
+    log_value_ = static_cast<SNAPJastrow::LogValue>(esnap);
             
     return log_value_;
   }
 
     SNAPJastrow::GradType SNAPJastrow::evalGrad(ParticleSet& P, int iat){
-     update_lmp_pos(P, proposed_lmp, proposed_sna_global, iat, true);
+    //std::cout<< "in eval grad" <<std::endl;
      update_lmp_pos(P, proposed_lmp, proposed_sna_global, iat, true);
      GradType grad_iat;
      for (int dim=0; dim < OHMMS_DIM; dim++){
@@ -337,62 +284,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     
 
 
-  void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
-  {
-      evaluateDerivativesWF(P, optvars, dlogpsi);
-      bool recalculate(false);
-      std::vector<bool> rcsingles(myVars.size(), false);
-      for (int k = 0; k < myVars.size(); ++k)
-      {
-        int kk = myVars.where(k);
-        if (kk < 0)
-          continue;
-        if (optvars.recompute(kk))
-            recalculate = true;
-          rcsingles[k] = true;
-        }
-        if (recalculate)
-        {
-          for (int k = 0; k < myVars.size(); ++k)
-          {
-            int kk = myVars.where(k);
-            if (kk < 0)
-              continue;
-            if (rcsingles[k])
-            {
-              dhpsioverpsi[kk] = -RealType(0.5) * RealType(Sum(lapLogPsi[k])) - RealType(Dot(P.G, gradLogPsi[k]));
-            }
-          }
-        }
-      }
-  void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
-  {
-      evaluateDerivativesWF(P, optvars, dlogpsi);
-      bool recalculate(false);
-      std::vector<bool> rcsingles(myVars.size(), false);
-      for (int k = 0; k < myVars.size(); ++k)
-      {
-        int kk = myVars.where(k);
-        if (kk < 0)
-          continue;
-        if (optvars.recompute(kk))
-            recalculate = true;
-          rcsingles[k] = true;
-        }
-        if (recalculate)
-        {
-          for (int k = 0; k < myVars.size(); ++k)
-          {
-            int kk = myVars.where(k);
-            if (kk < 0)
-              continue;
-            if (rcsingles[k])
-            {
-              dhpsioverpsi[kk] = -RealType(0.5) * RealType(Sum(lapLogPsi[k])) - RealType(Dot(P.G, gradLogPsi[k]));
-            }
-          }
-        }
-      }
   void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
   {
     //std::cout<< "in evaluateDerivatives" <<std::endl;
@@ -444,29 +335,12 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             recalculate = true;
           rcsingles[k] = true;
         }
-    void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
-    {
-    bool recalculate(false);
-    resizeWFOptVectors();
-    std::vector<bool> rcsingles(myVars.size(), false);
-      for (int k = 0; k < myVars.size(); ++k)
-        {
-          int kk = myVars.where(k);
-          if (kk < 0)
-            continue;
-          if (optvars.recompute(kk))
-            recalculate = true;
-          rcsingles[k] = true;
-        }
 
       if (recalculate){
         const size_t NumVars = myVars.size();
         for (int p = 0; p < NumVars; ++p){
             gradLogPsi[p] = 0.0;
             lapLogPsi[p] = 0.0;
-            dLogPsi[p] = 0.0;
-        }
-      
             dLogPsi[p] = 0.0;
         }
       
@@ -519,10 +393,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         calculate_ddc_gradlap_lammps(P, fd_coeff, bd_coeff, coeff_idx);
     }
 
-SNAPJastow::evaluatelog(const ParticleSet& P,
-                                  ParticleSet::ParticleGradient& G,
-                                  ParticleSet::ParticleLaplacian& L,
-                                  bool fromscratch){
 
 
   void SNAPJastrow::calculate_ddc_gradlap_lammps(ParticleSet& P, std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val){
@@ -596,7 +466,7 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
         // create lmp object 
         // done in constructer.
         double Eold;
-        calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold;
+        calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold);
         for (int i = 0 ; i < Nelec; i ++){
           update_lmp_pos(VP.getRefPS(),proposed_lmp,proposed_sna_global,i,false);
         }
@@ -644,20 +514,21 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
     }
   }
 
-void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
-    log_value_ = evaluateLog(P, P.G, P.L);
-}
-void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
-    log_value_ evaluateLog(P,P.G,P.L);
-}
+  void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
+      // log_value_ = evaluateLog(P, P.G, P.L);
 
-  void SNAPJastrow::copyFromBuffer(ParticleSet& P, WFBufferType& buf){
+  }
+  SNAPJastrow::LogValue SNAPJastrow::updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch){
+      // log_value_ = evaluateLog(P,P.G,P.L);
+      return log_value_;
+  }
+
   void SNAPJastrow::copyFromBuffer(ParticleSet& P, WFBufferType& buf){
     
   }
 
-  SNAPJastrow::PsiValueType SNAPJastrow::ratioGrad(ParticleSet& P, int iat, GradType& grad_iat){
-     SNAPJastrow::PsiValueType ratio = SNAPJastrow::ratio(P,iat);
+  SNAPJastrow::PsiValue SNAPJastrow::ratioGrad(ParticleSet& P, int iat, GradType& grad_iat){
+     SNAPJastrow::PsiValue ratio = SNAPJastrow::ratio(P,iat);
      for (int dim = 0; dim < OHMMS_DIM; dim++){
       for (int k = 0; k < ncoeff ; k++){
         for (int n = 0; n < lmp->atom->ntypes; n++)
@@ -667,7 +538,7 @@ void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
      return ratio;
   }
 
-  SNAPJastrow::PsiValueType SNAPJastrow::ratio(ParticleSet& P, int iat){
+  SNAPJastrow::PsiValue SNAPJastrow::ratio(ParticleSet& P, int iat){
     for (int i = 0; i < (Nelec);i++){
       update_lmp_pos(P, proposed_lmp, proposed_sna_global, i, true);
     }
@@ -675,7 +546,7 @@ void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
      calculate_ESNAP(P, sna_global, snap_beta, Eold);
      double Enew;
      calculate_ESNAP(P, proposed_sna_global, snap_beta, Enew);
-     SNAPJastrow::PsiValueType ratio = std::exp(static_cast<SNAPJastrow::PsiValueType>(Enew-Eold));
+     SNAPJastrow::PsiValue ratio = std::exp(static_cast<SNAPJastrow::PsiValue>(Enew-Eold));
      return ratio;
   }
 
@@ -712,12 +583,6 @@ void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
     }
   }
   
-  void reportStatus(std::ostream& os) 
-  {
-    if (notOpt)
-      return;
-    myVars.print(os);
-  }
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrow::makeClone(ParticleSet& tpq) const
 {
