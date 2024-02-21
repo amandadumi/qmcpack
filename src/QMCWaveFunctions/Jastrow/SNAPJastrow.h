@@ -11,7 +11,6 @@
 #include "modify.h"
 #include "compute.h"
 #include "compute_snap.h"
-#include "compute_snap.h"
 #include "atom.h"
 #include "pair.h"
 #include "pair_snap.h"
@@ -22,14 +21,12 @@
 namespace qmcplusplus
 {
 class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
-class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
 {
 public:
 
     using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
     using ValueDerivVec = ParticleAttrib<QTFull::ValueType>;
     //handle d/dc info
-    Vector<RealType> dLogPsi;
     Vector<RealType> dLogPsi;
     std::vector<GradDerivVec> gradLogPsi;
     std::vector<ValueDerivVec> lapLogPsi;
@@ -51,23 +48,17 @@ public:
         lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec));
     }
 
-    void resizeWFOptVectors(){
-        dLogPsi.resize(myVars.size());
-        gradLogPsi.resize(myVars.size(), GradDerivVec(Nelec));
-        lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec));
-    }
-
     /** Initialize a lammps object to get bispectrom components from current particle set.
     | * 
     | */
     LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els,double rcut);
     void set_coefficients(std::vector<RealType>,int id);
 
+
 /******MC step related functions******/
 
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
     void acceptMove(ParticleSet& P, int iat, bool safe_to_delay = false) override; 
-
 
     inline void restore(int iat) override {}
     /** From exsisting lammps object, get bispectrum components.
@@ -83,20 +74,16 @@ public:
     void checkOutVariables(const opt_variables_type& o) override;
 
     // void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
-    // void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
 
 /****** Evaluate E_L functions ******/
     /** Calculate the ratio of proposed to current wave function element*/
-    /** Calculate the ratio of proposed to current wave function element*/
-    PsiValueType ratio(ParticleSet& P, int iat) override;
-    /** Calculate d/di U_SNap*/
+    PsiValue ratio(ParticleSet& P, int iat) override;
     /** Calculate d/di U_SNap*/
     GradType evalGrad(ParticleSet& P, int iat) override;
 
-
-    PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
+    PsiValue ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
-    LogValueType evaluateGL(const ParticleSet& P,
+    LogValue evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
                                   ParticleSet::ParticleLaplacian& L,
                                   bool fromscratch) override;
@@ -104,7 +91,7 @@ public:
 
     void computeGL(const ParticleSet& P);
 
-    LogValueType evaluateLog(const ParticleSet& P, ParticleSet::ParticleGradient& G, ParticleSet::ParticleLaplacian& L) override;
+    LogValue evaluateLog(const ParticleSet& P, ParticleSet::ParticleGradient& G, ParticleSet::ParticleLaplacian& L) override;
     
     
     void evaluateDerivatives(ParticleSet& P,
@@ -114,7 +101,6 @@ public:
 
     void evaluateDerivativesWF(ParticleSet& P,
                                    const opt_variables_type& optvars,
-                                   Vector<ValueType>& dlogpsi) override;
                                    Vector<ValueType>& dlogpsi) override;
 
     /* calculates esnap based on a set of coefficients manually in qmcpack
@@ -133,11 +119,8 @@ public:
     void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
     /******Checkout-related functions ******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
-    LogValueType updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
+    LogValue updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
     void copyFromBuffer(ParticleSet& P, WFBufferType& buf) override;
-
-    void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
-
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
     void checkInVariablesExclusive(opt_variables_type& active) override;
     void resetParametersExclusive(const opt_variables_type& active) override;
@@ -146,8 +129,6 @@ public:
     bool put(xmlNodePtr cur);
 
     //variables
-    const int Nions;
-    const int Nelec;
     const int Nions;
     const int Nelec;
     int NIonGroups;
@@ -162,8 +143,7 @@ public:
     std::vector<std::vector<double>> snap_beta;
     double hartree_over_ev = 1.000000589/27.211399998784;
     double bohr_over_ang = 1.88973; 
-    LAMMPS_NS::ComputeSnap* sna_global;
-    LAMMPS_NS::ComputeSnap* proposed_sna_global;
+    // global arrays
     LAMMPS_NS::ComputeSnap* sna_global;
     LAMMPS_NS::ComputeSnap* proposed_sna_global;
     //lammps instance
