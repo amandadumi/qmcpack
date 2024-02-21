@@ -348,15 +348,15 @@ TEST_CASE("get_dbi_drj", "[particle]")
   LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
   lmp->input->file("diffusing_particle.lam");
   void *a;
-  double* a_val;
+  double** a_dbdrlist_vals;
   int b;
   const char *sc = "dblist";
   a = static_cast<LAMMPS_NS::PairSNAP*>(lmp->force->pair)->extract(sc,b); 
-  a_val = (double**)(a);   
+  a_dbdrlist_vals = (double**)(a);   
   
   std::cout << "made it to parsing object" << std::endl;
   for (int i=0;i<2;i++){
-    for (in j = 0 ; j < 2; j++){
+    for (int j = 0 ; j < 2; j++){
       std::cout << (*a_dbdrlist_vals)[i+j] << std::endl;
     }
   }
