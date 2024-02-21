@@ -117,6 +117,9 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
       this_lmp->input->one("pair_style zero ${rcutfac}");
       //TODO: generalize with loop over atom types
       this_lmp->input->one("pair_coeff * *"); 
+      this_lmp->input->one("pair_style zero ${rcutfac}");
+      //TODO: generalize with loop over atom types
+      this_lmp->input->one("pair_coeff * *"); 
 
       this_lmp->input->one("variable 	zblcutinner equal 4");
       this_lmp->input->one("variable 	zblcutouter equal 4.8");
@@ -255,9 +258,51 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int row, int c
           }
         }
       }
+  void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
+  {
+      evaluateDerivativesWF(P, optvars, dlogpsi);
+      bool recalculate(false);
+      std::vector<bool> rcsingles(myVars.size(), false);
+      for (int k = 0; k < myVars.size(); ++k)
+      {
+        int kk = myVars.where(k);
+        if (kk < 0)
+          continue;
+        if (optvars.recompute(kk))
+            recalculate = true;
+          rcsingles[k] = true;
+        }
+        if (recalculate)
+        {
+          for (int k = 0; k < myVars.size(); ++k)
+          {
+            int kk = myVars.where(k);
+            if (kk < 0)
+              continue;
+            if (rcsingles[k])
+            {
+              dhpsioverpsi[kk] = -RealType(0.5) * RealType(Sum(lapLogPsi[k])) - RealType(Dot(P.G, gradLogPsi[k]));
+            }
+          }
+        }
+      }
 
 
 
+    void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
+    {
+    bool recalculate(false);
+    resizeWFOptVectors();
+    std::vector<bool> rcsingles(myVars.size(), false);
+      for (int k = 0; k < myVars.size(); ++k)
+        {
+          int kk = myVars.where(k);
+          if (kk < 0)
+            continue;
+          if (optvars.recompute(kk))
+            recalculate = true;
+          rcsingles[k] = true;
+        }
     void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
     {
     bool recalculate(false);
@@ -395,7 +440,23 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
       }
     }
   }
+  /////// Functions for optimization /////
+  void SNAPJastrow::checkOutVariables(const opt_variables_type& o ){
+    myVars.getIndex(o);
+    for (int i=0; i < myVars.size(); i++){
+      int loc = myVars.where(i);
+      if (loc >=0){
+       myVars[i] = o[loc];
+     }
+     for (int ipart=0; ipart<(Nelec); ipart++){
+        for (int nc = 0; nc < ncoeff;nc++){
+           snap_beta[ipart][nc] = std::real(myVars[(ipart*ncoeff)+nc]);
+        } 
+      }
+    }
+  }
 
+  /////////////////////////////////// MC Related functions /////////
   /////////////////////////////////// MC Related functions /////////
 
   void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
@@ -413,6 +474,7 @@ void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
     log_value_ evaluateLog(P,P.G,P.L);
 }
 
+  void SNAPJastrow::copyFromBuffer(ParticleSet& P, WFBufferType& buf){
   void SNAPJastrow::copyFromBuffer(ParticleSet& P, WFBufferType& buf){
     
 }
