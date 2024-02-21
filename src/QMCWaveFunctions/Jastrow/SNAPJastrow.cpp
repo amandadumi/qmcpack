@@ -96,6 +96,7 @@ LAMMPS_NS::LAMMPS * SNAPJastrow::initialize_lammps(const ParticleSet& els){
         for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
           temp_command = std::string("create_atoms 3 single ") + std::to_string(Ions.R[iat][0]/bohr_over_ang) + "  " + std::to_string(Ions.R[iat][1]/bohr_over_ang)  + " " + std::to_string(Ions.R[iat][2]/bohr_over_ang) + " units box";  
           std::cout << temp_command << std::endl;
+          std::cout << temp_command << std::endl;
           this_lmp->input->one(temp_command);
         }
       }
@@ -389,6 +390,7 @@ SNAPJastow::evaluatelog(const ParticleSet& P,
         } //end dim
       } //end iel
     } //end nv
+    lapLogPsi[cur_val] = (ddc_lap_forward_val-ddc_lap_back_val)/(2*coeff_delta);
     lapLogPsi[cur_val] = (ddc_lap_forward_val-ddc_lap_back_val)/(2*coeff_delta);
     gradLogPsi[cur_val] = (ddc_grad_forward_val - ddc_grad_back_val)/(2*coeff_delta);
   }
