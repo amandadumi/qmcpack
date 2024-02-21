@@ -71,9 +71,12 @@ public:
 
 /****** Evaluate E_L functions ******/
     /** Calculate the ratio of proposed to current wave function element*/
+    /** Calculate the ratio of proposed to current wave function element*/
     PsiValueType ratio(ParticleSet& P, int iat) override;
     /** Calculate d/di U_SNap*/
+    /** Calculate d/di U_SNap*/
     GradType evalGrad(ParticleSet& P, int iat) override;
+
 
     PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
