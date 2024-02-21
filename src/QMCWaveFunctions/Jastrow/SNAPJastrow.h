@@ -4,6 +4,9 @@
 #include "ParticleBase/ParticleAttribOps.h"
 #include "Particle/DistanceTable.h"
 #include "Configuration.h"
+#include "ParticleBase/ParticleAttribOps.h"
+#include "Particle/DistanceTable.h"
+#include "Configuration.h"
 //lammps related headers needed.
 #include "lammps.h"
 #include "input.h"
@@ -35,6 +38,12 @@ public:
     ~SNAPJastrow();
 
     std::string getClassName() const override {return "SNAPJastrow";}
+
+    void resizeWFOptVectors(){
+        dLogPsi.resize(myVars.size());
+        gradLogPsi.resize(myVars.size(), GradDerivVec(Nelec));
+        lapLogPsi.resize(myVars.size(), ValueDerivVec(Nelec));
+    }
 
     void resizeWFOptVectors(){
         dLogPsi.resize(myVars.size());
@@ -99,6 +108,7 @@ public:
     void evaluateDerivativesWF(ParticleSet& P,
                                    const opt_variables_type& optvars,
                                    Vector<ValueType>& dlogpsi) override;
+                                   Vector<ValueType>& dlogpsi) override;
 
     /* calculates esnap based on a set of coefficients manually in qmcpack
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
@@ -125,6 +135,8 @@ public:
 
     bool put(xmlNodePtr cur);
     //variables
+    const int Nions;
+    const int Nelec;
     const int Nions;
     const int Nelec;
     int NIonGroups;
