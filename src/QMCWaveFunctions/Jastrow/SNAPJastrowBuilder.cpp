@@ -134,6 +134,10 @@ std::string ftype("snap");
 OhmmsAttributeSet tAttrib;
 tAttrib.add(ftype, "function");
 tAttrib.put(cur);
+std::string ftype("snap");
+OhmmsAttributeSet tAttrib;
+tAttrib.add(ftype, "function");
+tAttrib.put(cur);
 
 std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;

@@ -41,7 +41,6 @@ private:
   std::string RegionOpt;
   std::string SourceOpt;
 
-  ParticleSet* SourcePtcl;
 };
 }
 #endif
