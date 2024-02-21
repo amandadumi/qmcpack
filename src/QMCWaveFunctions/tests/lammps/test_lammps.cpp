@@ -105,6 +105,7 @@ TEST_CASE("lammps_update_pos", "[wavefunction]")
 TEST_CASE("pass_ions_to_lammps", "[wavefunction]")
 {
   const SimulationCell simulation_cell;
+  const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell);
 
   ions.create({2});
@@ -347,6 +348,7 @@ TEST_CASE("get_dbi_drj", "[particle]")
   int lmpargc = sizeof(lmpargv)/sizeof(const char *);
   LAMMPS_NS::LAMMPS *lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv,MPI_COMM_WORLD);
   lmp->input->file("diffusing_particle.lam");
+
   void *a;
   double** a_dbdrlist_vals;
   int b;

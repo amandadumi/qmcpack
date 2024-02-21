@@ -30,6 +30,7 @@ public:
     using GradDerivVec  = ParticleAttrib<QTFull::GradType>;
     using ValueDerivVec = ParticleAttrib<QTFull::ValueType>;
     Vector<RealType> dLogPsi;
+    Vector<RealType> dLogPsi;
     std::vector<GradDerivVec> gradLogPsi;
     std::vector<ValueDerivVec> lapLogPsi;
 
@@ -64,6 +65,7 @@ public:
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
     void acceptMove(ParticleSet& P, int iat, bool safe_to_delay = false) override; 
 
+
     inline void restore(int iat) override {}
     /** From exsisting lammps object, get bispectrum components.
     | * 
@@ -90,7 +92,7 @@ public:
     GradType evalGrad(ParticleSet& P, int iat) override;
 
 
-    // PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
+    PsiValueType ratioGrad(ParticleSet& P, int iat, GradType& grad_iat) override;
     
     LogValueType evaluateGL(const ParticleSet& P,
                                   ParticleSet::ParticleGradient& G,
@@ -136,6 +138,7 @@ public:
     void checkInVariablesExclusive(opt_variables_type& active) override;
     void resetParametersExclusive(const opt_variables_type& active) override;
 
+
     bool put(xmlNodePtr cur);
     //variables
     const int Nions;
@@ -144,6 +147,7 @@ public:
     const int Nelec;
     int NIonGroups;
     int ncoeff;
+    int twojmax;
     int twojmax;
     const int myTableID;
     std::string iSpecies, eSpecies1, eSpecies2;
