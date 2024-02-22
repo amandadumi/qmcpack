@@ -124,7 +124,6 @@ public:
     void extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs) override;
     void checkInVariablesExclusive(opt_variables_type& active) override;
     void resetParametersExclusive(const opt_variables_type& active) override;
-    void reportStatus(std::ostream& os) override;
     std::unique_ptr<WaveFunctionComponent> makeClone(ParticleSet& tpq) const override;
     bool put(xmlNodePtr cur);
 
