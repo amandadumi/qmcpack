@@ -149,8 +149,7 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       this_lmp->input->one("variable	quadratic equal 0");
       this_lmp->input->one("variable	bzero equal 1");
       this_lmp->input->one("variable	switchflag equal 1");
-      this_lmp->input->one("variable	switchinnerflag equal 0");
-      this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switchflag} switchinnerflag ${switchinnerflag}\"");
+      this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switchflag}\"");
 
     //snap needs some reference pair potential, but doesn't effect parts we are using. 
 
