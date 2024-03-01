@@ -136,7 +136,6 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       this_lmp->input->one(temp_command);
       this_lmp->input->one("variable 	rcutfac equal 1.0");
       this_lmp->input->one("variable 	rfac0 equal 0.99363");
-      this_lmp->input->one("variable 	rmin0 equal 0");
       //setting rcut to be the same for each type, though may be interesting to try to automate this
       temp_command = std::string("variable rad_type_1 equal ") + std::to_string(rcut/bohr_over_ang);
       this_lmp->input->one(temp_command);
@@ -149,8 +148,9 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       this_lmp->input->one("variable	wj3 equal 0.96");
       this_lmp->input->one("variable	quadratic equal 0");
       this_lmp->input->one("variable	bzero equal 1");
-      this_lmp->input->one("variable	switch equal 0");
-      this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} rmin0 ${rmin0} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switch}\"");
+      this_lmp->input->one("variable	switchflag equal 1");
+      this_lmp->input->one("variable	switchinnerflag equal 1");
+      this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switch} switchinnerflag ${switchinnerflag}\"");
 
     //snap needs some reference pair potential, but doesn't effect parts we are using. 
 
@@ -217,7 +217,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
                           bool fromscratch){
                           // std::cout << "in evaluateGL" <<std::endl;
                           return evaluateLog(P,G,L);
-                          }
+  }
  
  
  void SNAPJastrow::computeGL(const ParticleSet& P){
@@ -355,7 +355,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
                 evaluate_fd_derivs(P, k);
             }
             //std::cout<< "start assigning dlogpsi"<<std::endl;
-            dlogpsi[k] = ValueType(dLogPsi[k]);
+            dlogpsi[kk] = ValueType(dLogPsi[k]);
             //std::cout<< "finished assigning dlogpsi"<<std::endl;
           }
         } 
@@ -591,7 +591,13 @@ std::unique_ptr<WaveFunctionComponent> SNAPJastrow::makeClone(ParticleSet& tpq) 
 }
 
 
-bool SNAPJastrow::put(xmlNodePtr cur) {return true;}
+bool SNAPJastrow::put(xmlNodePtr cur) {
+  
+  app_summary() << "     Number of parameters: " << myVars.size() << std::endl;
+  for (int i = 0; i <myVars.size();i++){
+    app_summary() << myVars[i] <<std::endl;
+  }
+  return true;}
 /**
 void SNAPJastrow::setCoefficients(){
 const char *var = "beta";
@@ -607,5 +613,7 @@ for (int i = 0; i<ncoeff; i++){
 }
 }
 */
+
+
 }
 

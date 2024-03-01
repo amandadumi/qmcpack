@@ -126,7 +126,6 @@ public:
     void resetParametersExclusive(const opt_variables_type& active) override;
     std::unique_ptr<WaveFunctionComponent> makeClone(ParticleSet& tpq) const override;
     bool put(xmlNodePtr cur);
-
     //variables
     const int Nions;
     const int Nelec;
