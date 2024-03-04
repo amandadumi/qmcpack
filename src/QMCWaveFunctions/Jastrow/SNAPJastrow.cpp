@@ -208,6 +208,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
                           ParticleSet::ParticleGradient& G,
                           ParticleSet::ParticleLaplacian& L,
                           bool fromscratch){
+                          // std::cout << "in evaluateGL" <<std::endl;
                           return evaluateLog(P,G,L);
   }
  
