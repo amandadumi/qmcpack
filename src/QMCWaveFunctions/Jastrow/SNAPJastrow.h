@@ -31,7 +31,7 @@ public:
     std::vector<GradDerivVec> gradLogPsi;
     std::vector<ValueDerivVec> lapLogPsi;
     //handle per particle info
-    Vector<RealType> u_val;
+    RealType u_val;
     GradDerivVec grad_u;
     ValueDerivVec lap_u;
 
