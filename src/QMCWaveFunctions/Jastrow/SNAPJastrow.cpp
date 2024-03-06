@@ -85,10 +85,6 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     const char *lmpargv[] {"liblammps","-log","lammps.out","-screen","lammps_screen.out"};
     int lmpargc = sizeof(lmpargv)/sizeof(const char *);
     LAMMPS_NS::LAMMPS *this_lmp;
-
-
-  /* open LAMMPS input script */
-
     this_lmp = new LAMMPS_NS::LAMMPS(lmpargc, (char **)lmpargv, comm_lammps);
 
     this_lmp->input->one("units  metal");
@@ -142,13 +138,14 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       this_lmp->input->one("variable	wj2 equal 1.0");
       this_lmp->input->one("variable	wj3 equal 1");
       this_lmp->input->one("variable	quadratic equal 0");
-      this_lmp->input->one("variable	bzero equal 1");
-      this_lmp->input->one("variable	switchflag equal 1");
+      this_lmp->input->one("variable	bzero equal 0");
+      this_lmp->input->one("variable	switchflag equal 0");
       this_lmp->input->one("variable snap_options string \"${rcutfac} ${rfac0} ${twojmax} ${rad_type_1} ${rad_type_2} ${rad_type_3} ${wj1} ${wj2} ${wj3} quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switchflag}\"");
 
     //snap needs some reference pair potential, but doesn't effect parts we are using. 
 
-      this_lmp->input->one(" pair_style zero 10.0");
+      temp_command = std::string("pair_style zero ") + std::to_string(rcut*2/bohr_over_ang);
+      this_lmp->input->one(temp_command);
       this_lmp->input->one("pair_coeff * *");
       //TODO: generalize with loop over atom types
       this_lmp->input->one("compute sna_global all snap ${snap_options}"); 
@@ -159,7 +156,7 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     return this_lmp;
   }
 
-  void SNAPJastrow::update_lmp_pos(const ParticleSet& P, LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array,int iat, bool proposed){
+  void SNAPJastrow::update_lmp_pos(const ParticleSet& P, LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed){
       if (proposed){
         for (int dim = 0; dim < OHMMS_DIM; dim++){
           lmp_pntr->atom->x[iat][dim] = P.activeR(iat)[dim]/bohr_over_ang;
@@ -242,10 +239,10 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
                                     ParticleSet::ParticleGradient& G,
                                     ParticleSet::ParticleLaplacian& L){
     ScopedTimer local_timer(timers_.eval_log_timer);
+    for (int i = 0; i < Nelec; i++){
+      update_lmp_pos(P,lmp,sna_global,i,false);
+    }
     double esnap;
-    //for (int i = 0; i < Nelec; i++){
-    //  update_lmp_pos(P,lmp,sna_global,i,false);
-    //}
     calculate_ESNAP(P, sna_global, snap_beta, esnap);
     u_val = esnap;
     computeGL(P);
@@ -332,8 +329,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         for (int p = 0; p < NumVars; ++p){
             gradLogPsi[p] = 0.0;
             lapLogPsi[p] = 0.0;
-            dLogPsi[p] = 0.0;
         }
+        dLogPsi = 0.0;
       
         for (int k = 0; k < myVars.size(); k++){
           int kk = myVars.where(k);
@@ -479,12 +476,10 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   /////////////////////////////////// MC Related functions /////////
   void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
     update_lmp_pos(P,lmp,sna_global,iat,false);
+    double esnap;
+    u_val=esnap;
     grad_u[iat] = 0;
     lap_u[iat] = 0;
-    double esnap;
-    calculate_ESNAP(P,sna_global,snap_beta, esnap);
-    log_value_ = static_cast<SNAPJastrow::LogValue>(esnap);
-    u_val=esnap;
     double grad_val;
     for (int dim = 0; dim < OHMMS_DIM; dim++){
       int row = (iat*3)+dim + 1;
