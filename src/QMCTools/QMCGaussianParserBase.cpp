@@ -554,7 +554,7 @@ xmlNodePtr QMCGaussianParserBase::createBasisSetWithHDF5()
   hdf_archive hout;
   hout.open(h5file.c_str(), H5F_ACC_RDWR);
   hout.push("basisset", true);
-  std::string BasisSetName("LCAOBSet");
+  std::string BasisSetName("LCAOnewwfn.sposet_collection.rotated_sposetsBSet");
   hout.write(BasisSetName, "name");
 
   std::map<int, int> species;

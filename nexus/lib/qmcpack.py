@@ -53,6 +53,7 @@ except:
 
 
 class Qmcpack(Simulation):
+    print("in qmcpack")    
     input_type    = QmcpackInput
     analyzer_type = QmcpackAnalyzer
     generic_identifier = 'qmcpack'
@@ -144,6 +145,7 @@ class Qmcpack(Simulation):
 
 
     def get_result(self,result_name,sim):
+        print("in get result")
         result = obj()
         if result_name=='jastrow' or result_name=='wavefunction':
             analyzer = self.load_analyzer_image()
@@ -254,7 +256,7 @@ class Qmcpack(Simulation):
                     newwfn.sposet_collection.rotated_sposets = generate_rotated_sposets(sposets=newwfn.sposet_collection.sposets)
                     del newwfn.sposet_collection.sposets
                     for ridx,rspo in enumerate(newwfn.sposet_collection.rotated_sposets):
-                        rspo.sposet.size=rspo.sposet.coefficent.size
+                        rspo.sposet.size=rspo.sposet.coefficient.size
                         detlist[rspo.name.strip('rot_')].id = rspo.name
 
                 if 'jastrows' in newwfn:
@@ -767,6 +769,7 @@ class Qmcpack(Simulation):
 
 
     def write_prep(self):
+        print("in write prep")
         if self.got_dependencies:
             traced_input  = isinstance(self.input,TracedQmcpackInput)
             generic_input = self.has_generic_input()
@@ -878,6 +881,7 @@ class Qmcpack(Simulation):
 
 
 def generate_qmcpack(**kwargs):
+    print("in generate qmcpack")
     sim_args,inp_args = Qmcpack.separate_inputs(kwargs)
 
     exc = None

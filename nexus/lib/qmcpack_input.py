@@ -1890,7 +1890,7 @@ sposet_builder = QIxmlFactory(
 
 class sposet_collection(QIxml):
     tag    = 'sposet_collection'
-    attributes = ['type','href','name','source','transform']
+    attributes = ['type','href','name','source','transform',]
     elements   = ['sposet','rotated_sposet','basisset','sposet_builder']
 
 class wavefunction(QIxml):
@@ -2762,7 +2762,7 @@ plurals = obj(
     vars            = 'var',
     neighbor_traces = 'neighbor_trace',
     sposet_builders = 'sposet_builder',
-    sposet_collection = 'sposet_collection',
+    sposet_collections = 'sposet_collection',
     sposets         = 'sposet',
     rotated_sposets = 'rotated_sposet',
     radfuncs        = 'radfunc',
