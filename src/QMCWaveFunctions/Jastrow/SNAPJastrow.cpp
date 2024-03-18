@@ -456,7 +456,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         // create lmp object 
         // done in constructer.
         double Eold;
-        //calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold);
         for (int i = 0 ; i < Nelec; i ++){
           update_lmp_pos(VP.getRefPS(), proposed_lmp, proposed_sna_global, i, false);
         }
@@ -476,6 +475,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         for (int dim= 0; dim < OHMMS_DIM; dim ++){
           proposed_lmp->atom->x[VP.refPtcl][dim] = VP.getRefPS().R[VP.refPtcl][dim];
         }
+        proposed_sna_global->compute_array();
     return;
   }
 
@@ -529,7 +529,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   }
 
   SNAPJastrow::PsiValue SNAPJastrow::ratio(ParticleSet& P, int iat){
-    for (int i =0; i < Nions+Nelec ; i++){
+    for (int i =0; i < Nelec ; i++){
        update_lmp_pos(P, proposed_lmp, proposed_sna_global, i, true);
     }
      double Eold;
