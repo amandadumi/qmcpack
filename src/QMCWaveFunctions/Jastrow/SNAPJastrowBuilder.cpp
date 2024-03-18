@@ -48,32 +48,33 @@ std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::buildComponent(xmlNod
 bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
 {
 
+  const SpeciesSet& iSet = jsource->getSpeciesSet();
+  SpeciesSet& eSet = jtarget.getSpeciesSet();
   while (kids != NULL){
     std::vector<double> snap_coeffs;
-    std::vector<double>* coeffs;
-
     std::string kidsname = (char*)kids->name;
 
     // if this section is building in correlation...
     if (kidsname == "correlation")
     {
-
-    std::string jname("SNAP");
-    std::string id_opt;
-    if (coeffs)
+      std::string jname("SNAP");
+      std::string id_opt;
+      xmlNodePtr xmlCoefs = kids->xmlChildrenNode;
+      while (xmlCoefs != NULL)
       {
-        xmlNodePtr xmlCoefs = kids->xmlChildrenNode;
-        while (xmlCoefs != NULL)
-        {
           std::string cname((const char*)xmlCoefs->name);
           if (cname == "coefficients")
           {
-            std::string type("0"), id("0");
+            std::cout<< "in coeff part of parsing"<< std::endl;
+            std::string type("0"), id("0"), pset_id("0"), spec_id("0");
             OhmmsAttributeSet cAttrib;
+            // which particle set do these coeffs correspond to (i.e. electrons of ions)
+            cAttrib.add(pset_id, "pset_id");
+            // which species coeffs correspond to since coeffs are stored by species type.
+            cAttrib.add(spec_id, "spec_id");
             cAttrib.add(id_opt, "id");
             cAttrib.add(type, "type");
             cAttrib.put(xmlCoefs);
-            coeffs = &snap_coeffs;
             if (type != "Array")
             {
               app_error() << "Unknown coefficients type "
@@ -87,48 +88,39 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
               xmlNewProp(xmlCoefs, (const xmlChar*)"type", (const xmlChar*)"Array");
             }
             //vector<T> can be read by this
-            putContent2(*coeffs, xmlCoefs);
-            app_log() << "  Read " << coeffs->size() << " coefficients for type " << type << std::endl;
+            putContent2(snap_coeffs, xmlCoefs);
+            app_log() << "  Read " << snap_coeffs.size() << " coefficients for type " << type << std::endl;
 
-            int this_id;
             // ## hard coded mapping for He 2 elec
-            if (id_opt=="He"){
-              this_id = 2;
+
+            app_log() <<"species name is " << eSet.speciesName[0] << std::endl;
+            
+            int snap_beta_idx = 0;
+            if (jtarget.getName() == pset_id){
+             for (int es=0; es < eSet.speciesName.size(); es++){
+                if( spec_id == eSet.speciesName[es]){
+                    app_log() <<"species name is " << eSet.speciesName[es] << std::endl;
+                    snap_beta_idx += es;
+                }
+             }
+             SJ.set_coefficients(snap_coeffs, snap_beta_idx);
             }
-            else if (id_opt=="C"){
-              this_id = 2;
+            else if (jsource->getName() == pset_id){
+             for (int is=0; is < iSet.speciesName.size(); is++){
+                if( spec_id == iSet.speciesName[is]){
+                  app_log() <<"species name is " << iSet.speciesName[is] << std::endl;
+                  snap_beta_idx += is + jtarget.groups(); 
+                }
+             }
+             SJ.set_coefficients(snap_coeffs, snap_beta_idx);
             }
-            else if (id_opt=="eup")
-            {
-              this_id = 0 ;
-            }
-            else if (id_opt=="u")
-            {
-              this_id = 0 ;
-            }
-            else if (id_opt=="d")
-            {
-              this_id=1;
-            }
-            else if (id_opt=="ed"){
-              this_id=1;
-            }
-            else if (id_opt=="edown"){
-              this_id=1;
-            }
-            else{
-              app_log()<< " particle type not recognized, correlation coefficient may not have been set as intended." <<std::endl;
-            }
-            SJ.set_coefficients(*coeffs, this_id);
-            std::cout << "done with set coeffs" << std::endl;
           }
           xmlCoefs = xmlCoefs->next;
-        }
       }
     }
     kids = kids->next;
-} 
-return true;
+  }
+  return true;
 }
 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrowBuilder::createSNAP(xmlNodePtr cur)
@@ -151,7 +143,7 @@ tAttrib.put(cur);
 std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
 if (ftype == "snap"){
-    auto SJ  = std::make_unique<SNAPJastrow>(ftype, sourcePtcl, targetPtcl, snap_type,twojmax,rcut);
+    auto SJ  = std::make_unique<SNAPJastrow>(ftype, *jsource, jtarget, snap_type,twojmax,rcut);
 
     putkids(kids, *SJ);
 

@@ -23,9 +23,10 @@ class ParticleSet;
 class SNAPJastrowBuilder : public WaveFunctionComponentBuilder
 {
 public:
-    const ParticleSet& sourcePtcl;
+    ParticleSet& jtarget;
+    const ParticleSet* jsource;
     SNAPJastrowBuilder(Communicate* comm, ParticleSet& target, const ParticleSet& source)
-    : WaveFunctionComponentBuilder(comm, target), sourcePtcl(source)
+    : WaveFunctionComponentBuilder(comm, target), jtarget(target), jsource(&source)
 {
     ClassName = "SnapJastrowBuilder";
     NameOpt = "0";
@@ -44,7 +45,6 @@ private:
   std::string SNAPType;
   std::string RegionOpt;
   std::string SourceOpt;
-
 };
 }
 #endif
