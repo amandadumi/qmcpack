@@ -70,12 +70,19 @@ SNAPJastrow::~SNAPJastrow(){
 
 }
 
-void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs,int id){
+void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   if (id_coeffs.size() != ncoeff){
-  }
-  int kk=0;
+    app_log() << "WARNING: number of coeffs less than coeffs/particle_type" <<std::endl; 
+    app_log() << "coeffs/particle_type: " << ncoeff << " , coeffss read in: " << id_coeffs.size() << std::endl;
+  } 
+  std::cout << "in set coeffs!" << std::endl;
+  std::cout << "id is " << id << std::endl;
+
   for (int i=0; i < id_coeffs.size(); i++){
+    std::cout << "coeff is " << i << " value i " << id_coeffs[i] << std::endl;
     snap_beta[id][i] = id_coeffs[i];
+    std::cout << "snap_beta  is " << snap_beta[id][i] << std::endl;
+    myVars[(id*ncoeff) + i] = snap_beta[id][i];
   }
 
 }
@@ -424,7 +431,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     // calculate electron contribution
     // the global array is summed over groups of atoms of the same type. thus here we just need to sum over groups.
     for (int ig = 0; ig < P.groups(); ig++) {
-      esnap_elec += coeff[ig][0];
+      esnap_elec += coeff[ig][0]*P.groupsize(ig);
       for (int k = 1; k < ncoeff; k++){
         bispectrum_val = snap_global->array[0][(ig*(ncoeff-1)) + k-1]; //block of bispectrum + current component to add.
         esnap_elec += coeff[ig][k] * bispectrum_val*hartree_over_ev;
@@ -432,7 +439,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     }
     esnap_all += esnap_elec;
     for (int ig = 0; ig < Ions.groups(); ig++) {
-      esnap_ion += coeff[P.groups()+ig][0];
+      esnap_ion += coeff[P.groups()+ig][0]*Ions.groupsize(ig);
       for (int k = 1; k < ncoeff; k++){
         bispectrum_val = snap_global->array[0][((P.groups()+ig)*(ncoeff-1)) + k-1];// will need fixed for more than one ion group
         esnap_ion += coeff[P.groups()+ig][k] * bispectrum_val*hartree_over_ev;// will need fixed for more than one ion group.
@@ -476,7 +483,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   /////////////////////////////////// MC Related functions /////////
   void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
     update_lmp_pos(P,lmp,sna_global,iat,false);
+    update_lmp_pos(P,proposed_lmp,proposed_sna_global,iat,false);
     double esnap;
+    calculate_ESNAP(P,sna_global,snap_beta,esnap);
     u_val=esnap;
     grad_u[iat] = 0;
     lap_u[iat] = 0;
@@ -519,7 +528,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   }
 
   SNAPJastrow::PsiValue SNAPJastrow::ratio(ParticleSet& P, int iat){
-    update_lmp_pos(P, proposed_lmp, proposed_sna_global, iat, true);
+    for (int i =0; i < Nions+Nelec ; i++){
+       update_lmp_pos(P, proposed_lmp, proposed_sna_global, i, true);
+    }
      double Eold;
      calculate_ESNAP(P, sna_global, snap_beta, Eold);
      double Enew;

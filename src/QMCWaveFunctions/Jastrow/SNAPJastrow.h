@@ -52,7 +52,7 @@ public:
     | * 
     | */
     LAMMPS_NS::LAMMPS* initialize_lammps( const ParticleSet& els,double rcut);
-    void set_coefficients(std::vector<RealType>,int id);
+    void set_coefficients(std::vector<RealType>, int id);
 
 
 /******MC step related functions******/
