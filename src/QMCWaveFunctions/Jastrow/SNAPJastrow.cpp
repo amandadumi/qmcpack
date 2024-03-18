@@ -456,10 +456,11 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         // create lmp object 
         // done in constructer.
         double Eold;
-        calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold);
+        //calculate_ESNAP(VP.getRefPS(),sna_global, snap_beta, Eold);
         for (int i = 0 ; i < Nelec; i ++){
           update_lmp_pos(VP.getRefPS(), proposed_lmp, proposed_sna_global, i, false);
         }
+        calculate_ESNAP(VP.getRefPS(),proposed_sna_global, snap_beta, Eold);
         for (int r = 0; r < ratios.size(); r++){
           for (int dim= 0; dim < OHMMS_DIM; dim ++){
             // manually update posiition of ref particle to k position.
