@@ -109,7 +109,7 @@ public:
     */
     void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
     void calculate_ddc_gradlap_lammps(ParticleSet& P,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
-    void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, LAMMPS_NS::ComputeSnap* snap_array, int iat, bool proposed);
+    void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
@@ -133,7 +133,7 @@ public:
     int ncoeff;
     int twojmax=2;
     double rcut=7;
-    double dist_delta = 0.0001;
+    double dist_delta = 0.000001;
     double coeff_delta = 0.00000001;
     const int myTableID;
     const ParticleSet& Ions;
@@ -143,10 +143,8 @@ public:
     double bohr_over_ang = 1.88973; 
     // global arrays
     LAMMPS_NS::ComputeSnap* sna_global;
-    LAMMPS_NS::ComputeSnap* proposed_sna_global;
     //lammps instance
     LAMMPS_NS::LAMMPS *lmp;
-    LAMMPS_NS::LAMMPS *proposed_lmp;
     MPI_Comm comm_lammps;
     
     
