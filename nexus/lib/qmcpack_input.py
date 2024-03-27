@@ -7635,7 +7635,6 @@ def generate_basic_input(**kwargs):
     if kw.traces is not None:
         sim.traces = kw.traces
     #end if
-
     if len(kw.calculations)==0 and kw.qmc is not None:
         qmc_inputs = kw.obj(*qmc_keys)
         if kw.qmc=='opt':

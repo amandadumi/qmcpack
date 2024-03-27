@@ -53,7 +53,6 @@ except:
 
 
 class Qmcpack(Simulation):
-    print("in qmcpack")    
     input_type    = QmcpackInput
     analyzer_type = QmcpackAnalyzer
     generic_identifier = 'qmcpack'
@@ -173,7 +172,6 @@ class Qmcpack(Simulation):
 
 
     def incorporate_result(self,result_name,result,sim):
-        print('do we enter incorporate result?')
         input = self.input
         system = self.system
         if result_name=='orbitals':
@@ -881,7 +879,6 @@ class Qmcpack(Simulation):
 
 
 def generate_qmcpack(**kwargs):
-    print("in generate qmcpack")
     sim_args,inp_args = Qmcpack.separate_inputs(kwargs)
 
     exc = None
