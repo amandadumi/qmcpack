@@ -1876,8 +1876,8 @@ class composite_builder(QIxml):
     elements   = ['sposet']
 #end class composite_builder
 
-sposet_builder = QIxmlFactory(
-    name    = 'sposet_builder',
+sposet_collection= QIxmlFactory(
+    name    = 'sposet_collection',
     types   = dict(bspline=bspline_builder,
                    einspline=bspline_builder,
                    heg=heg_builder,
@@ -1888,10 +1888,10 @@ sposet_builder = QIxmlFactory(
 
 # sposet_collection = QIxmlFactory(
 
-class sposet_collection(QIxml):
-    tag    = 'sposet_collection'
-    attributes = ['type','href','name','source','transform',]
-    elements   = ['sposet','rotated_sposet','basisset','sposet_builder']
+#class sposet_collection(QIxml):
+#    tag    = 'sposet_collection'
+#    attributes = ['type','href','name','source','transform',]
+#    elements   = ['sposet','rotated_sposet','basisset','sposet_builder']
 
 class wavefunction(QIxml):
     #            rsqmc                        afqmc
@@ -2721,7 +2721,7 @@ classes = [   #standard classes
     atomicbasisset,basisgroup,init,var,traces,scalar_traces,particle_traces,array_traces,
     reference_points,nearestneighbors,neighbor_trace,dm1b,
     coefficient,radfunc,spindensity,structurefactor,rotated_sposet,
-    sposet,sposet_collection,bspline_builder,composite_builder,heg_builder,include,
+    sposet,bspline_builder,composite_builder,heg_builder,include,
     multideterminant,detlist,ci,mcwalkerset,csf,det,
     optimize,cg_optimizer,flex_optimizer,optimize_qmc,wftest,kspace_jastrow,
     header,local,force,forwardwalking,observable,record,rmc,pressure,dmccorrection,
@@ -2737,8 +2737,8 @@ types = dict( #simple types and factories
     #date           = param,
     #user           = param,
     pairpot        = pairpot,
+    sposet_collection        = sposet_collection,
     estimator      = estimator,
-    sposet_builder = sposet_builder,
     jastrow        = jastrow,
     qmc            = qmc,
     optimizer      = optimizer,
@@ -5509,9 +5509,9 @@ def process_dm1b_estimator(dm,wfname):
             else:
                 rsponame = det.id
             #end if
-            builders = QIcollections.get('sposet_builders')
+            builders = QIcollections.get('sposet_collections')
             if builders is None:
-                builders = [wf.sposet_builders.bspline]
+                builders = [wf.sposet_collection.bspline]
             #end if
             rspo = None
             for bld in builders:
@@ -7609,7 +7609,7 @@ def generate_basic_input(**kwargs):
         )
 
     if spobuilders is not None:
-        wfn.sposet_builders = make_collection(spobuilders)
+        wfn.sposet_collections = make_collection(spobuilders)
     #end if
     print('wave function now is')
     print(wfn)
