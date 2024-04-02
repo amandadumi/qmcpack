@@ -144,7 +144,6 @@ class Qmcpack(Simulation):
 
 
     def get_result(self,result_name,sim):
-        print("in get result")
         result = obj()
         if result_name=='jastrow' or result_name=='wavefunction':
             analyzer = self.load_analyzer_image()
@@ -184,12 +183,12 @@ class Qmcpack(Simulation):
                     wavefunction = wavefunction.get_single('psi0')
                 #end if
                 wf = wavefunction
-                if 'sposet_builder' in wf and wf.sposet_builder.type=='bspline':
-                    orb_elem = wf.sposet_builder
+                if 'sposet_builder' in wf and wf.sposet_collection.type=='bspline':
+                    orb_elem = wf.sposet_collection
                 elif 'sposet_builders' in wf and 'bspline' in wf.sposet_builders:
-                    orb_elem = wf.sposet_builders.bspline
+                    orb_elem = wf.sposet_collection.bspline
                 elif 'sposet_builders' in wf and 'einspline' in wf.sposet_builders:
-                    orb_elem = wf.sposet_builders.einspline
+                    orb_elem = wf.sposet_collection.einspline
                 elif 'determinantset' in wf and wf.determinantset.type in ('bspline','einspline'):
                     orb_elem = wf.determinantset
                 else:
@@ -238,19 +237,16 @@ class Qmcpack(Simulation):
                 #end if
 
             elif isinstance(sim,Convert4qmc):
-                print('in convert4qmc section')
-                print(result)
                 res = QmcpackInput(result.location)
                 qs  = input.simulation.qmcsystem
                 oldwfn = qs.wavefunction
                 newwfn = res.qmcsystem.wavefunction
-                print(f'newwfn is\n {newwfn}')
                 if hasattr(oldwfn.determinantset,'multideterminant'):
                     del newwfn.determinantset.slaterdeterminant
                     newwfn.determinantset.multideterminant = oldwfn.determinantset.multideterminant
                 dset = newwfn.determinantset
                 detlist = dset.get('determinants')
-                if 'rotated_sposets' in oldwfn.sposet_builders.bspline:
+                if 'rotated_sposets' in oldwfn.sposet_collections.bspline:
                     newwfn.sposet_collection.rotated_sposets = generate_rotated_sposets(sposets=newwfn.sposet_collection.sposets)
                     del newwfn.sposet_collection.sposets
                     for ridx,rspo in enumerate(newwfn.sposet_collection.rotated_sposets):
@@ -268,8 +264,8 @@ class Qmcpack(Simulation):
                 #end if
                 if 'orbfile' in result:
                     orb_h5file = result.orbfile
-                    if not os.path.exists(orb_h5file) and 'href' in dset:
-                        orb_h5file = os.path.join(sim.locdir,dset.href)
+                    if not os.path.exists(orb_h5file) and 'href' in newwfn:
+                        orb_h5file = os.path.join(sim.locdir,newwfn.href)
                     #end if
                     if not os.path.exists(orb_h5file):
                         self.error('orbital h5 file from convert4qmc does not exist\nlocation checked: {}'.format(orb_h5file))
@@ -282,7 +278,6 @@ class Qmcpack(Simulation):
                     #end if
                 #end if
                 qs.wavefunction = newwfn
-                print(f'newwfn is\n {newwfn}')
 
             else:
                 self.error('incorporating orbitals from '+sim.__class__.__name__+' has not been implemented')
@@ -365,7 +360,6 @@ class Qmcpack(Simulation):
             #end try
 
         elif result_name=='wavefunction':
-            print('in result name is wf')
             if isinstance(sim,Qmcpack):
                 opt = QmcpackInput(result.opt_file)
                 qs = input.get('qmcsystem')
@@ -767,7 +761,6 @@ class Qmcpack(Simulation):
 
 
     def write_prep(self):
-        print("in write prep")
         if self.got_dependencies:
             traced_input  = isinstance(self.input,TracedQmcpackInput)
             generic_input = self.has_generic_input()

@@ -1895,7 +1895,7 @@ sposet_collection= QIxmlFactory(
 
 class wavefunction(QIxml):
     #            rsqmc                        afqmc
-    attributes = ['name','target','id','ref']+['info','type']
+    attributes = ['name','target','id','ref','href']+['info','type']
     #            afqmc
     parameters = ['filetype','filename','cutoff']
     elements   = ['sposet_builder','sposet_collection','sposet','rotated_sposet','determinantset','jastrow','override_variational_parameters']
