@@ -256,7 +256,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
     SNAPJastrow::GradType SNAPJastrow::evalGrad(ParticleSet& P, int iat){
     for (int i = 0; i < Nelec; i++){
-      update_lmp_pos(P, lmp, iat, true);
+      update_lmp_pos(P, lmp, i, true);
     }
     sna_global->compute_array();
      GradType grad_iat;
@@ -270,7 +270,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
       }
      }
     for (int i = 0; i < Nelec; i++){
-      update_lmp_pos(P, lmp, iat, false);
+      update_lmp_pos(P, lmp, i, false);
     }
     sna_global->compute_array();
     return grad_iat;
@@ -332,7 +332,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
       if (recalculate){
         const size_t NumVars = myVars.size();
-        for (int p = 0; p < NumVars; ++p){
+        for (int p = 0; p < NumVars; p++){
             gradLogPsi[p] = 0.0;
             lapLogPsi[p] = 0.0;
         }
@@ -482,7 +482,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   /////////////////////////////////// MC Related functions /////////
   void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
     for (int i = 0 ;i <Nelec; i ++){
-     update_lmp_pos(P,lmp,iat,false);
+     update_lmp_pos(P,lmp,i,false);
     }
     sna_global->compute_array();
     double esnap;
@@ -541,7 +541,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
      double Enew;
      calculate_ESNAP(P, sna_global, snap_beta, Enew);
      SNAPJastrow::PsiValue ratio = std::exp(static_cast<SNAPJastrow::PsiValue>(Enew-Eold));
-     update_lmp_pos(P, lmp, iat, false);
+    for (int i = 0 ;i <Nelec; i ++){
+     update_lmp_pos(P, lmp, i, false);
+    }
      sna_global->compute_array();
      return ratio;
   }
