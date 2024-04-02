@@ -554,7 +554,7 @@ xmlNodePtr QMCGaussianParserBase::createBasisSetWithHDF5()
   hdf_archive hout;
   hout.open(h5file.c_str(), H5F_ACC_RDWR);
   hout.push("basisset", true);
-  std::string BasisSetName("LCAOnewwfn.sposet_collection.rotated_sposetsBSet");
+  std::string BasisSetName("LCAOBSet");
   hout.write(BasisSetName, "name");
 
   std::map<int, int> species;
@@ -1737,6 +1737,7 @@ void QMCGaussianParserBase::createGridNode(int argc, char** argv)
 
 void QMCGaussianParserBase::dump(const std::string& psi_tag, const std::string& ion_tag)
 {
+  std::cout << " QMCGaussianParserBase::dump " << std::endl;
   if (!Structure)
   {
     //if (UseHDF5 || multidetH5)
