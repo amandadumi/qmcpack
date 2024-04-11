@@ -180,18 +180,18 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   RealType r0 = P.R[iat][dim]/bohr_over_ang;
   
   //forward direction
-  RealType rp = r0 + (dist_delta/2);
+  RealType rp = r0 + (dist_delta);
   lmp->atom->x[iat][dim] = rp;
   sna_global->compute_array();
   G_finite_diff_forward = this_coeff * sna_global->array[row][(ntype*(ncoeff-1))+coeff-1] * hartree_over_ev/bohr_over_ang;
   
   //backward direction
-  RealType rm  = r0 - (dist_delta/2);
+  RealType rm  = r0 - (dist_delta);
   lmp->atom->x[iat][dim] = rm;
   sna_global->compute_array();
   G_finite_diff_back = this_coeff * sna_global->array[row][(ntype*(ncoeff-1))+coeff-1] * hartree_over_ev/bohr_over_ang;
   //fill L
-  double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/(dist_delta);
+  double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/(2*dist_delta);
   
   // return coordinates to original
   lmp->atom->x[iat][dim] = r0;
