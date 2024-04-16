@@ -367,7 +367,13 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
      }
     }
     else{
-      dLogPsi[coeff_idx] =-1;
+       std::cout<< "ntype is "<< ntype<< std::endl;
+       if (ntype < P.groups()-1){
+         dLogPsi[coeff_idx] =-1*P.groupsize(ntype);
+       }
+        else{
+         dLogPsi[coeff_idx] =-1*Ions.groupsize(ntype);
+        }   
     }
   }
 
