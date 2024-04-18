@@ -216,9 +216,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
       for (int iel = P.first(ig); iel < P.last(ig); iel++){ // loop over elements in each group
         grad_u[iel] = 0;
         lap_u[iel] = 0;
-        for (int dim = 0; dim < OHMMS_DIM; dim++){
-          int row = (iel*3)+dim + 1;
-          for (int n = 0; n < lmp->atom->ntypes; n++){
+        for (int n=0; n< lmp->atom->ntypes; n++){
+          for (int dim = 0; dim < OHMMS_DIM; dim++){
+            int row = (iel*3)+dim + 1;
             for (int k =1; k < ncoeff; k ++){
               int col = (n*(ncoeff-1))+k-1;
               grad_val = sna_global->array[row][col];
@@ -367,12 +367,11 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
      }
     }
     else{
-       std::cout<< "ntype is "<< ntype<< std::endl;
-       if (ntype < P.groups()-1){
+       if (ntype < P.groups()){
          dLogPsi[coeff_idx] =-1*P.groupsize(ntype);
        }
         else{
-         dLogPsi[coeff_idx] =-1*Ions.groupsize(ntype);
+         dLogPsi[coeff_idx] =-1*Ions.groupsize(ntype-P.groups());
         }   
     }
   }
