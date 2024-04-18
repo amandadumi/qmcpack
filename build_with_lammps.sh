@@ -1,5 +1,5 @@
 #!/bin/bash
-export GCC_PATH="/usr/local/Cellar/gcc/13.2.0"
+#export GCC_PATH="/usr/local/Cellar/gcc/13.2.0"
 export LDFLAGS="-L/usr/local/opt/libomp/lib"
 export CPPFLAGS="-I/usr/local/opt/libomp/include"
 #export CC="$GCC_PATH/bin/gcc-13"
@@ -11,16 +11,17 @@ export OMPI_CXX=$CXX
 
 #export CLANG_CXX_LANGUAGE_STANDARD="C++17"
 #export CMAKE_CXX_FLAGS="-Wl,-ld_classic,-g"
-export MPICC="/usr/local/Cellar/open-mpi/5.0.2/bin/mpicc"
-export MPICXX="/usr/local/Cellar/open-mpi/5.0.2/bin/mpic++"
+export MPICC="/usr/local/Cellar/open-mpi/5.0.2_1/bin/mpicc"
+export MPICXX="/usr/local/Cellar/open-mpi/5.0.2_1/bin/mpic++"
 #export MPIEXEC_EXECUTABLE="/usr/local/Cellar/open-mpi/4.1.5/bin/mpiexec"
 export FFTW_HOME="/usr/local/opt/fftw"
 export LAMMPS_ROOT="/Users/aedumi/software/lammps/build"
 export PKG_CONFIG_PATH="/usr/local/opt/readline/lib/pkgconfig"
-export DYLD_LIBRARY_PATH="$GCC_PATH/gcc/13:/Users/aedumi/software/lammps_serial/build"
+export DYLD_LIBRARY_PATH="/Users/aedumi/software/lammps_serial/build"
 export CMAKE_INCLUDE_PATH="/usr/local/Cellar/libomp/18.1.1/include"
 echo "configured the environment"
 #-DCMAKE_CXX_FLAGS="-fopenmp=libomp" \
+mpic++ -v
 cd build
 cmake  -DCMAKE_C_COMPILER=$MPICC \
       -DCMAKE_CXX_COMPILER=$MPICXX \
