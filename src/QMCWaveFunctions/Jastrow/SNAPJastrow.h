@@ -117,6 +117,7 @@ public:
     
     /****** NLPP-related functions ******/
     void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
+    void evaluateDerivRatios(const VirtualParticleSet& VP,const opt_variables_type& optvars, std::vector<ValueType>& ratios, Matrix<ValueType>& dratios) override;
     /******Checkout-related functions ******/
     void registerData(ParticleSet& P, WFBufferType& buf) override;
     LogValue updateBuffer(ParticleSet& P, WFBufferType& buf, bool fromscratch = false) override;
