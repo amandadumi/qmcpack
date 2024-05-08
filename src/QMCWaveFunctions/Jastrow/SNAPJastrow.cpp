@@ -223,7 +223,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
               int col = (n*(ncoeff-1))+k-1;
               grad_val = sna_global->array[row][col];
               grad_u[iel][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
-              lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, false); 
+              lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, false)/bohr_over_ang; 
             }
           }
         }
@@ -259,16 +259,16 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
       update_lmp_pos(P, lmp, i, true);
     }
     sna_global->compute_array();
-     GradType grad_iat;
-     for (int dim=0; dim < OHMMS_DIM; dim++){
-      int row =(3*iat)+dim+1;
-      for (int k = 1; k < ncoeff ; k++){
-        for (int n = 0; n < lmp->atom->ntypes; n++){
-          int col = (n*(ncoeff-1))+k-1; // lmps isn't aware of beta_0
-          grad_iat[dim] += snap_beta[n][k]*sna_global->array[row][col]*hartree_over_ev/bohr_over_ang;
-        }
-      }
+    GradType grad_iat;
+    for (int dim=0; dim < OHMMS_DIM; dim++){
+     int row =(3*iat)+dim+1;
+     for (int k = 1; k < ncoeff ; k++){
+       for (int n = 0; n < lmp->atom->ntypes; n++){
+         int col = (n*(ncoeff-1))+k-1; // lmps isn't aware of beta_0
+         grad_iat[dim] += snap_beta[n][k]*sna_global->array[row][col]*hartree_over_ev/bohr_over_ang;
+       }
      }
+    }
     for (int i = 0; i < Nelec; i++){
       update_lmp_pos(P, lmp, i, false);
     }
@@ -282,54 +282,52 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   void SNAPJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
   {
     ScopedTimer local_timer(timers_.eval_wf_grad_timer);
-      evaluateDerivativesWF(P, optvars, dlogpsi);
-      bool recalculate(false);
-      std::vector<bool> rcsingles(myVars.size(), false);
+    evaluateDerivativesWF(P, optvars, dlogpsi);
+    bool recalculate(false);
+    std::vector<bool> rcsingles(myVars.size(), false);
+    for (int k = 0; k < myVars.size(); ++k)
+    {
+      int kk = myVars.where(k);
+      if (kk < 0)
+       continue;
+      if (optvars.recompute(kk))
+        recalculate = true;
+      rcsingles[k] = true;
+    }
+    if (recalculate)
+    {
+      for (int k = 0; k < myVars.size(); ++k)
+      {
+        int kk = myVars.where(k);
+        if (kk < 0)
+          continue;
+        if (rcsingles[k])
+        {
+          dhpsioverpsi[kk] = -RealType(0.5) * RealType(Sum(lapLogPsi[k]));
+          for (int i = 0; i < Nelec; i++){
+            dhpsioverpsi[kk] -= RealType(dot(P.G[i], gradLogPsi[k][i]));
+          }
+        }
+      }
+    }
+  }
+
+
+
+  void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
+    {
+    bool recalculate(false);
+    resizeWFOptVectors();
+    std::vector<bool> rcsingles(myVars.size(), false);
       for (int k = 0; k < myVars.size(); ++k)
       {
         int kk = myVars.where(k);
         if (kk < 0)
           continue;
         if (optvars.recompute(kk))
-            recalculate = true;
-          rcsingles[k] = true;
-        }
-        if (recalculate)
-        {
-          for (int k = 0; k < myVars.size(); ++k)
-          {
-            int kk = myVars.where(k);
-            if (kk < 0)
-              continue;
-            if (rcsingles[k])
-            {
-              dhpsioverpsi[kk] = -RealType(0.5) * RealType(Sum(lapLogPsi[k]));
-              for (int i = 0; i < Nelec; i++){
-                dhpsioverpsi[kk] -= RealType(dot(P.G[i], gradLogPsi[k][i]));
-              }
-            }
-          }
-        }
+          recalculate = true;
+        rcsingles[k] = true;
       }
-
-
-
-    void SNAPJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi)
-    {
-
-    bool recalculate(false);
-    resizeWFOptVectors();
-    std::vector<bool> rcsingles(myVars.size(), false);
-      for (int k = 0; k < myVars.size(); ++k)
-        {
-          int kk = myVars.where(k);
-          if (kk < 0)
-            continue;
-          if (optvars.recompute(kk))
-            recalculate = true;
-          rcsingles[k] = true;
-        }
-
       if (recalculate){
         const size_t NumVars = myVars.size();
         for (int p = 0; p < NumVars; p++){
@@ -346,7 +344,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             if (snap_type=="linear"){
               evaluate_linear_derivs(P, k);
             } else if (snap_type=="quadratic"){
-                evaluate_fd_derivs(P, k);
+              evaluate_fd_derivs(P, k);
             }
             dlogpsi[kk] = ValueType(dLogPsi[k]);
           }
@@ -363,7 +361,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
        for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
        // sign on this is that gradient is -= in qmcpack, but we have the snap derivatives stored as force, leading to +=
         gradLogPsi[coeff_idx][iel][dim] += sna_global->array[(iel*OHMMS_DIM)+dim+1][(ntype*(ncoeff-1))+coeff-1]*hartree_over_ev/bohr_over_ang;
-        lapLogPsi[coeff_idx][iel] += FD_Lap(P, iel, dim, coeff, ntype, snap_beta, true);
+        lapLogPsi[coeff_idx][iel] += FD_Lap(P, iel, dim, coeff, ntype, snap_beta, true)/bohr_over_ang;
        }
      }
     }
@@ -411,8 +409,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             ddc_grad_forward_val[iel][dim] += fd_coeff[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
             ddc_grad_back_val[iel][dim] += bd_coeff[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
 
-            ddc_lap_forward_val[iel] += FD_Lap(P, iel, dim, k, n, fd_coeff, false);
-            ddc_lap_back_val[iel] += FD_Lap(P, iel, dim, k, n, bd_coeff,  false);
+            ddc_lap_forward_val[iel] += FD_Lap(P, iel, dim, k, n, fd_coeff, false)/bohr_over_ang;
+            ddc_lap_back_val[iel] += FD_Lap(P, iel, dim, k, n, bd_coeff,  false)/bohr_over_ang;
           } //end dim
         } //end ncoeff 
       } //end ntype
@@ -585,7 +583,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
           int col = (n*(ncoeff-1))+k-1;
           grad_val = sna_global->array[row][col];
           grad_u[iat][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
-          lap_u[iat] += FD_Lap(P, iat, dim, k, n, snap_beta, false); 
+          lap_u[iat] += FD_Lap(P, iat, dim, k, n, snap_beta, false)/bohr_over_ang; 
         }
       }
     }
