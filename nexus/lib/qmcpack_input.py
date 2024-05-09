@@ -1865,7 +1865,7 @@ class heg_builder(QIxml):
 class molecular_orbital_builder(QIxml):
     tag = 'sposet_collection'
     identifier = 'type'
-    attributes = ['name','type','transform','source','cuspcorrection']
+    attributes = ['name','type','transform','source','cuspcorrection','href']
     elements   = ['basisset','sposet','rotated_sposet'] 
 #end class molecular_orbital_builder
 

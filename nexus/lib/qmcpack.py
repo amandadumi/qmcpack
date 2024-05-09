@@ -271,11 +271,8 @@ class Qmcpack(Simulation):
                         self.error('orbital h5 file from convert4qmc does not exist\nlocation checked: {}'.format(orb_h5file))
                     #end if
                     orb_path = os.path.relpath(orb_h5file,self.locdir)
-                    # dset.href = orb_path
-                    # detlist = dset.get('detlist')
-                    # if detlist is not None and 'href' in detlist:
-                        # detlist.href = orb_path
-                    #end if
+                    newwfn.sposet_collection.href = orb_path
+                    detlist = dset.get('detlist')
                 #end if
                 qs.wavefunction = newwfn
 

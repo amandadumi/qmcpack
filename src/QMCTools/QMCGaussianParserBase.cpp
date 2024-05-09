@@ -1990,17 +1990,17 @@ void QMCGaussianParserBase::dumpPBC(const std::string& psi_tag, const std::strin
       sss << Image[0] << "  " << Image[1] << "  " << Image[2];
       xmlNewProp(spcPtr, (const xmlChar*)"PBCimages", (const xmlChar*)(sss.str()).c_str());
 
+      xmlNodePtr spoupPtr = xmlNewNode(NULL, (const xmlChar*)"sposet");
+      xmlNodePtr spodnPtr = xmlNewNode(NULL, (const xmlChar*)"sposet");
+      xmlNewProp(spoupPtr, (const xmlChar*)"basisset", (const xmlChar*)"LCAOBSet");
+      xmlNewProp(spodnPtr, (const xmlChar*)"basisset", (const xmlChar*)"LCAOBSet");
+      PrepareSPOSetsFromH5(spoupPtr, spodnPtr);
+      xmlAddChild(spcPtr, spoupPtr);
+      xmlAddChild(spcPtr, spodnPtr);
       {
         if (multideterminant)
         {
-          xmlNodePtr spoupPtr = xmlNewNode(NULL, (const xmlChar*)"sposet");
-          xmlNodePtr spodnPtr = xmlNewNode(NULL, (const xmlChar*)"sposet");
-          xmlNewProp(spoupPtr, (const xmlChar*)"basisset", (const xmlChar*)"LCAOBSet");
-          xmlNewProp(spodnPtr, (const xmlChar*)"basisset", (const xmlChar*)"LCAOBSet");
 
-          PrepareSPOSetsFromH5(spoupPtr, spodnPtr);
-          xmlAddChild(spcPtr, spoupPtr);
-          xmlAddChild(spcPtr, spodnPtr);
           xmlNodePtr multislaterdetPtr = NULL;
 
           multislaterdetPtr = createMultiDeterminantSetFromH5();
@@ -2015,6 +2015,7 @@ void QMCGaussianParserBase::dumpPBC(const std::string& psi_tag, const std::strin
           xmlAddChild(detPtr, slaterdetPtr);
         }
       }
+      xmlAddChild(wfPtr, spcPtr);
       xmlAddChild(wfPtr, detPtr);
       if (addJastrow)
       {
