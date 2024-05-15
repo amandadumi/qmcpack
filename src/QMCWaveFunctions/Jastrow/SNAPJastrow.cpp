@@ -256,7 +256,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
     SNAPJastrow::GradType SNAPJastrow::evalGrad(ParticleSet& P, int iat){
     for (int i = 0; i < Nelec; i++){
-      update_lmp_pos(P, lmp, i, true);
+      update_lmp_pos(P, lmp, i, false); //nothing in documentation suggests this is for a proposed move?
     }
     sna_global->compute_array();
      GradType grad_iat;
@@ -501,7 +501,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             }
             else{
               dlogpsi_nlpp_ref[k] = -Ions.groupsize(ntype-VP.getRefPS().groups());
-              std::cout << "size of group " << ntype << " is "<< VP.getRefPS().groupsize(ntype);
+              std::cout << "size of group " << ntype << " is "<< Ions.groupsize(ntype);
             }
           }  
           std::cout<<"was able to get ref" <<std::endl;
@@ -570,7 +570,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   /////////////////////////////////// MC Related functions /////////
   void SNAPJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
     for (int i = 0 ;i <Nelec; i ++){
-     update_lmp_pos(P,lmp,i,false);
+     update_lmp_pos(P,lmp,i,true);
     }
     sna_global->compute_array();
     double esnap;
@@ -592,11 +592,10 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   }
 
   void SNAPJastrow::registerData(ParticleSet& P, WFBufferType& buf){
-      // log_value_ = evaluateLog(P, P.G, P.L);
-
+      log_value_ = evaluateLog(P, P.G, P.L);
   }
   SNAPJastrow::LogValue SNAPJastrow::updateBuffer(ParticleSet& P, WFBufferType& buf, bool from_scratch){
-      // log_value_ = evaluateLog(P,P.G,P.L);
+      log_value_ = evaluateLog(P,P.G,P.L);
       return log_value_;
   }
 
