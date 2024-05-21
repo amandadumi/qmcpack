@@ -223,7 +223,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
               int col = (n*(ncoeff-1))+k-1;
               grad_val = sna_global->array[row][col];
               grad_u[iel][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
-              lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, false)/bohr_over_ang; 
+              lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, false); 
             }
           }
         }
@@ -361,7 +361,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
        for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
        // sign on this is that gradient is -= in qmcpack, but we have the snap derivatives stored as force, leading to +=
         gradLogPsi[coeff_idx][iel][dim] += sna_global->array[(iel*OHMMS_DIM)+dim+1][(ntype*(ncoeff-1))+coeff-1]*hartree_over_ev/bohr_over_ang;
-        lapLogPsi[coeff_idx][iel] += FD_Lap(P, iel, dim, coeff, ntype, snap_beta, true)/bohr_over_ang;
+        lapLogPsi[coeff_idx][iel] += FD_Lap(P, iel, dim, coeff, ntype, snap_beta, true);
        }
      }
     }
@@ -409,8 +409,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             ddc_grad_forward_val[iel][dim] += fd_coeff[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
             ddc_grad_back_val[iel][dim] += bd_coeff[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
 
-            ddc_lap_forward_val[iel] += FD_Lap(P, iel, dim, k, n, fd_coeff, false)/bohr_over_ang;
-            ddc_lap_back_val[iel] += FD_Lap(P, iel, dim, k, n, bd_coeff,  false)/bohr_over_ang;
+            ddc_lap_forward_val[iel] += FD_Lap(P, iel, dim, k, n, fd_coeff, false);
+            ddc_lap_back_val[iel] += FD_Lap(P, iel, dim, k, n, bd_coeff,  false);
           } //end dim
         } //end ncoeff 
       } //end ntype
@@ -583,7 +583,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
           int col = (n*(ncoeff-1))+k-1;
           grad_val = sna_global->array[row][col];
           grad_u[iat][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
-          lap_u[iat] += FD_Lap(P, iat, dim, k, n, snap_beta, false)/bohr_over_ang; 
+          lap_u[iat] += FD_Lap(P, iat, dim, k, n, snap_beta, false); 
         }
       }
     }
