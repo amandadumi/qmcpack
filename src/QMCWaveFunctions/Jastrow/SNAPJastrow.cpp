@@ -455,7 +455,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
 
 
   void SNAPJastrow::evaluateDerivRatios(const VirtualParticleSet& VP,const opt_variables_type& optvars, std::vector<ValueType>& ratios, Matrix<ValueType>& dratios){
-    std::cout<< "in evalderivratios" <<std::endl;
     evaluateRatios(VP,ratios);
     Vector<RealType> dlogpsi_nlpp_ref;
     dlogpsi_nlpp_ref.resize(myVars.size());
@@ -495,14 +494,11 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
           else{
             if (ntype < VP.getRefPS().groups()){ // if 0 or 1 it is up or down electrons
               dlogpsi_nlpp_ref[k] = -VP.getRefPS().groupsize(ntype);
-              std::cout << "size of group " << ntype << " is "<< VP.getRefPS().groupsize(ntype);
             }
             else{
               dlogpsi_nlpp_ref[k] = -Ions.groupsize(ntype-VP.getRefPS().groups());
-              std::cout << "size of group " << ntype << " is "<< Ions.groupsize(ntype);
             }
           }  
-          std::cout<<"was able to get ref" <<std::endl;
           for (int r = 0; r < ratios.size(); r++){
             // now for virutal move
             for (int dim= 0; dim < OHMMS_DIM; dim ++){
@@ -521,9 +517,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
                dlogpsi_nlpp_virt[k] = -Ions.groupsize(ntype-VP.getRefPS().groups());
               }   
             }
-            std::cout<<"was able to get virt" <<std::endl;
-            std::cout << "coeff " << k << " global " << kk << " ratio " << r <<std::endl; 
-            std::cout << "ref " << dlogpsi_nlpp_ref[k] << " virt: " << dlogpsi_nlpp_virt[k] <<std::endl;
             dratios[r][kk] +=  dlogpsi_nlpp_virt[k] - dlogpsi_nlpp_ref[k];
           } //end ratio loop
         }// end rcsingles
