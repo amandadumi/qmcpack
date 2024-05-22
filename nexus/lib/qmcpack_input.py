@@ -4664,7 +4664,7 @@ def generate_bspline_builder(type           = 'bspline',
             spin_polarized = spin_polarized,
             system         = system,
             sposets        = sposets,
-            spindatasets   = True
+            spindatasets   = True,
             spinor         = spinor,
             )
     # determine if sposet or rotated sposet should be used.
@@ -4813,7 +4813,8 @@ def generate_determinantset_new(up         = 'u',
                             sposets=[],
                             delay_rank     = None,
                             matrix_inv_cpu = None,
-                            system         = None
+                            system         = None,
+                            spinor         = None,
                             ):
     elns = system.particles.get_electrons()
     nup  = elns.up_electron.count
@@ -5065,6 +5066,7 @@ def generate_determinantset_old(type           = 'bspline',
             determinants_list.append(
                 determinant(
                     id   = 'updet',
+                    sposet  = 'spo-up',
                     ),
             )
         #end if
@@ -5072,6 +5074,7 @@ def generate_determinantset_old(type           = 'bspline',
             determinants_list.append(
                 determinant(
                     id   = 'downdet',
+                    sposet  = 'spo-dn',
                     )
             )
         #end if
@@ -5080,6 +5083,7 @@ def generate_determinantset_old(type           = 'bspline',
             determinants_list.append(
                 determinant(
                     id   = 'updet',
+                    sposet  = 'spo-up',
                     ),
             )
         #end if

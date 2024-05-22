@@ -597,7 +597,7 @@ xmlNodePtr QMCGaussianParserBase::createDeterminantSetWithHDF5()
   //create a determinant Up
   xmlNodePtr udet = xmlNewNode(NULL, (const xmlChar*)"determinant");
   xmlNewProp(udet, (const xmlChar*)"id", (const xmlChar*)"updet");
-  xmlNewProp(udet, (const xmlChar*)"size", (const xmlChar*)up_size.str().c_str());
+  xmlNewProp(udet, (const xmlChar*)"sposet", (const xmlChar*)"spo-up");
   if (DoCusp == true)
     xmlNewProp(udet, (const xmlChar*)"cuspInfo", (const xmlChar*)"../updet.cuspInfo.xml");
 
@@ -671,7 +671,6 @@ xmlNodePtr QMCGaussianParserBase::createDeterminantSetWithHDF5()
     {
       ddet = xmlCopyNode(udet, 1);
       xmlSetProp(ddet, (const xmlChar*)"id", (const xmlChar*)"downdet");
-      //xmlSetProp(ddet, (const xmlChar*)"size", (const xmlChar*)down_size.str().c_str());
       if (DoCusp == true)
         xmlSetProp(ddet, (const xmlChar*)"cuspInfo", (const xmlChar*)"../downdet.cuspInfo.xml");
     }
@@ -679,7 +678,6 @@ xmlNodePtr QMCGaussianParserBase::createDeterminantSetWithHDF5()
     {
       ddet = xmlCopyNode(udet, 2);
       xmlSetProp(ddet, (const xmlChar*)"id", (const xmlChar*)"downdet");
-      //xmlSetProp(ddet, (const xmlChar*)"size", (const xmlChar*)down_size.str().c_str());
       if (DoCusp == true)
         xmlSetProp(ddet, (const xmlChar*)"cuspInfo", (const xmlChar*)"../downdet.cuspInfo.xml");
       //xmlNodePtr o = xmlAddChild(ddet, xmlCopyNode(occ_data, 1));
@@ -736,7 +734,8 @@ xmlNodePtr QMCGaussianParserBase::PrepareDeterminantSetFromHDF5()
   if (SpinRestricted)
   {
     ddet = xmlCopyNode(udet, 1);
-    xmlSetProp(ddet, (const xmlChar*)"id", (const xmlChar*)"spo-dn");
+    xmlSetProp(ddet, (const xmlChar*)"id", (const xmlChar*)"downdet");
+    xmlSetProp(ddet, (const xmlChar*)"sposet", (const xmlChar*)"spo-dn");
     //xmlSetProp(ddet, (const xmlChar*)"size", (const xmlChar*)down_size.str().c_str());
     if (DoCusp == true)
       xmlSetProp(ddet, (const xmlChar*)"cuspInfo", (const xmlChar*)"../downdet.cuspInfo.xml");
@@ -768,14 +767,11 @@ xmlNodePtr QMCGaussianParserBase::createDeterminantSet()
   b_size << numMO;
   //create a determinant Up
   xmlNodePtr adet = xmlNewNode(NULL, (const xmlChar*)"determinant");
-  xmlNewProp(adet, (const xmlChar*)"id", (const xmlChar*)"spo-up");
-  // xmlNewProp(adet, (const xmlChar*)"size", (const xmlChar*)up_size.str().c_str());
+  xmlNewProp(adet, (const xmlChar*)"id", (const xmlChar*)"updet");
+  xmlNewProp(adet, (const xmlChar*)"sposet", (const xmlChar*)"spo-up");
   if (DoCusp == true)
     xmlNewProp(adet, (const xmlChar*)"cuspInfo", (const xmlChar*)"../updet.cuspInfo.xml");
 
-  // xmlNodePtr occ_data = xmlNewNode(NULL, (const xmlChar*)"occupation");
-  // xmlNewProp(occ_data, (const xmlChar*)"mode", (const xmlChar*)"ground");
-  // xmlAddChild(adet, occ_data);
   int btot = numMO * SizeOfBasisSet;
   int n = btot / 4, b = 0;
   int dn = btot - n * 4;
@@ -796,13 +792,11 @@ xmlNodePtr QMCGaussianParserBase::createDeterminantSet()
   }
   if (dn)
     eig << std::endl;
-  // xmlNodePtr det_data = xmlNewTextChild(adet, NULL, (const xmlChar*)eig.str().c_str());
-  //xmlNewProp(det_data, (const xmlChar*)"size", (const xmlChar*)b_size.str().c_str());
   xmlNewProp(adet, (const xmlChar*)"id", (const xmlChar*)"updetC");
   xmlNodePtr cur = xmlAddChild(slaterdet, adet);
   adet           = xmlNewNode(NULL, (const xmlChar*)"determinant");
-  xmlNewProp(adet, (const xmlChar*)"id", (const xmlChar*)"spo-dn");
-  // xmlNewProp(adet, (const xmlChar*)"size", (const xmlChar*)down_size.str().c_str());
+  xmlNewProp(adet, (const xmlChar*)"id", (const xmlChar*)"downdet");
+  xmlNewProp(adet, (const xmlChar*)"sposet", (const xmlChar*)"spo-dn");
   if (DoCusp == true)
     xmlNewProp(adet, (const xmlChar*)"cuspInfo", (const xmlChar*)"../downdet.cuspInfo.xml");
 
@@ -1175,7 +1169,7 @@ xmlNodePtr QMCGaussianParserBase::createMultiDeterminantSet()
   else
     xmlNewProp(multislaterdet, (const xmlChar*)"optimize", (const xmlChar*)"no");
   xmlNewProp(multislaterdet, (const xmlChar*)"spo-up", (const xmlChar*)"spo-up");
-  xmlNewProp(multislaterdet, (const xmlChar*)"spo_dn", (const xmlChar*)"spo-dn");
+  xmlNewProp(multislaterdet, (const xmlChar*)"spo-dn", (const xmlChar*)"spo-dn");
   if (usingCSF)
   {
     xmlNodePtr detlist = xmlNewNode(NULL, (const xmlChar*)"detlist");
@@ -2615,8 +2609,6 @@ xmlNodePtr QMCGaussianParserBase::createMultiDeterminantSetFromH5()
     xmlNewProp(multislaterdet, (const xmlChar*)"optimize", (const xmlChar*)"yes");
   else
     xmlNewProp(multislaterdet, (const xmlChar*)"optimize", (const xmlChar*)"no");
-  //xmlNewProp(multislaterdet, (const xmlChar*)"spo-up", (const xmlChar*)"spo-up");
-  //xmlNewProp(multislaterdet, (const xmlChar*)"spo_dn", (const xmlChar*)"spo-dn");
   xmlNodePtr detlist = xmlNewNode(NULL, (const xmlChar*)"detlist");
   std::ostringstream nstates, cisize, cinca, cincb, cinea, cineb, ci_thr;
   cisize << ci_size;
