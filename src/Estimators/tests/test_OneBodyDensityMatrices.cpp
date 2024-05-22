@@ -125,6 +125,17 @@ public:
     }
   }
 
+  void testGenerateSamplesForSpinor(onebodydensitymatrices::Inputs input,
+                                    OneBodyDensityMatrices& obdm,
+                                    ParticleSet& pset_target,
+                                    StdRandom<T>& rng)
+  {
+    testGenerateSamples(input, obdm, pset_target, rng);
+    //confirm that the spins were sampled, will be zero if not
+    CHECK(obdm.is_spinor_ == true);
+    CHECK(std::abs(obdm.spcur_) > 1e-8);
+  }
+
   /** Checking approximate equality for complex valued data as
    *  two reals is not consistent with testing practices elsewhere in the code.
    *  Values that are slightly off may now fall in approximation limit properly.
@@ -266,8 +277,7 @@ TEST_CASE("OneBodyDensityMatrices::OneBodyDensityMatrices", "[estimators]")
   auto species_set = testing::makeSpeciesSet(SpeciesCases::GOOD);
 
   ProjectData test_project("test", ProjectData::DriverVersion::BATCH);
-  Communicate* comm;
-  comm = OHMMS::Controller;
+  Communicate* comm = OHMMS::Controller;
 
   auto particle_pool = MinimalParticlePool::make_diamondC_1x1x1(comm);
   auto wavefunction_pool =
@@ -296,8 +306,7 @@ TEST_CASE("OneBodyDensityMatrices::generateSamples", "[estimators]")
   using MCPWalker = OperatorEstBase::MCPWalker;
 
   ProjectData test_project("test", ProjectData::DriverVersion::BATCH);
-  Communicate* comm;
-  comm = OHMMS::Controller;
+  Communicate* comm = OHMMS::Controller;
 
   auto particle_pool = MinimalParticlePool::make_diamondC_1x1x1(comm);
   auto wavefunction_pool =
@@ -329,6 +338,47 @@ TEST_CASE("OneBodyDensityMatrices::generateSamples", "[estimators]")
   samplingCaseRunner(valid_obdm_input_grid);
 }
 
+#ifdef QMC_COMPLEX
+TEST_CASE("OneBodyDensityMatrices::generateSamplesForSpinor", "[estimators]")
+{
+  using namespace testing;
+  using namespace onebodydensitymatrices;
+
+  using MCPWalker = OperatorEstBase::MCPWalker;
+
+  ProjectData test_project("test", ProjectData::DriverVersion::BATCH);
+  Communicate* comm = OHMMS::Controller;
+
+  auto particle_pool = MinimalParticlePool::make_O2_spinor(comm);
+  auto wavefunction_pool =
+      MinimalWaveFunctionPool::make_O2_spinor(test_project.getRuntimeOptions(), comm, particle_pool);
+  auto& pset_target = *(particle_pool.getParticleSet("e"));
+  auto& species_set = pset_target.getSpeciesSet();
+  auto& spo_map     = wavefunction_pool.getWaveFunction("wavefunction")->getSPOMap();
+
+  auto samplingCaseRunner = [&pset_target, &species_set, &spo_map](Inputs test_case) {
+    Libxml2Document doc;
+
+    bool okay = doc.parseFromString(valid_one_body_density_matrices_input_sections[test_case]);
+    if (!okay)
+      throw std::runtime_error("cannot parse OneBodyDensitMatricesInput section");
+    xmlNodePtr node = doc.getRoot();
+    OneBodyDensityMatricesInput obdmi(node);
+
+    OneBodyDensityMatrices obDenMat(std::move(obdmi), pset_target.getLattice(), species_set, spo_map, pset_target);
+
+    OneBodyDensityMatricesTests<QMCTraits::FullPrecRealType> obdmt;
+    //Get control over which rng is used.
+    //we don't want FakeRandom.
+    StdRandom<OneBodyDensityMatrices::FullPrecRealType> rng;
+    obdmt.testGenerateSamplesForSpinor(test_case, obDenMat, pset_target, rng);
+  };
+
+  //Spin sampling only added for density sampling
+  samplingCaseRunner(valid_obdm_input);
+}
+#endif
+
 TEST_CASE("OneBodyDensityMatrices::spawnCrowdClone()", "[estimators]")
 {
   using namespace testing;
@@ -337,8 +387,7 @@ TEST_CASE("OneBodyDensityMatrices::spawnCrowdClone()", "[estimators]")
   using MCPWalker = OperatorEstBase::MCPWalker;
 
   ProjectData test_project("test", ProjectData::DriverVersion::BATCH);
-  Communicate* comm;
-  comm = OHMMS::Controller;
+  Communicate* comm = OHMMS::Controller;
 
   auto particle_pool = MinimalParticlePool::make_diamondC_1x1x1(comm);
   auto wavefunction_pool =
@@ -368,8 +417,7 @@ TEST_CASE("OneBodyDensityMatrices::accumulate", "[estimators]")
   using MCPWalker = OperatorEstBase::MCPWalker;
 
   ProjectData test_project("test", ProjectData::DriverVersion::BATCH);
-  Communicate* comm;
-  comm = OHMMS::Controller;
+  Communicate* comm = OHMMS::Controller;
 
   Libxml2Document doc;
   bool okay = doc.parseFromString(valid_one_body_density_matrices_input_sections[valid_obdm_input]);
@@ -460,8 +508,7 @@ TEST_CASE("OneBodyDensityMatrices::evaluateMatrix", "[estimators]")
   using namespace onebodydensitymatrices;
 
   ProjectData test_project("test", ProjectData::DriverVersion::BATCH);
-  Communicate* comm;
-  comm = OHMMS::Controller;
+  Communicate* comm = OHMMS::Controller;
 
   for (auto valid_integrator : std::vector<int>{valid_obdm_input, valid_obdm_input_scale, valid_obdm_input_grid})
   {
@@ -517,8 +564,7 @@ TEST_CASE("OneBodyDensityMatrices::registerAndWrite", "[estimators]")
   using namespace onebodydensitymatrices;
 
   ProjectData test_project("test", ProjectData::DriverVersion::BATCH);
-  Communicate* comm;
-  comm = OHMMS::Controller;
+  Communicate* comm = OHMMS::Controller;
 
   Libxml2Document doc;
   bool okay = doc.parseFromString(valid_one_body_density_matrices_input_sections[valid_obdm_input]);
