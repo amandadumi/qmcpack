@@ -211,7 +211,6 @@ endif()
 #--------------------------------------------------------------------
 # INSTALL_NEXUS install Nexus alongside QMCPACK
 #--------------------------------------------------------------------
-option(INSTALL_NEXUS "Install Nexus alongside QMCPACK" ON)
 if(INSTALL_NEXUS)
   install(
     CODE "EXECUTE_PROCESS(COMMAND ${qmcpack_SOURCE_DIR}/nexus/install --leave_paths \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin)"
@@ -707,6 +706,19 @@ if(HDF5_FOUND)
 else(HDF5_FOUND)
   message(FATAL_ERROR "HDF5 not found. Set HDF5_ROOT")
 endif(HDF5_FOUND)
+
+find_package(lammps)
+if(LAMMPS_FOUND)
+  INCLUDE_DIRECTORIES(${LAMMPS_INCLUDE_DIRS})
+  message(STATUS "Lammps libradry found in top level") 
+  # add_library(LAMMPS SHARED IMPORTED)
+  # set_property(TARGET LAMMPS PROPERTY IMPORTED_LOCATION "${LAMMPS_LIBRARIES}/liblammps.dylib")
+  # include_directories(lammps INTERFACE ${LAMMPS_INCLUDE_DIR})
+  # # TARGET_INCLUDE_DIRECTORIES(lammps PUBLIC "$LAMMPS_INCLUDE_DIRS")
+  # set (CMAKE_SHARED_LINKER_FLAGS " -L${HOME}/software/lammps/build main.o -llammps ")
+else()
+  message(STATUS "Lammps library not found") 
+endif()
 
 #-------------------------------------------------------------------
 #  set up libboost library, header only

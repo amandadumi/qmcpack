@@ -18,6 +18,7 @@
 #include "QMCWaveFunctions/Jastrow/kSpaceJastrowBuilder.h"
 #if OHMMS_DIM == 3
 #include "QMCWaveFunctions/Jastrow/eeI_JastrowBuilder.h"
+#include "QMCWaveFunctions/Jastrow/SNAPJastrowBuilder.h"
 #include "QMCWaveFunctions/Jastrow/CountingJastrowBuilder.h"
 #endif
 #include "QMCWaveFunctions/Jastrow/RadialJastrowBuilder.h"
@@ -77,6 +78,8 @@ std::unique_ptr<WaveFunctionComponent> JastrowBuilder::buildComponent(xmlNodePtr
     return buildkSpace(cur);
   else if (typeOpt.find("Counting") < typeOpt.size())
     return buildCounting(cur);
+  else if (typeOpt.find("snap") < typeOpt.size())
+    return buildSNAP(cur);
   else
   {
     APP_ABORT("  JastrowBuilder::buildComponent unknown type!\n");
@@ -94,6 +97,14 @@ std::unique_ptr<WaveFunctionComponent> JastrowBuilder::buildCounting(xmlNodePtr 
   else
     cjb = std::make_unique<CountingJastrowBuilder>(myComm, targetPtcl);
   return cjb->buildComponent(cur);
+}
+std::unique_ptr<WaveFunctionComponent> JastrowBuilder::buildSNAP(xmlNodePtr cur)
+{
+  ReportEngine PRE(ClassName, "addSNAP(xmlNodePtr)");
+  std::unique_ptr<SNAPJastrowBuilder> sjb;
+  auto pa_it(ptclPool.find(sourceOpt));
+  sjb = std::make_unique<SNAPJastrowBuilder>(myComm, targetPtcl, *pa_it->second);
+  return sjb->buildComponent(cur);
 }
 
 std::unique_ptr<WaveFunctionComponent> JastrowBuilder::buildkSpace(xmlNodePtr cur)
