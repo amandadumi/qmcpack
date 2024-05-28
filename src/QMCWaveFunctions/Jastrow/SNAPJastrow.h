@@ -4,6 +4,7 @@
 #include "ParticleBase/ParticleAttribOps.h"
 #include "Particle/DistanceTable.h"
 #include "Configuration.h"
+#include <ResourceHandle.h>
 #include "Message/MPIObjectBase.h"
 //lammps related headers needed.
 #include "lammps.h"
@@ -20,6 +21,9 @@
 
 namespace qmcplusplus
 {
+
+template<typename T>
+struct SNAMultiWalkerMem;
 class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
 {
 public:
@@ -127,6 +131,13 @@ public:
     void resetParametersExclusive(const opt_variables_type& active) override;
     std::unique_ptr<WaveFunctionComponent> makeClone(ParticleSet& tpq) const override;
     bool put(xmlNodePtr cur);
+    /***********Batched related options******************/
+    void createResource(ResourceCollection& collection) const override;
+    void acquireResource(ResourceCollection& collection,
+                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
+
+    void releaseResource(ResourceCollection& collection,
+                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
     //variables
     const int Nions;
     const int Nelec;
@@ -148,6 +159,7 @@ public:
     LAMMPS_NS::LAMMPS *lmp;
     MPI_Comm comm_lammps;
     
+    ResourceHandle<SNAMultiWalkerMem<RealType>> mw_mem_handle_;
     
     opt_variables_type myVars;
 

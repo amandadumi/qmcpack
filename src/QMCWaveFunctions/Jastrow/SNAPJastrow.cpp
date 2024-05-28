@@ -1,8 +1,34 @@
 #include "SNAPJastrow.h"
+#include "ResourceCollection.h"
 
 
 namespace qmcplusplus
 {
+template<typename T>
+struct SNAMultiWalkerMem : public Resource
+{
+  // fused buffer for fast transfer
+  Vector<char, OffloadPinnedAllocator<char>> transfer_buffer;
+  // multi walker result
+  Vector<T, OffloadPinnedAllocator<T>> mw_vals;
+  // multi walker -1
+  Vector<int, OffloadPinnedAllocator<int>> mw_minus_one;
+
+  void resize_minus_one(size_t size)
+  {
+    if (mw_minus_one.size() < size)
+    {
+      mw_minus_one.resize(size, -1);
+      mw_minus_one.updateTo();
+    }
+  }
+
+  SNAMultiWalkerMem() : Resource("SNAMultiWalkerMem") {}
+
+  SNAMultiWalkerMem(const SNAMultiWalkerMem&) : SNAMultiWalkerMem() {}
+
+  std::unique_ptr<Resource> makeClone() const override { return std::make_unique<SNAMultiWalkerMem>(*this); }
+};
 
 SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els,const std::string input_snap_type, int input_twojmax, double input_rcut) 
   : WaveFunctionComponent(obj_name),
@@ -692,6 +718,25 @@ for (int i = 0; i<ncoeff; i++){
 }
 }
 */
+
+void SNAPJastrow::createResource(ResourceCollection& collection) const
+{
+  collection.addResource(std::make_unique<SNAMultiWalkerMem<RealType>>());
+}
+
+void SNAPJastrow::acquireResource(ResourceCollection& collection,
+                                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const
+{
+  auto& wfc_leader          = wfc_list.getCastedLeader<SNAPJastrow>();
+  wfc_leader.mw_mem_handle_ = collection.lendResource<SNAMultiWalkerMem<RealType>>();
+}
+
+void SNAPJastrow::releaseResource(ResourceCollection& collection,
+                                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const
+{
+  auto& wfc_leader = wfc_list.getCastedLeader<SNAPJastrow>();
+  collection.takebackResource(wfc_leader.mw_mem_handle_);
+}
 
 
 }
