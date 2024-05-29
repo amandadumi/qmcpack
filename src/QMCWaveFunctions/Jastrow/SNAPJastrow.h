@@ -64,7 +64,7 @@ public:
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
     void acceptMove(ParticleSet& P, int iat, bool safe_to_delay = false) override; 
 
-    inline void restore(int iat) override {}
+    inline void restore(int iat) override {app_debug() << "in restore function" << std::endl;}
     /** From exsisting lammps object, get bispectrum components.
     | * 
     | */
@@ -111,7 +111,7 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, const std::vector<std::vector<double>> new_coeff, double& new_u);
     void calculate_ddc_gradlap_lammps(ParticleSet& P,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
@@ -132,12 +132,14 @@ public:
     std::unique_ptr<WaveFunctionComponent> makeClone(ParticleSet& tpq) const override;
     bool put(xmlNodePtr cur);
     /***********Batched related options******************/
+    /*
     void createResource(ResourceCollection& collection) const override;
     void acquireResource(ResourceCollection& collection,
                        const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
 
     void releaseResource(ResourceCollection& collection,
                        const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
+                       */
     //variables
     const int Nions;
     const int Nelec;
