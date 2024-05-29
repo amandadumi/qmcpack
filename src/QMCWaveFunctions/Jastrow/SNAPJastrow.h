@@ -116,7 +116,7 @@ public:
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
-    double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
+    double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, const std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
     
     
     /****** NLPP-related functions ******/
@@ -132,14 +132,12 @@ public:
     std::unique_ptr<WaveFunctionComponent> makeClone(ParticleSet& tpq) const override;
     bool put(xmlNodePtr cur);
     /***********Batched related options******************/
-    /*
     void createResource(ResourceCollection& collection) const override;
     void acquireResource(ResourceCollection& collection,
                        const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
 
     void releaseResource(ResourceCollection& collection,
                        const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
-                       */
     //variables
     const int Nions;
     const int Nelec;
@@ -160,9 +158,7 @@ public:
     //lammps instance
     LAMMPS_NS::LAMMPS *lmp;
     MPI_Comm comm_lammps;
-    
     ResourceHandle<SNAMultiWalkerMem<RealType>> mw_mem_handle_;
-    
     opt_variables_type myVars;
 
   struct SNAPJastrowTimers

@@ -4,6 +4,7 @@
 
 namespace qmcplusplus
 {
+
 template<typename T>
 struct SNAMultiWalkerMem : public Resource
 {
@@ -192,7 +193,7 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       }
   }
 
-double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs, bool bispectrum_only){
+double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, const std::vector<std::vector<double>> coeffs, bool bispectrum_only){
   int row = (iat*3)+dim + 1;
   double G_finite_diff_forward;
   double G_finite_diff_back;
@@ -240,19 +241,19 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         grad_u[iel] = 0;
         lap_u[iel] = 0;
         for (int n=0; n< lmp->atom->ntypes; n++){
-          for (int dim = 0; dim < OHMMS_DIM; dim++){
-            int row = (iel*3)+dim + 1;
-            for (int k =1; k < ncoeff; k ++){
+          for (int k =1; k < ncoeff; k ++){
+            app_debug() << "snap beta  at " << n << " " << k << " is " << snap_beta[n][k] << std::endl;
+            for (int dim = 0; dim < OHMMS_DIM; dim++){
+              int row = (iel*3)+dim + 1;
               int col = (n*(ncoeff-1))+k-1;
               grad_val = sna_global->array[row][col];
-              app_debug() << "grad val is " << grad_val << std::endl;
-              app_debug() << "snap beta is " << snap_beta[n][k] << std::endl;
+              //app_debug() << "grad val is " << grad_val << std::endl;
               grad_u[iel][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
               lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, false); 
             }
           }
         }
-        app_debug() << "computeGL Gradient for snap is " << grad_u[iel] << std::endl;
+        app_debug() << "computeGL Gradient for snap is"  << grad_u[iel] << std::endl;
         app_debug() << "computeGL laplacian for snap is " << lap_u[iel] << std::endl;
       }
     }
@@ -458,7 +459,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
   without having to internally change the lammps object.
   */
-  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, const  std::vector<std::vector<double>> coeff, double& new_u){
+  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, const std::vector<std::vector<double>> coeff, double& new_u){
     ScopedTimer local_timer(timers_.eval_esnap_timer);
     double esnap_all=0;
     double esnap_elec=0;
@@ -664,7 +665,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
      return ratio;
   }
 
-  void SNAPJastrow::extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs){opt_obj_refs.push_back(*this);}
+void SNAPJastrow::extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs){opt_obj_refs.push_back(*this);}
 
 void SNAPJastrow::checkInVariablesExclusive(opt_variables_type& active){
   myVars.setIndexDefault(); // I don't actually know what this is doing?
@@ -673,37 +674,36 @@ void SNAPJastrow::checkInVariablesExclusive(opt_variables_type& active){
 
 void SNAPJastrow::checkOutVariables(const opt_variables_type& active ){
     myVars.getIndex(active);
-    /*
+   /* 
     for (int i=0; i < myVars.size(); i++){
       int loc = myVars.where(i);
       if (loc >=0){
-       myVars[i] = active[loc];
+        int ntype = int(i/ncoeff);
+        int coeff = i%ncoeff;
+        snap_beta[ntype][coeff] = myVars[i] = active[loc];
+        app_debug() << "checkoutvariables snap beta " << ntype << " " <<coeff <<" is " << snap_beta[ntype][coeff] <<std::endl;
       }
-      int ntype = int(i/ncoeff);
-      int coeff = i%ncoeff;
-      snap_beta[ntype][coeff] = myVars[(ntype*ncoeff)+coeff];
-     app_debug() << "checkoutvariables snap beta is " << snap_beta[ntype][coeff] <<std::endl;
     }
-    */
+   */
   }
 
 void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
   for (int i=0; i < myVars.size(); i++){
     int loc = myVars.where(i);
     if (loc >=0){
-     myVars[i] = active[loc];
-    }
      int ntype = int(i/ncoeff);
      int coeff = i%ncoeff; 
-     snap_beta[ntype][coeff] = myVars[i];
+     snap_beta[ntype][coeff] = myVars[i] = active[loc];
      app_debug() << "resetParametersExclusive snap beta is " << snap_beta[ntype][coeff] <<std::endl;
     }
+    }
   }
-  
 
+ 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrow::makeClone(ParticleSet& tpq) const
 {
   auto snap_copy = std::make_unique<SNAPJastrow>(std::string("snap"), Ions, tpq, std::string("linear"), twojmax, rcut);
+  snap_copy->snap_beta = snap_beta;
   return snap_copy;
 }
 
@@ -731,8 +731,6 @@ for (int i = 0; i<ncoeff; i++){
 }
 */
 
-/*
-
 void SNAPJastrow::createResource(ResourceCollection& collection) const
 {
   collection.addResource(std::make_unique<SNAMultiWalkerMem<RealType>>());
@@ -752,6 +750,5 @@ void SNAPJastrow::releaseResource(ResourceCollection& collection,
   collection.takebackResource(wfc_leader.mw_mem_handle_);
 }
 
-*/
 }
 
