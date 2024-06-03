@@ -237,6 +237,7 @@ void EstimatorManagerNew::startDriverRun()
     for (auto& uope : operator_ests_)
       uope->registerOperatorEstimator(*h_file);
   }
+  app_debug() << "EstimatorManagerNew::startDriverRun end of function" <<std::endl;
 }
 
 void EstimatorManagerNew::stopDriverRun() { h_file.reset(); }

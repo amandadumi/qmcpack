@@ -64,7 +64,7 @@ public:
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
     void acceptMove(ParticleSet& P, int iat, bool safe_to_delay = false) override; 
 
-    inline void restore(int iat) override {app_debug() << "in restore function" << std::endl;}
+    inline void restore(int iat) override {}
     /** From exsisting lammps object, get bispectrum components.
     | * 
     | */

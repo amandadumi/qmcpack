@@ -264,6 +264,7 @@ void QMCFixedSampleLinearOptimizeBatched::engine_start(cqmc::engine::LMYEngine<V
 
 void QMCFixedSampleLinearOptimizeBatched::finish()
 {
+  app_debug() << "in finish function" <<std::endl;
   if (optTarget->reportH5)
     optTarget->reportParametersH5();
   optTarget->reportParameters();
@@ -1794,7 +1795,7 @@ bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration()
 
   // generate samples and compute weights, local energies, and derivative vectors
   start();
-
+  app_debug() << "after start function in SR" << std::endl;
   // get number of optimizable parameters
   const int numParams = optTarget->getNumParams();
 
@@ -1805,9 +1806,10 @@ bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration()
   std::vector<RealType> currentParameters(numParams, 0.0);
 
   // initialize the initial and current parameter vectors
-  for (int i = 0; i < numParams; i++)
+  for (int i = 0; i < numParams; i++){
     currentParameters.at(i) = std::real(optTarget->Params(i));
-
+    app_debug() << "curr param "  << i << currentParameters.at(i) <<std::endl;
+  }
   // prepare vectors to hold the parameter update directions for each shift
   std::vector<RealType> parameterDirections;
   parameterDirections.assign(N, 0.0);
@@ -1901,8 +1903,11 @@ bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration()
       for (int i = 0; i < numParams; i++)
         parameterDirections[i + 1] = xkp1[i];
       // compute the scaling constant to apply to the update
+      app_debug() << " before nonlinear_rescale" << objFuncWrapper_.Lambda <<std::endl;
       nonlinear_rescale      = getNonLinearRescale(parameterDirections, Apk, *optTarget);
+      app_debug() << "nonlinear_rescale" << nonlinear_rescale <<std::endl;
       objFuncWrapper_.Lambda = nonlinear_rescale;
+      app_debug() << " aftter nonlinear_rescale" << objFuncWrapper_.Lambda <<std::endl;
     }
   }
 
@@ -1951,9 +1956,11 @@ bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration()
   else
   {
     app_log() << "Stochastic Reconfiguration using lambda = " << sr_tau * objFuncWrapper_.Lambda << std::endl;
-    for (int i = 0; i < numParams; i++)
+    for (int i = 0; i < numParams; i++){
       optTarget->Params(i) = currentParameters.at(i) + objFuncWrapper_.Lambda * parameterDirections.at(i + 1);
-  }
+      app_debug() << "AH " << currentParameters.at(i) << " " <<  objFuncWrapper_.Lambda << " " << parameterDirections.at(i+1) <<std::endl;
+    }
+    }
 
   if (bestShift_s > 1.0e-2)
     bestShift_s = bestShift_s / shift_s_base;
@@ -1971,7 +1978,7 @@ bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration()
 
   // perform some finishing touches for this linear method iteration
   finish();
-
+  app_debug() << "after finish function" <<std::endl;
   // return whether the cost function's report counter is positive
   return (optTarget->getReportCounter() > 0);
 }

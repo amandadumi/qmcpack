@@ -242,7 +242,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         lap_u[iel] = 0;
         for (int n=0; n< lmp->atom->ntypes; n++){
           for (int k =1; k < ncoeff; k ++){
-            app_debug() << "snap beta  at " << n << " " << k << " is " << snap_beta[n][k] << std::endl;
+            //app_debug() << "snap beta  at " << n << " " << k << " is " << snap_beta[n][k] << std::endl;
             for (int dim = 0; dim < OHMMS_DIM; dim++){
               int row = (iel*3)+dim + 1;
               int col = (n*(ncoeff-1))+k-1;
@@ -253,8 +253,8 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
             }
           }
         }
-        app_debug() << "computeGL Gradient for snap is"  << grad_u[iel] << std::endl;
-        app_debug() << "computeGL laplacian for snap is " << lap_u[iel] << std::endl;
+        //app_debug() << "computeGL Gradient for snap is"  << grad_u[iel] << std::endl;
+        //app_debug() << "computeGL laplacian for snap is " << lap_u[iel] << std::endl;
       }
     }
     return;
@@ -275,9 +275,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     computeGL(P);
     for (int iel = 0; iel < Nelec; iel++){
       G[iel] += grad_u[iel];
-      app_debug() << "Gradient for snap is " << grad_u[iel] << std::endl;
       L[iel] += lap_u[iel];
-      app_debug() << "laplacian for snap is " << lap_u[iel] << std::endl;
     }
     log_value_ = static_cast<SNAPJastrow::LogValue>(esnap);
             

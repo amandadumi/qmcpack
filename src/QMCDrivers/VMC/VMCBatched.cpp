@@ -310,8 +310,8 @@ bool VMCBatched::run()
   LoopTimer<> vmc_loop;
   RunTimeControl<> runtimeControl(run_time_manager, project_data_.getMaxCPUSeconds(), project_data_.getTitle(),
                                   myComm->rank() == 0);
-
   { // walker initialization
+    app_debug()<< "right before initiallogeval" <<std::endl;
     ScopedTimer local_timer(timers_.init_walkers_timer);
     ParallelExecutor<> section_start_task;
     section_start_task(crowds_.size(), initialLogEvaluation, std::ref(crowds_), std::ref(step_contexts_));
