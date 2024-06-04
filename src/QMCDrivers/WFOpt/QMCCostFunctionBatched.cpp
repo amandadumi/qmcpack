@@ -1067,9 +1067,10 @@ void QMCCostFunctionBatched::calcOvlParmVec(const std::vector<Return_rt>& parm,
     const Return_rt* restrict saved = RecordsOnNode_[iw];
     Return_rt weight                = saved[REWEIGHT] * wgtinv;
     const Return_t* Dsaved          = DerivRecords_[iw];
-    for (int pm = 0; pm < getNumParams(); pm++)
-      app_debug() << QMCCostFunctionBase::calcOvlParmVec  prod for walker << iw << " " << prod[iw] <<std::endl;
+    for (int pm = 0; pm < getNumParams(); pm++){
+      app_debug() << "QMCCostFunctionBase::calcOvlParmVec  prod for walker" << iw << " " << prod[iw] <<std::endl;
       prod[iw] += (Dsaved[pm] - D_avg[pm])  * parm[pm];
+    }
   }
 
 

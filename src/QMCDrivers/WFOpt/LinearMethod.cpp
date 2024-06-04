@@ -366,9 +366,10 @@ LinearMethod::Real LinearMethod::getNonLinearRescale(std::vector<Real>& dP,
   Real D(0.0);
   for (int i = first; i < last; i++)
     D += SdP[i + 1] * dP[i + 1];
+  app_debug() << "in LinearMethod::getNonLinearRescale D = " << D <<std::endl; 
   rescale = (1 - xi) * D / ((1 - xi) + xi * std::sqrt(1 + D));
   rescale = 1.0 / (1.0 - rescale);
-  //     app_log()<<"rescale: "<<rescale<< std::endl;
+  app_debug()<<"LinearMethod::rescale: "<<rescale<< std::endl;
   return rescale;
 }
 
