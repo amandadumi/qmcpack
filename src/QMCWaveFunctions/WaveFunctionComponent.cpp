@@ -34,7 +34,6 @@ void WaveFunctionComponent::mw_evaluateLog(const RefVectorWithLeader<WaveFunctio
                                            const RefVector<ParticleSet::ParticleLaplacian>& L_list) const
 {
   assert(this == &wfc_list.getLeader());
-  app_debug() << "in mw_evaluateLog fall back function for " << my_name_ << std::endl;
   for (int iw = 0; iw < wfc_list.size(); iw++)
     wfc_list[iw].evaluateLog(p_list[iw], G_list[iw], L_list[iw]);
 }
