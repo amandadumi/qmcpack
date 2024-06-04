@@ -1860,10 +1860,17 @@ bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration()
       for (int i = 0; i < numParams; i++)
       {
         rk[i] = -sr_tau * ham[i + 1];
-        dk += rk[i] * rk[i];
+        if (std::abs(rk[i]) > 1e-11){
+          dk += rk[i] * rk[i];
+        }
+        else{
+        dk += 0;
+        }
+        app_debug() << "rk of i = " << i << " " << rk[i] <<std::endl;
       }
       eps            = dk / numParams * thr;
       pk             = rk;
+      app_debug() << "eps: "<< eps <<  std::endl;
       bool converged = false;
       while (!converged)
       {
