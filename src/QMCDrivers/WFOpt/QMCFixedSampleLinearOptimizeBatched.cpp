@@ -1907,11 +1907,14 @@ bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration()
         }
       }
       app_log() << "Solved iterative krylov in " << k << " iterations" << std::endl;
-      for (int i = 0; i < numParams; i++)
+      for (int i = 0; i < numParams; i++){
         parameterDirections[i + 1] = xkp1[i];
+        app_debug() << "QMCFixed..Batched::stochastic reconfigurations parameter direction " <<parameterDirections[i+1]<<std::endl;
+      }
       // compute the scaling constant to apply to the update
       app_debug() << " before nonlinear_rescale" << objFuncWrapper_.Lambda <<std::endl;
-      nonlinear_rescale      = getNonLinearRescale(parameterDirections, Apk, *optTarget);
+      //nonlinear_rescale      = getNonLinearRescale(parameterDirections, Apk, *optTarget);
+      nonlinear_rescale      = 1;
       app_debug() << "nonlinear_rescale" << nonlinear_rescale <<std::endl;
       objFuncWrapper_.Lambda = nonlinear_rescale;
       app_debug() << " aftter nonlinear_rescale" << objFuncWrapper_.Lambda <<std::endl;

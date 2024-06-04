@@ -23,11 +23,9 @@ void TWFdispatcher::flex_evaluateLog(const RefVectorWithLeader<TrialWaveFunction
 {
   assert(wf_list.size() == p_list.size());
   if (use_batch_){
-    app_debug() << "TWFdispatcher::flex_evaluateLog we are here" << std::endl;
     TrialWaveFunction::mw_evaluateLog(wf_list, p_list);
   }
   else {
-    app_debug() << "TWFdispatcher::flex_evaluateLog we are here as expected" << std::endl;
     for (size_t iw = 0; iw < wf_list.size(); iw++)
       wf_list[iw].evaluateLog(p_list[iw]);
   }
