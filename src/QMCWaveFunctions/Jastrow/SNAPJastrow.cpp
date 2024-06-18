@@ -628,6 +628,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   }
 
   SNAPJastrow::PsiValue SNAPJastrow::ratioGrad(ParticleSet& P, int iat, GradType& grad_iat){
+    std::cout<< "we are in snap ratiograd"<<std::endl;
     SNAPJastrow::PsiValue ratio = SNAPJastrow::ratio(P,iat);// update of proposed_lmp and proposed_sna_global happens in this function
     update_lmp_pos(P, lmp, iat, true);
     sna_global->compute_array();
