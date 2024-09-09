@@ -1,8 +1,35 @@
 #include "SNAPJastrow.h"
+#include "ResourceCollection.h"
 
 
 namespace qmcplusplus
 {
+
+template<typename T>
+struct SNAMultiWalkerMem : public Resource
+{
+  // fused buffer for fast transfer
+  Vector<char, OffloadPinnedAllocator<char>> transfer_buffer;
+  // multi walker result
+  Vector<T, OffloadPinnedAllocator<T>> mw_vals;
+  // multi walker -1
+  Vector<int, OffloadPinnedAllocator<int>> mw_minus_one;
+
+  void resize_minus_one(size_t size)
+  {
+    if (mw_minus_one.size() < size)
+    {
+      mw_minus_one.resize(size, -1);
+      mw_minus_one.updateTo();
+    }
+  }
+
+  SNAMultiWalkerMem() : Resource("SNAMultiWalkerMem") {}
+
+  SNAMultiWalkerMem(const SNAMultiWalkerMem&) : SNAMultiWalkerMem() {}
+
+  std::unique_ptr<Resource> makeClone() const override { return std::make_unique<SNAMultiWalkerMem>(*this); }
+};
 
 SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, ParticleSet& els,const std::string input_snap_type, int input_twojmax, double input_rcut) 
   : WaveFunctionComponent(obj_name),
@@ -25,9 +52,9 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
       printf("ERROR: LAMMPS cannot use more procs than available\n");
     MPI_Abort(MPI_COMM_WORLD,1);
   }
-  // snce qmc is treated as emparassingle parallel we can split eachh rank into its won comm so that this lammps instance is treated right here.
+  // since qmc is embarassingly parallel we can split each rank into its won comm so that this lammps instance is treated right here.
   // so me is the current rank and create a specific comm for this, which willl belong to this lammps instance. 
-  // 0 is the key argument sincce we don't really care about ranks here.
+  // 0 is the key argument since we don't really care about ranks here.
     MPI_Comm_split(MPI_COMM_WORLD,me,0,&comm_lammps);
     MPI_Comm_rank(comm_lammps,&me);
   
@@ -60,10 +87,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
 }
 
 SNAPJastrow::~SNAPJastrow(){
-  // MPI_Comm_free(&comm_lammps);
   delete lmp;
-  //delete vp_lmp;
-//  MPI_Comm_free(&comm_lammps);
 
 }
 
@@ -72,7 +96,7 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_log() << "WARNING: number of coeffs less than coeffs/particle_type" <<std::endl; 
     app_log() << "coeffs/particle_type: " << ncoeff << " , coeffss read in: " << id_coeffs.size() << std::endl;
   } 
-
+  app_debug() << "in set coefficients" <<std::endl;
   for (int i=0; i < id_coeffs.size(); i++){
     snap_beta[id][i] = id_coeffs[i];
     myVars[(id*ncoeff) + i] = snap_beta[id][i];
@@ -169,7 +193,7 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
       }
   }
 
-double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs, bool bispectrum_only){
+double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, const std::vector<std::vector<double>> coeffs, bool bispectrum_only){
   int row = (iat*3)+dim + 1;
   double G_finite_diff_forward;
   double G_finite_diff_back;
@@ -217,16 +241,20 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         grad_u[iel] = 0;
         lap_u[iel] = 0;
         for (int n=0; n< lmp->atom->ntypes; n++){
-          for (int dim = 0; dim < OHMMS_DIM; dim++){
-            int row = (iel*3)+dim + 1;
-            for (int k =1; k < ncoeff; k ++){
+          for (int k =1; k < ncoeff; k ++){
+            //app_debug() << "snap beta  at " << n << " " << k << " is " << snap_beta[n][k] << std::endl;
+            for (int dim = 0; dim < OHMMS_DIM; dim++){
+              int row = (iel*3)+dim + 1;
               int col = (n*(ncoeff-1))+k-1;
               grad_val = sna_global->array[row][col];
+              //app_debug() << "grad val is " << grad_val << std::endl;
               grad_u[iel][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
               lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, false); 
             }
           }
         }
+        //app_debug() << "computeGL Gradient for snap is"  << grad_u[iel] << std::endl;
+        //app_debug() << "computeGL laplacian for snap is " << lap_u[iel] << std::endl;
       }
     }
     return;
@@ -376,6 +404,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   }
 
   void SNAPJastrow::evaluate_fd_derivs(ParticleSet& P, int coeff_idx){
+    /*
         ScopedTimer local_timer(timers_.eval_finite_diff_timer);
 
         std::vector<std::vector<double>> fd_coeff(snap_beta);
@@ -391,11 +420,13 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         if (coeff !=0){
           calculate_ddc_gradlap_lammps(P, fd_coeff, bd_coeff, coeff_idx);
         }
+        */
     }
 
 
 
   void SNAPJastrow::calculate_ddc_gradlap_lammps(ParticleSet& P, std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val){
+    /*
     SNAPJastrow::GradDerivVec ddc_grad_forward_val(Nelec);
     SNAPJastrow::GradDerivVec ddc_grad_back_val(Nelec);
     SNAPJastrow::ValueDerivVec ddc_lap_forward_val(Nelec);
@@ -417,6 +448,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     } //end nelec
     lapLogPsi[cur_val] = (ddc_lap_forward_val - ddc_lap_back_val)/(2*coeff_delta);
     gradLogPsi[cur_val] = (ddc_grad_forward_val - ddc_grad_back_val)/(2*coeff_delta);
+    */
   }
     
     
@@ -425,7 +457,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
   without having to internally change the lammps object.
   */
-  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> coeff, double& new_u){
+  void SNAPJastrow::calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, const std::vector<std::vector<double>> coeff, double& new_u){
     ScopedTimer local_timer(timers_.eval_esnap_timer);
     double esnap_all=0;
     double esnap_elec=0;
@@ -565,7 +597,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
     }
     sna_global->compute_array();
     double esnap;
-    calculate_ESNAP(P,sna_global,snap_beta,esnap);
+    calculate_ESNAP(P,sna_global, snap_beta, esnap);
     grad_u[iat] = 0;
     lap_u[iat] = 0;
     double grad_val;
@@ -575,6 +607,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
         for (int k =1; k < ncoeff; k ++){
           int col = (n*(ncoeff-1))+k-1;
           grad_val = sna_global->array[row][col];
+          //app_debug() << "in accpetmove snap beta is" << snap_beta[n][k] <<std::endl;
           grad_u[iat][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
           lap_u[iat] += FD_Lap(P, iat, dim, k, n, snap_beta, false); 
         }
@@ -595,6 +628,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
   }
 
   SNAPJastrow::PsiValue SNAPJastrow::ratioGrad(ParticleSet& P, int iat, GradType& grad_iat){
+    std::cout<< "we are in snap ratiograd"<<std::endl;
     SNAPJastrow::PsiValue ratio = SNAPJastrow::ratio(P,iat);// update of proposed_lmp and proposed_sna_global happens in this function
     update_lmp_pos(P, lmp, iat, true);
     sna_global->compute_array();
@@ -630,42 +664,45 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int
      return ratio;
   }
 
-  void SNAPJastrow::extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs){opt_obj_refs.push_back(*this);}
+void SNAPJastrow::extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs){opt_obj_refs.push_back(*this);}
 
 void SNAPJastrow::checkInVariablesExclusive(opt_variables_type& active){
-  // myVars.setIndexDefault(); // I don't actually know what this is doing?
+  myVars.setIndexDefault(); // I don't actually know what this is doing?
   active.insertFrom(myVars);
 }
 
 void SNAPJastrow::checkOutVariables(const opt_variables_type& active ){
     myVars.getIndex(active);
+   /* 
     for (int i=0; i < myVars.size(); i++){
       int loc = myVars.where(i);
       if (loc >=0){
-       myVars[i] = active[loc];
+        int ntype = int(i/ncoeff);
+        int coeff = i%ncoeff;
+        snap_beta[ntype][coeff] = myVars[i] = active[loc];
+        app_debug() << "checkoutvariables snap beta " << ntype << " " <<coeff <<" is " << snap_beta[ntype][coeff] <<std::endl;
       }
-      int ntype = int(i/ncoeff);
-      int coeff = i%ncoeff;
-      snap_beta[ntype][coeff] = myVars[(ntype*ncoeff)+coeff];
     }
+   */
   }
 
 void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
   for (int i=0; i < myVars.size(); i++){
     int loc = myVars.where(i);
     if (loc >=0){
-     myVars[i] = active[loc];
-    }
      int ntype = int(i/ncoeff);
      int coeff = i%ncoeff; 
-     snap_beta[ntype][coeff] = myVars[i];
+     snap_beta[ntype][coeff] = myVars[i] = active[loc];
+     app_debug() << "resetParametersExclusive snap beta is " << snap_beta[ntype][coeff] <<std::endl;
+    }
     }
   }
-  
 
+ 
 std::unique_ptr<WaveFunctionComponent> SNAPJastrow::makeClone(ParticleSet& tpq) const
 {
   auto snap_copy = std::make_unique<SNAPJastrow>(std::string("snap"), Ions, tpq, std::string("linear"), twojmax, rcut);
+  snap_copy->snap_beta = snap_beta;
   return snap_copy;
 }
 
@@ -692,6 +729,25 @@ for (int i = 0; i<ncoeff; i++){
 }
 }
 */
+
+void SNAPJastrow::createResource(ResourceCollection& collection) const
+{
+  collection.addResource(std::make_unique<SNAMultiWalkerMem<RealType>>());
+}
+
+void SNAPJastrow::acquireResource(ResourceCollection& collection,
+                                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const
+{
+  auto& wfc_leader          = wfc_list.getCastedLeader<SNAPJastrow>();
+  wfc_leader.mw_mem_handle_ = collection.lendResource<SNAMultiWalkerMem<RealType>>();
+}
+
+void SNAPJastrow::releaseResource(ResourceCollection& collection,
+                                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const
+{
+  auto& wfc_leader = wfc_list.getCastedLeader<SNAPJastrow>();
+  collection.takebackResource(wfc_leader.mw_mem_handle_);
+}
 
 
 }

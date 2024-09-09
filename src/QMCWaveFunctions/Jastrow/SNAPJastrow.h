@@ -4,6 +4,7 @@
 #include "ParticleBase/ParticleAttribOps.h"
 #include "Particle/DistanceTable.h"
 #include "Configuration.h"
+#include <ResourceHandle.h>
 #include "Message/MPIObjectBase.h"
 //lammps related headers needed.
 #include "lammps.h"
@@ -20,6 +21,9 @@
 
 namespace qmcplusplus
 {
+
+template<typename T>
+struct SNAMultiWalkerMem;
 class SNAPJastrow : public WaveFunctionComponent, public OptimizableObject
 {
 public:
@@ -107,12 +111,12 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, const std::vector<std::vector<double>> new_coeff, double& new_u);
     void calculate_ddc_gradlap_lammps(ParticleSet& P,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
-    double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
+    double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, const std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
     
     
     /****** NLPP-related functions ******/
@@ -127,6 +131,13 @@ public:
     void resetParametersExclusive(const opt_variables_type& active) override;
     std::unique_ptr<WaveFunctionComponent> makeClone(ParticleSet& tpq) const override;
     bool put(xmlNodePtr cur);
+    /***********Batched related options******************/
+    void createResource(ResourceCollection& collection) const override;
+    void acquireResource(ResourceCollection& collection,
+                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
+
+    void releaseResource(ResourceCollection& collection,
+                       const RefVectorWithLeader<WaveFunctionComponent>& wfc_list) const override;
     //variables
     const int Nions;
     const int Nelec;
@@ -134,8 +145,8 @@ public:
     int ncoeff;
     int twojmax=2;
     double rcut=7;
-    double dist_delta = 0.00001;
-    double coeff_delta = 0.00001;
+    double dist_delta = 0.000001;
+    double coeff_delta = 0.000001;
     const int myTableID;
     const ParticleSet& Ions;
     std::string snap_type;
@@ -147,8 +158,7 @@ public:
     //lammps instance
     LAMMPS_NS::LAMMPS *lmp;
     MPI_Comm comm_lammps;
-    
-    
+    ResourceHandle<SNAMultiWalkerMem<RealType>> mw_mem_handle_;
     opt_variables_type myVars;
 
   struct SNAPJastrowTimers
