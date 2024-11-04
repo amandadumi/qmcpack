@@ -118,7 +118,6 @@ public:
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, const std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
     
-    
     /****** NLPP-related functions ******/
     void evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios) override;
     void evaluateDerivRatios(const VirtualParticleSet& VP,const opt_variables_type& optvars, std::vector<ValueType>& ratios, Matrix<ValueType>& dratios) override;
@@ -145,7 +144,7 @@ public:
     int ncoeff;
     int twojmax=2;
     double rcut=7;
-    double dist_delta = 0.000001;
+    double dist_delta = 0.0000001;
     double coeff_delta = 0.000001;
     const int myTableID;
     const ParticleSet& Ions;
