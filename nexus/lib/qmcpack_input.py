@@ -1838,39 +1838,46 @@ class sposet(QIxml):
     identifier = 'name'
 #end class sposet
 
+class rotated_sposet(QIxml):
+    tag = 'rotated_sposet'
+    attributes= ['name','method']
+    elements= ['sposet']
+    identifier='name'
+#end class rotated_sposet
+
 class bspline_builder(QIxml):
-    tag         = 'sposet_builder'
+    tag         = 'sposet_collection'
     identifier  = 'type'
     attributes  = ['type','href','sort','tilematrix','twistnum','twist','source',
                    'version','meshfactor','gpu','transform','precision','truncate',
                    'lr_dim_cutoff','shell','randomize','key','buffer','rmax_core','dilation','tag','hybridrep','gpusharing']
-    elements    = ['sposet']
+    elements    = ['sposet', 'rotated_sposet']
     write_types = obj(gpu=yesno,sort=onezero,transform=yesno,truncate=yesno,randomize=truefalse,hybridrep=yesno,gpusharing=yesno)
 #end class bspline_builder
 
 class heg_builder(QIxml):
-    tag        = 'sposet_builder'
+    tag        = 'sposet_collection'
     identifier = 'type'
     attributes = ['type','twist']
-    elements   = ['sposet']
+    elements   = ['sposet','rotated_sposet']
 #end class heg_builder
 
 class molecular_orbital_builder(QIxml):
-    tag = 'sposet_builder'
+    tag = 'sposet_collection'
     identifier = 'type'
-    attributes = ['name','type','transform','source','cuspcorrection']
-    elements   = ['basisset','sposet'] 
+    attributes = ['name','type','transform','source','cuspcorrection','href']
+    elements   = ['basisset','sposet','rotated_sposet'] 
 #end class molecular_orbital_builder
 
 class composite_builder(QIxml):
-    tag = 'sposet_builder'
+    tag = 'sposet_collection'
     identifier = 'type'
     attributes = ['type']
     elements   = ['sposet']
 #end class composite_builder
 
-sposet_builder = QIxmlFactory(
-    name    = 'sposet_builder',
+sposet_collection = QIxmlFactory(
+    name    = 'sposet_collection',
     types   = dict(bspline=bspline_builder,
                    einspline=bspline_builder,
                    heg=heg_builder,
@@ -1886,7 +1893,7 @@ class wavefunction(QIxml):
     attributes = ['name','target','id','ref']+['info','type']
     #            afqmc
     parameters = ['filetype','filename','cutoff']
-    elements   = ['sposet_builder','determinantset','jastrow','override_variational_parameters']
+    elements   = ['sposet_builder','sposet_collection','determinantset','jastrow','override_variational_parameters']
     identifier = 'name','id'
 #end class wavefunction
 
@@ -1946,7 +1953,7 @@ class slaterdeterminant(QIxml):
 
 class determinant(QIxml):
     attributes = ['id','group','sposet','size','ref','spin','href','orbitals','spindataset','name','cuspinfo','debug']
-    elements   = ['occupation','coefficient']
+    elements   = ['occupation','coefficient'] #TODO: should i leave this for backwards compatability?
     identifier = 'id'
     write_types = obj(debug=yesno)
 #end class determinant
@@ -2710,7 +2717,7 @@ classes = [   #standard classes
     atomicbasisset,basisgroup,init,var,traces,scalar_traces,particle_traces,array_traces,
     reference_points,nearestneighbors,neighbor_trace,dm1b,
     coefficient,radfunc,spindensity,structurefactor,
-    sposet,bspline_builder,composite_builder,heg_builder,include,
+    sposet,rotated_sposet,bspline_builder,composite_builder,heg_builder,include,
     multideterminant,detlist,ci,mcwalkerset,csf,det,
     optimize,cg_optimizer,flex_optimizer,optimize_qmc,wftest,kspace_jastrow,
     header,local,force,forwardwalking,observable,record,rmc,pressure,dmccorrection,
@@ -2727,7 +2734,8 @@ types = dict( #simple types and factories
     #user           = param,
     pairpot        = pairpot,
     estimator      = estimator,
-    sposet_builder = sposet_builder,
+    sposet_builder = sposet_collection, #TODO: do i need this line?
+    sposet_collection = sposet_collection,
     jastrow        = jastrow,
     qmc            = qmc,
     optimizer      = optimizer,
@@ -2750,8 +2758,9 @@ plurals = obj(
     calculations    = 'qmc',
     vars            = 'var',
     neighbor_traces = 'neighbor_trace',
-    sposet_builders = 'sposet_builder',
+    sposet_collections = 'sposet_collections',
     sposets         = 'sposet',
+    rotated_sposets = 'rotated_sposet'
     radfuncs        = 'radfunc',
     #qmcsystems      = 'qmcsystem',  # not a good idea
     atomicbasissets = 'atomicbasisset',
