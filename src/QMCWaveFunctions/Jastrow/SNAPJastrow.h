@@ -151,7 +151,7 @@ public:
     std::string snap_type;
     std::vector<std::vector<double>> snap_beta;
     double hartree_over_ev = 1.000000589/27.211399998784;
-    double bohr_over_ang = 1.88973; 
+    double bohr_over_ang = 1/0.529177; //1.88973; 
     // global arrays
     LAMMPS_NS::ComputeSnap* sna_global;
     //lammps instance

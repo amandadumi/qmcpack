@@ -22,6 +22,7 @@ namespace qmcplusplus
 
 inline bool putContent2(std::vector<double>& a, xmlNodePtr cur)
 {
+  std::cout << "SNAPJastrowBuilder::putContent2 -> entered the function" << std::endl;
   std::istringstream stream(XMLNodeString{cur});
   double temp;
   a.clear();
@@ -75,6 +76,7 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
             cAttrib.add(id_opt, "id");
             cAttrib.add(type, "type");
             cAttrib.put(xmlCoefs);
+
             if (type != "Array")
             {
               app_error() << "Unknown coefficients type "
@@ -90,20 +92,24 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
             //vector<T> can be read by this
             putContent2(snap_coeffs, xmlCoefs);
             app_log() << "  Read " << snap_coeffs.size() << " coefficients for type " << type << std::endl;
+            std::cout << "SNAPJastrowBuilder::putkids -> parsed coeffs" << std::endl;
 
             // ## hard coded mapping for He 2 elec
 
-            app_log() <<"species name is " << eSet.speciesName[0] << std::endl;
+            std::cout <<"species name is " << eSet.speciesName[0] << std::endl;
             
             int snap_beta_idx = 0;
+            std::cout << jtarget.getName() <<std::endl;
             if (jtarget.getName() == pset_id){
              for (int es=0; es < eSet.speciesName.size(); es++){
                 if( spec_id == eSet.speciesName[es]){
                     app_log() <<"species name is " << eSet.speciesName[es] << std::endl;
+                    std::cout <<"species name is " << eSet.speciesName[es] << std::endl;
                     snap_beta_idx += es;
                 }
              }
              SJ.set_coefficients(snap_coeffs, snap_beta_idx);
+            std::cout<< "SNAPJastrowBuilder::pukids -> after set coefficients" <<std::endl;
             }
             else if (jsource->getName() == pset_id){
              for (int is=0; is < iSet.speciesName.size(); is++){
@@ -143,6 +149,7 @@ tAttrib.put(cur);
 std::string input_name(getXMLAttributeValue(cur, "name"));
 std::string jname = input_name.empty() ? "snapjastrow" : input_name;
 if (ftype == "snap"){
+    app_log() << "have created a jastrow object without any coefficients yet" <<std::endl;
     auto SJ  = std::make_unique<SNAPJastrow>(ftype, *jsource, jtarget, snap_type,twojmax,rcut);
 
     putkids(kids, *SJ);

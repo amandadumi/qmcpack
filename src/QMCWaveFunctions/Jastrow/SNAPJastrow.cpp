@@ -270,8 +270,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
             } // end dim loop
           }// end k loop
         } //end n loop
-        //app_debug() << "computeGL Gradient for snap is"  << grad_u[iel] << std::endl;
-        //app_debug() << "computeGL laplacian for snap is " << lap_u[iel] << std::endl;
       }// end el loop
     return;
    }
@@ -283,6 +281,10 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
                                     ParticleSet::ParticleLaplacian& L){
     ScopedTimer local_timer(timers_.eval_log_timer);
     double esnap;
+    for (int i = 0; i < Nelec; i++){
+      update_lmp_pos(P,lmp,i,false);
+    }
+    sna_global->compute_array();
     calculate_ESNAP(P, sna_global, snap_beta, esnap);
     log_value_ = static_cast<SNAPJastrow::LogValue>(esnap);
     computeGL(P);
