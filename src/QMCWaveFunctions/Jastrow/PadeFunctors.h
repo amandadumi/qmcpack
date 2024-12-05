@@ -22,6 +22,8 @@
 #define QMCPLUSPLUS_PADEFUNCTORS_H
 #include "OptimizableFunctorBase.h"
 #include "OhmmsData/AttributeSet.h"
+#include <autodiff/reverse/var.hpp>
+#include <autodiff/reverse/var/eigen.hpp>
 #include <cmath>
 // #include <vector>
 #include "OhmmsPETE/TinyVector.h"
@@ -30,6 +32,7 @@
 
 namespace qmcplusplus
 {
+using namespace autodiff;
 /** Implements a Pade Function \f$u[r]=A*r/(1+B*r)\f$
  *
  * Similar to PadeJastrow with a scale.
@@ -89,12 +92,36 @@ struct PadeFunctor : public OptimizableFunctorBase
   }
 
   inline real_type evaluate(real_type r) const { return A * r / (1.0 + B * r) - AoverB; }
+  
+  inline var evaluate_autodiff(var r) const { 
+    std::cout<< "we are using the autodiff evaluate" << std::endl;
+    var r_ad = r;
+    return A * r_ad / (1.0 + B * r_ad) - AoverB; 
+    }
+
+inline real_type evaluate_dudr_autodiff(real_type r) const {
+  std::cout << "we are finding the derivative with autdodiff" <<std::endl;
+  var r_ad = r;
+  var u = evaluate_autodiff(r_ad);
+  auto [dudr_ad] = derivatives(u,wrt(r_ad));
+  real_type dudr = val(dudr_ad); 
+  return dudr;
+
+}
 
   inline real_type evaluate(real_type r, real_type& dudr, real_type& d2udr2) const
   {
+    std::cout << "we are here!!!" <<std::endl;
     real_type u = 1.0 / (1.0 + B * r);
-    dudr        = A * u * u;
-    d2udr2      = -B2 * dudr * u;
+    #ifdef QMC_AD
+      dudr        = evaluate_dudr_autodiff(r);
+      d2udr2      = -B2 * dudr * u;
+      std::cout<< "we are in qmcad section" << std::endl;
+    #else
+      //dudr        = A * u * u;
+      dudr        = evaluate_dudr_autodiff(r);
+      d2udr2      = -B2 * dudr * u;
+    #endif
     return A * u * r - AoverB;
   }
 
@@ -363,6 +390,20 @@ struct Pade2ndOrderFunctor : public OptimizableFunctorBase
     return u * v;
   }
 
+  inline var evaluate_autodiff(real_type r){
+    var r_ad = r;
+    var u = 1.0 / (1.0 + B * r_ad);
+    var v = A * r_ad + C * r_ad * r_ad;
+    return u * v;
+  }
+
+  inline real_type evaluate_dudr_autodiff(real_type r){
+    var r_ad;
+    var u =evaluate_autodiff(r_ad);
+    auto [dudr_ad] = derivatives(u,wrt(r_ad));
+    return dudr_ad;
+  }
+
   /** evaluate the value at r
    * @param r the distance
    @param dudr return value  \f$ du/dr = a/(1+br)^2 \f$
@@ -374,18 +415,30 @@ struct Pade2ndOrderFunctor : public OptimizableFunctorBase
     real_type u = 1.0 / (1.0 + B * r);
     real_type v = A * r + C * r * r;
     real_type w = A + C2 * r;
-    dudr        = u * (w - B * u * v);
-    d2udr2      = 2.0 * u * u * u * (C - B * A);
+    #ifdef QMC_AD
+      std::cout << "in qmcad" << std::endl;
+      dudr = evaluate_dudr_autodiff(r,A);
+    #else
+      dudr        = u * (w - B * u * v);
+      d2udr2      = 2.0 * u * u * u * (C - B * A);
+    #endif
     return u * v;
   }
 
+
   inline real_type evaluate(real_type r, real_type& dudr, real_type& d2udr2, real_type& d3udr3) const
   {
+    std::cout << "we are in this evaluate function" <<std::endl;
     real_type u = 1.0 / (1.0 + B * r);
     real_type v = A * r + C * r * r;
     real_type w = A + C2 * r;
-    dudr        = u * (w - B * u * v);
-    d2udr2      = 2.0 * u * u * u * (C - B * A);
+    #ifdef QMC_AD
+      std::cout << "in qmcad" << std::endl;
+      dudr = evaluate_dudr_autodiff(r,A);
+    #else
+      dudr        = u * (w - B * u * v);
+      d2udr2      = 2.0 * u * u * u * (C - B * A);
+    #endif
     std::cerr << "Third derivative not imlemented for Pade functor.\n";
     return u * v;
   }
@@ -674,8 +727,22 @@ struct PadeTwo2ndOrderFunctor : public OptimizableFunctorBase
     return (A * r + br * r) / (1.0 + C * C * r + dr * dr);
   }
 
+  var  evaluate_autodiff(real_type r){
+    var r_ad = r;
+    return (A * r_ad + B*r_ad * r_ad) / (1.0 + C * C * r_ad + D*r_ad * D*r_ad); 
+  }
+
+
+  inline real_type evaluate_dudr_autodiff(real_type r){
+    var r_ad = r;
+    var u = evaluate_autodiff(r_ad, A);
+    auto [dudr_ad] = derivatives(u, wrt(r_ad));
+    return dudr_ad;
+    }
+  
   inline real_type evaluate(real_type r, real_type& dudr, real_type& d2udr2)
   {
+    app_log() << "in evaluate function" << std::endl;
     real_type ar(A * r);
     real_type br(B * r);
     real_type cr(C * r);
@@ -686,8 +753,9 @@ struct PadeTwo2ndOrderFunctor : public OptimizableFunctorBase
         bttm * bttm;
     return (A * r + br * r) * bttm;
   }
-
-  inline real_type evaluate(real_type r, real_type& dudr, real_type& d2udr2, real_type& d3udr3)
+  
+  
+inline real_type evaluate(real_type r, real_type& dudr, real_type& d2udr2, real_type& d3udr3)
   {
     d3udr3 = 0;
     return evaluate(r, dudr, d2udr2);

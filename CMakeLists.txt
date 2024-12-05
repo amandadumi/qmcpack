@@ -1096,6 +1096,17 @@ if(NOT QMC_NO_SLOW_CUSTOM_TESTING_COMMANDS)
 endif()
 
 #-------------------------------------------------------------------
+# Check if Autodiff is available
+#-------------------------------------------------------------------
+if (QMC_AD)
+    find_package(autodiff REQUIRED CONFIG)
+    message(STATUS "QMC_AD found dir ${autodiff_DIR}")
+    message(STATUS "QMC_AD found ${autodiff_FOUND}")
+    get_property(importTargetsAfter DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+    message(STATUS "QMC_AD imported targets ${importTargetsAfter}")
+endif()
+
+#-------------------------------------------------------------------
 # Check if GPAW is available
 #-------------------------------------------------------------------
 if(NOT QMC_NO_SLOW_CUSTOM_TESTING_COMMANDS)

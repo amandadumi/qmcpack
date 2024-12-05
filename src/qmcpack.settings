@@ -6,6 +6,7 @@ QMCPACK_VERSION    = @qmcpack_VERSION@
 QMC_MPI                = @QMC_MPI@
 QMC_OMP                = @QMC_OMP@
 QMC_COMPLEX            = @QMC_COMPLEX@
+QMC_AD            = @QMC_AD@
 QMC_MIXED_PRECISION    = @QMC_MIXED_PRECISION@
 QMC_SIMD_ALIGNMENT     = @QMC_SIMD_ALIGNMENT@
 BUILD_AFQMC            = @BUILD_AFQMC@
