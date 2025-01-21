@@ -83,19 +83,9 @@ public:
    */
   NESpaceGrid(SpaceGridInput& sgi, const Points& points, const int ndp, const int nvalues, const bool is_periodic);
 
-  /** This is the constructor for when PStatic is used.
-   */
-  NESpaceGrid(SpaceGridInput& sgi,
-              const Points& points,
-              ParticlePos& static_particle_positions,
-              std::vector<Real>& static_particle_charges,
-              const int ndp,
-              const int nvalues,
-              const bool is_periodic);
-
-  NESpaceGrid(const NESpaceGrid& sg) = default;
+  NESpaceGrid(const NESpaceGrid& sg)            = default;
   NESpaceGrid& operator=(const NESpaceGrid& sg) = default;
-  
+
   void write_description(std::ostream& os, const std::string& indent);
 
   /** set up Observable helper(s) for this grid
@@ -107,9 +97,7 @@ public:
   void write(hdf_archive& file) const;
   /// @}
 
-  void accumulate(const ParticlePos& R,
-                  const Matrix<Real>& values,
-                  std::vector<bool>& particles_outside);
+  void accumulate(const ParticlePos& R, const Matrix<Real>& values, std::vector<bool>& particles_outside);
 
   /** SpaceGridAccumulate not type erased and with its own particular interface.
    *  the composing class needs to provide the following to spave grid.
@@ -119,14 +107,19 @@ public:
    *  \param[out]     particles_outside    mask vector of particles falling outside the grid box
    *  \param[in]      dtab                 particle A to Particle B distance table
    *
-   *  right now cartesian grids are all accumulated as if they were "periodic" which honestly does not
-   *  seem to be well defined with repsect to these grids.  But for the particle cell itself it doesn't make
-   *  sense that it be periodic unless it is exactly comenserate with the particle cell (at least IMHO)
+   *  right now cartesian grids are assumed to be periodic because this was the legacy behavior 
+   *  In the period case the assumption minimum image is called holds, a out of bounds exception will occur
+   *  for anything coordinate more than one grid cell outside of the periodic boundaries and density can
+   *  incorrectly be accumulated at the edges of the grid for particles outside of the minimum image boundary
+   *  but within one grid cell for grids that think they are period but getting coordinates that aren't within
+   *  the minimum image.
+   *  It also does seem that you could define a cartesian grid that wasn't commensurate with the whole cell,
+   *  legacy didn't have logic for that and so you should never do it.
    */
   void accumulate(const ParticlePos& R,
                   const Matrix<Real>& values,
                   std::vector<bool>& particles_outside,
-		  const DistanceTableAB& dtab);
+                  const DistanceTableAB& dtab);
 
   bool check_grid(void);
   int nDomains(void) const { return ndomains_; }
@@ -136,6 +129,7 @@ public:
   void static collect(NESpaceGrid& reduction_grid, RefVector<NESpaceGrid> grid_for_each_crowd);
 
   auto& getDataVector() { return data_; }
+
 private:
   /** copy AxisGrid data to SoA layout for evaluation
    */
@@ -143,7 +137,7 @@ private:
 
 
   void zero();
-  
+
   /** return actual origin point based on input
    */
   static Point deriveOrigin(const SpaceGridInput& input, const Points& points);
@@ -189,7 +183,7 @@ private:
   //  *  Causes side effects updating
   //  *    origin_    fixed up origin for grid
   //  *    axes_      axes with scaling applied to it.
-  //  *    axinv_     the inverse of the axes with scaling applied   
+  //  *    axinv_     the inverse of the axes with scaling applied
   //  */
   // bool initializeVoronoi(const SpaceGridInput& input, const Points& points, ParticlePos& r_static);
 
@@ -227,7 +221,7 @@ private:
    *  Maintained to use more legacy code without modificaiton in the short term.
    *  In the long term its possible the entire way the grid data is structured in memory should be redesigned.
    */
-  const int buffer_offset_{0}; 
+  const int buffer_offset_{0};
   int ndomains_{1};
   int nvalues_per_domain_;
   /** @ingroup Calculated by NESpaceGrid
@@ -255,7 +249,7 @@ private:
   ReferenceEnergy reference_energy_;
   std::vector<Real> data_;
   std::shared_ptr<ObservableHelper> observable_helper_;
-  
+
   struct IRPair
   {
     Real r;

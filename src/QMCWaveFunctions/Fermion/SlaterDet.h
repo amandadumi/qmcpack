@@ -103,7 +103,9 @@ public:
     return Dets[getDetID(VP.refPtcl)]->evaluateRatios(VP, ratios);
   }
 
-  inline void evaluateSpinorRatios(const VirtualParticleSet& VP, const std::pair<ValueVector, ValueVector>& spinor_multiplier, std::vector<ValueType>& ratios) override
+  inline void evaluateSpinorRatios(const VirtualParticleSet& VP,
+                                   const std::pair<ValueVector, ValueVector>& spinor_multiplier,
+                                   std::vector<ValueType>& ratios) override
   {
     return Dets[getDetID(VP.refPtcl)]->evaluateSpinorRatios(VP, spinor_multiplier, ratios);
   }
@@ -112,6 +114,12 @@ public:
                            const opt_variables_type& optvars,
                            std::vector<ValueType>& ratios,
                            Matrix<ValueType>& dratios) override;
+
+  void evaluateSpinorDerivRatios(const VirtualParticleSet& VP,
+                                 const std::pair<ValueVector, ValueVector>& spinor_multiplier,
+                                 const opt_variables_type& optvars,
+                                 std::vector<ValueType>& ratios,
+                                 Matrix<ValueType>& dratios) override;
 
   inline void mw_evaluateRatios(const RefVectorWithLeader<WaveFunctionComponent>& wfc_list,
                                 const RefVectorWithLeader<const VirtualParticleSet>& vp_list,
@@ -257,15 +265,6 @@ public:
                            Vector<ValueType>& dlogpsi,
                            Vector<ValueType>& dhpsioverpsi) override
   {
-    // First zero out values, since each determinant only adds on
-    // its contribution (i.e. +=) , rather than setting the value
-    // (i.e. =)
-    for (int k = 0; k < myVars.size(); ++k)
-    {
-      int kk = myVars.where(k);
-      if (kk >= 0)
-        dlogpsi[kk] = dhpsioverpsi[kk] = 0.0;
-    }
     // Now add on contribution from each determinant to the derivatives
     for (int i = 0; i < Dets.size(); i++)
       Dets[i]->evaluateDerivatives(P, active, dlogpsi, dhpsioverpsi);
@@ -273,24 +272,9 @@ public:
 
   void evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& active, Vector<ValueType>& dlogpsi) override
   {
-    // First zero out values, since each determinant only adds on
-    // its contribution (i.e. +=) , rather than setting the value
-    // (i.e. =)
-    for (int k = 0; k < myVars.size(); ++k)
-    {
-      int kk = myVars.where(k);
-      if (kk >= 0)
-        dlogpsi[kk] = 0.0;
-    }
     // Now add on contribution from each determinant to the derivatives
     for (int i = 0; i < Dets.size(); i++)
       Dets[i]->evaluateDerivativesWF(P, active, dlogpsi);
-  }
-
-  void evaluateGradDerivatives(const ParticleSet::ParticleGradient& G_in, std::vector<ValueType>& dgradlogpsi) override
-  {
-    for (int i = 0; i < Dets.size(); i++)
-      Dets[i]->evaluateGradDerivatives(G_in, dgradlogpsi);
   }
 
 private:

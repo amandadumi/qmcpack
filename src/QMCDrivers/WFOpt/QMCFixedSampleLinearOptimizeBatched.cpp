@@ -25,6 +25,7 @@
 #include "QMCDrivers/WFOpt/GradientTest.h"
 #include "QMCDrivers/VMC/VMCBatched.h"
 #include "QMCDrivers/WFOpt/QMCCostFunction.h"
+#include "QMCDrivers/WFOpt/ConjugateGradient.h"
 #include "Concurrency/Info.hpp"
 #include "CPU/Blasf.h"
 #include "Numerics/MatrixOperators.h"
@@ -49,19 +50,19 @@ using MatrixOperators::product;
 QMCFixedSampleLinearOptimizeBatched::QMCFixedSampleLinearOptimizeBatched(
     const ProjectData& project_data,
     QMCDriverInput&& qmcdriver_input,
-    const std::optional<EstimatorManagerInput>& global_emi,
     VMCDriverInput&& vmcdriver_input,
     WalkerConfigurations& wc,
     MCPopulation&& population,
+    const RefVector<RandomBase<FullPrecRealType>>& rng_refs,
     SampleStack& samples,
     Communicate* comm)
     : QMCDriverNew(
           project_data,
           std::move(qmcdriver_input),
-          std::
-              nullopt, // this class is not a real QMCDriverNew as far as I can tell so we don't give it the actual global_emi_
+          nullptr, // this class is not a real QMCDriverNew as far as I can tell so we don't give it the actual EM
           wc,
           std::move(population),
+          rng_refs,
           "QMCLinearOptimizeBatched::",
           comm,
           "QMCLinearOptimizeBatched"),
@@ -81,11 +82,15 @@ QMCFixedSampleLinearOptimizeBatched::QMCFixedSampleLinearOptimizeBatched(
       shift_s_input(1.00),
       accept_history(3),
       shift_s_base(4.0),
+      sr_tau(0.01),
+      sr_regularization(0.01),
+      sr_tolerance(1e-6),
       MinMethod("OneShiftOnly"),
       do_output_matrices_csv_(false),
       do_output_matrices_hdf_(false),
       output_matrices_initialized_(false),
       freeze_parameters_(false),
+      use_line_search_(false),
       initialize_timer_(createGlobalTimer("QMCLinearOptimizeBatched::Initialize", timer_level_medium)),
       generate_samples_timer_(createGlobalTimer("QMCLinearOptimizeBatched::generateSamples", timer_level_medium)),
       build_olv_ham_timer_(createGlobalTimer("QMCLinearOptimizedBatched::build_ovl_ham_matrix", timer_level_medium)),
@@ -93,10 +98,10 @@ QMCFixedSampleLinearOptimizeBatched::QMCFixedSampleLinearOptimizeBatched(
       eigenvalue_timer_(createGlobalTimer("QMCLinearOptimizeBatched::Eigenvalue", timer_level_medium)),
       line_min_timer_(createGlobalTimer("QMCLinearOptimizeBatched::Line_Minimization", timer_level_medium)),
       cost_function_timer_(createGlobalTimer("QMCLinearOptimizeBatched::CostFunction", timer_level_medium)),
+      sr_solver_timer_(createGlobalTimer("QMCLinearOptimizeBatched::StochasticReconfiguration", timer_level_medium)),
       wfNode(NULL),
       vmcdriver_input_(vmcdriver_input),
-      samples_(samples),
-      global_emi_(global_emi)
+      samples_(samples)
 {
   //set the optimization flag
   qmc_driver_mode_.set(QMC_OPTIMIZE, 1);
@@ -110,6 +115,9 @@ QMCFixedSampleLinearOptimizeBatched::QMCFixedSampleLinearOptimizeBatched(
   m_param.add(param_tol, "alloweddifference");
   m_param.add(shift_i_input, "shift_i");
   m_param.add(shift_s_input, "shift_s");
+  m_param.add(sr_tau, "sr_tau");
+  m_param.add(sr_regularization, "sr_regularization");
+  m_param.add(sr_tolerance, "sr_tolerance");
   // options_LMY_
   m_param.add(options_LMY_.targetExcited, "options_LMY_.targetExcited");
   m_param.add(options_LMY_.block_lm, "options_LMY_.block_lm");
@@ -205,7 +213,10 @@ void QMCFixedSampleLinearOptimizeBatched::start()
     optTarget->getConfigurations("");
     optTarget->setRng(vmcEngine->getRngRefs());
     NullEngineHandle handle;
-    optTarget->checkConfigurations(handle);
+    if (options_LMY_.current_optimizer_type == OptimizerType::STOCHASTIC_RECONFIGURATION_CG)
+      optTarget->checkConfigurationsSR(handle);
+    else
+      optTarget->checkConfigurations(handle);
     app_log() << "  Execution time (derivatives) = " << std::setprecision(4) << t_deriv.elapsed() << std::endl;
   }
 }
@@ -315,6 +326,9 @@ bool QMCFixedSampleLinearOptimizeBatched::run()
 
   if (options_LMY_.current_optimizer_type == OptimizerType::ONESHIFTONLY)
     return one_shift_run();
+
+  if (options_LMY_.current_optimizer_type == OptimizerType::STOCHASTIC_RECONFIGURATION_CG)
+    return stochastic_reconfiguration_conjugate_gradient();
 
   return previous_linear_methods_run();
 }
@@ -567,6 +581,7 @@ void QMCFixedSampleLinearOptimizeBatched::process(xmlNodePtr q)
   std::string OutputMatrices("no");
   std::string OutputMatricesHDF("no");
   std::string FreezeParameters("no");
+  std::string UseLineSearch("no");
   OhmmsAttributeSet oAttrib;
   oAttrib.add(useGPU, "gpu");
   oAttrib.add(vmcMove, "move");
@@ -575,11 +590,13 @@ void QMCFixedSampleLinearOptimizeBatched::process(xmlNodePtr q)
   m_param.add(OutputMatrices, "output_matrices_csv", {"no", "yes"});
   m_param.add(OutputMatricesHDF, "output_matrices_hdf", {"no", "yes"});
   m_param.add(FreezeParameters, "freeze_parameters", {"no", "yes"});
+  m_param.add(UseLineSearch, "line_search", {"no", "yes"});
 
   m_param.add(eigensolver_, "eigensolver",
-      {"inverse",  // Inverse + nonsymmetric eigenvalue solver
-       "general"   // General eigenvalue problem solver
-      });
+              {
+                  "inverse", // Inverse + nonsymmetric eigenvalue solver
+                  "general"  // General eigenvalue problem solver
+              });
 
   oAttrib.put(q);
   m_param.put(q);
@@ -587,6 +604,7 @@ void QMCFixedSampleLinearOptimizeBatched::process(xmlNodePtr q)
   do_output_matrices_csv_ = (OutputMatrices == "yes");
   do_output_matrices_hdf_ = (OutputMatricesHDF == "yes");
   freeze_parameters_      = (FreezeParameters == "yes");
+  use_line_search_        = (UseLineSearch == "yes");
 
   // Use freeze_parameters with output_matrices to generate multiple lines in the output with
   // the same parameters so statistics can be computed in post-processing.
@@ -695,7 +713,8 @@ bool QMCFixedSampleLinearOptimizeBatched::processOptXML(xmlNodePtr opt_xml,
   // if this is the first time this function has been called, set the initial shifts
   if (bestShift_i < 0.0 && (options_LMY_.current_optimizer_type == OptimizerType::ADAPTIVE || options_LMY_.doHybrid))
     bestShift_i = shift_i_input;
-  if (options_LMY_.current_optimizer_type == OptimizerType::ONESHIFTONLY)
+  if (options_LMY_.current_optimizer_type == OptimizerType::ONESHIFTONLY ||
+      options_LMY_.current_optimizer_type == OptimizerType::STOCHASTIC_RECONFIGURATION_CG)
     bestShift_i = shift_i_input;
   if (bestShift_s < 0.0)
     bestShift_s = shift_s_input;
@@ -735,11 +754,11 @@ bool QMCFixedSampleLinearOptimizeBatched::processOptXML(xmlNodePtr opt_xml,
 
   // create VMC engine
   vmcEngine =
-      std::make_unique<VMCBatched>(project_data_, std::move(qmcdriver_input_copy), global_emi_,
+      std::make_unique<VMCBatched>(project_data_, std::move(qmcdriver_input_copy), nullptr,
                                    std::move(vmcdriver_input_copy), walker_configs_ref_,
                                    MCPopulation(myComm->size(), myComm->rank(), &population_.get_golden_electrons(),
                                                 &population_.get_golden_twf(), &population_.get_golden_hamiltonian()),
-                                   samples_, myComm);
+                                   rngs_, samples_, myComm);
 
   vmcEngine->setUpdateMode(vmcMove[0] == 'p');
 
@@ -753,7 +772,8 @@ bool QMCFixedSampleLinearOptimizeBatched::processOptXML(xmlNodePtr opt_xml,
   auto& qmcdriver_input = vmcEngine->getQMCDriverInput();
   QMCDriverNew::AdjustedWalkerCounts awc =
       adjustGlobalWalkerCount(*myComm, walker_configs_ref_.getActiveWalkers(), qmcdriver_input_.get_total_walkers(),
-                              qmcdriver_input_.get_walkers_per_rank(), 1.0, qmcdriver_input_.get_num_crowds());
+                              qmcdriver_input_.get_walkers_per_rank(), 1.0,
+                              determineNumCrowds(qmcdriver_input_.get_num_crowds(), rngs_.size()));
 
 
   bool success = true;
@@ -1638,7 +1658,8 @@ bool QMCFixedSampleLinearOptimizeBatched::one_shift_run()
   }
 
   // Solve eigenvalue problem on one rank.
-  if (is_manager()) {
+  if (is_manager())
+  {
     ScopedTimer local(eigenvalue_timer_);
     Timer t_eigen;
     app_log() << std::endl
@@ -1662,13 +1683,23 @@ bool QMCFixedSampleLinearOptimizeBatched::one_shift_run()
 
     RealType lowestEV;
     // compute the lowest eigenvalue and the corresponding eigenvector
-    if (eigensolver_ == "general") {
+    if (eigensolver_ == "general")
+    {
       app_log() << "  Using generalized eigenvalue solver (ggev)" << std::endl;
       lowestEV = getLowestEigenvector_Gen(hamMat, invMat, parameterDirections);
-    } else if (eigensolver_ == "inverse") {
+    }
+    else if (eigensolver_ == "inverse")
+    {
       app_log() << "  Using inverse + regular eigenvalue solver (geev)" << std::endl;
       lowestEV = getLowestEigenvector_Inv(hamMat, invMat, parameterDirections);
-    } else {
+    }
+    else if (eigensolver_ == "arpack")
+    {
+      app_log() << "ARPACK not compiled into this QMCPACK executable" << std::endl;
+      throw std::runtime_error("ARPACK not present (QMC_USE_ARPACK not set)");
+    }
+    else
+    {
       throw std::runtime_error("Unknown eigenvalue solver: " + eigensolver_);
     }
 
@@ -1688,7 +1719,6 @@ bool QMCFixedSampleLinearOptimizeBatched::one_shift_run()
     // scale the update by the scaling constant
     for (int i = 0; i < numParams; i++)
       parameterDirections.at(i + 1) *= objFuncWrapper_.Lambda;
-
   }
   myComm->bcast(parameterDirections);
 
@@ -1748,6 +1778,151 @@ bool QMCFixedSampleLinearOptimizeBatched::one_shift_run()
     accept_history <<= 1;
     accept_history.set(0, true);
   }
+
+  app_log() << std::endl
+            << "*****************************************************************************" << std::endl
+            << "Applying the update for shift_i = " << std::scientific << std::right << std::setw(12)
+            << std::setprecision(4) << bestShift_i << "     and shift_s = " << std::scientific << std::right
+            << std::setw(12) << std::setprecision(4) << bestShift_s << std::endl
+            << "*****************************************************************************" << std::endl;
+
+  // perform some finishing touches for this linear method iteration
+  finish();
+
+  // return whether the cost function's report counter is positive
+  return (optTarget->getReportCounter() > 0);
+}
+
+bool QMCFixedSampleLinearOptimizeBatched::stochastic_reconfiguration_conjugate_gradient()
+{
+  app_log() << std::endl
+            << "*****************************************************************************" << std::endl
+            << "                   Running Stochastic Reconfiguration                   " << std::endl
+            << "*****************************************************************************" << std::endl;
+  // ensure the cost function is set to compute derivative vectors
+  optTarget->setneedGrads(true);
+
+  // generate samples and compute weights, local energies, and derivative vectors
+  // Note: this has a switch for checkConfigurations or checkConfigurationsSR to do stochastic reconfiguration
+  // The SR version avoids calculating the dhpsioverpsi terms and only does dlogpsi
+  start();
+
+  // get number of optimizable parameters
+  const int numParams = optTarget->getNumParams();
+
+  // get dimension of the linear method matrices
+  const int N = numParams + 1;
+
+  // prepare vectors to hold the initial and current parameters
+  std::vector<RealType> currentParameters(numParams, 0.0);
+
+  // initialize the initial and current parameter vectors
+  for (int i = 0; i < numParams; i++)
+    currentParameters.at(i) = std::real(optTarget->Params(i));
+
+  // prepare vectors to hold the parameter update directions for each shift
+  std::vector<RealType> parameterDirections;
+  parameterDirections.assign(N, 0.0);
+
+  // compute the initial cost
+  const RealType initCost = optTarget->computedCost();
+
+  std::vector<RealType> ham(N, 0);
+
+  // for outputing matrices and eigenvalue/vectors to disk
+  hdf_archive hout;
+
+  {
+    ScopedTimer local(build_olv_ham_timer_);
+    Timer t_build_matrices;
+    // say what we are doing
+    app_log() << std::endl
+              << "********************************************************" << std::endl
+              << "Building <Psi_i/Psi_0 Psi_j/Psi_0> and <Psi_i/Psi_0 E_L>" << std::endl
+              << "********************************************************" << std::endl;
+
+    //This constructs \langle \psi_i/\Psi_0 * E_L \rangle
+    optTarget->fillHamVec(ham);
+
+    {
+      ScopedTimer local(sr_solver_timer_);
+      Timer t_eigen;
+      app_log() << std::endl
+                << "*********************" << std::endl
+                << "Solving linear system" << std::endl
+                << "*********************" << std::endl;
+
+
+      std::vector<RealType> param_update;
+      std::vector<RealType> bvec(numParams, 0);
+      for (int i = 0; i < numParams; i++)
+        bvec[i] = -sr_tau * ham[i + 1];
+      ConjugateGradient cg(sr_tolerance, sr_regularization);
+      int iterations = cg.run(*optTarget, bvec, param_update);
+      app_log() << "Solved iterative krylov in " << iterations << " iterations" << std::endl;
+      // compute the scaling constant to apply to the update
+      for (int i = 0; i < numParams; i++)
+        parameterDirections[i + 1] = param_update[i];
+      objFuncWrapper_.Lambda = cg.getNonLinearRescale(*optTarget);
+    }
+  }
+
+  //We get the parameter direction from the SR solve above using CG algorithm
+  //Then, we can either use a line search with correlated sampling to find the best update along that direction, 
+  //or we can use a simple approach where we just accept the move based on the size of the step...sr_tau in this case. 
+  //The line search with correlated sampling converges faster, but can have issues if the weight from correlated 
+  //sampling gets small and stays small. Otherwise, just taking a small sr_tau will work, but can take a lot of iterations
+  //
+  //im sure there are better ways to do this
+  if (use_line_search_)
+  {
+    optTarget->setneedGrads(false);
+
+    optdir.resize(numParams, 0);
+    optparam.resize(numParams, 0);
+
+    //set up line search stuff
+    for (int i = 0; i < numParams; i++)
+      optparam[i] = currentParameters[i];
+    for (int i = 0; i < numParams; i++)
+      optdir[i] = parameterDirections[i + 1];
+
+    RealType bigVec(0);
+    for (int i = 0; i < numParams; i++)
+      bigVec = std::max(bigVec, std::abs(parameterDirections[i + 1]));
+
+    //Settings for line search, taken from previous_linear_methods_run
+    objFuncWrapper_.TOL              = param_tol / bigVec;
+    objFuncWrapper_.AbsFuncTol       = true;
+    objFuncWrapper_.largeQuarticStep = bigChange / bigVec;
+    objFuncWrapper_.LambdaMax        = 0.5 * objFuncWrapper_.Lambda;
+    bool Valid                       = true;
+    {
+      ScopedTimer local(line_min_timer_);
+      Valid = objFuncWrapper_.lineoptimization2();
+    }
+
+    if (Valid || (!Valid && std::abs(objFuncWrapper_.Lambda) > 0.0))
+    {
+      for (int i = 0; i < numParams; i++)
+        optTarget->Params(i) = optparam[i] + objFuncWrapper_.Lambda * optdir[i];
+    }
+    else
+    {
+      for (int i = 0; i < numParams; i++)
+        optTarget->Params(i) = currentParameters.at(i) + objFuncWrapper_.Lambda * parameterDirections.at(i + 1);
+    }
+  }
+  else
+  {
+    for (int i = 0; i < numParams; i++)
+      optTarget->Params(i) = currentParameters.at(i) + objFuncWrapper_.Lambda * parameterDirections.at(i + 1);
+  }
+
+  // say what we are doing
+  app_log() << std::endl << "The new set of parameters is valid. Updating the trial wave function!" << std::endl;
+  accept_history <<= 1;
+  accept_history.set(0, true);
 
   app_log() << std::endl
             << "*****************************************************************************" << std::endl

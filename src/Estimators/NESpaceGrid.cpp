@@ -53,21 +53,6 @@ NESpaceGrid<REAL>::NESpaceGrid(SpaceGridInput& sgi,
 }
 
 template<typename REAL>
-NESpaceGrid<REAL>::NESpaceGrid(SpaceGridInput& sgi,
-                               const NEReferencePoints::Points& points,
-                               ParticlePos& static_particle_positions,
-                               std::vector<Real>& Z,
-                               const int ndp,
-                               const int nvalues,
-                               const bool is_periodic)
-    : input_(sgi), ndparticles_(ndp), is_periodic_(is_periodic), points_(points), nvalues_per_domain_(nvalues)
-{
-  bool init_success = initializeCoordSystem();
-  if (!init_success)
-    throw std::runtime_error("NESpaceGrid initialization failed");
-}
-
-template<typename REAL>
 bool NESpaceGrid<REAL>::initializeCoordSystem()
 {
   using CoordForm   = SpaceGridInput::CoordForm;
@@ -331,7 +316,7 @@ void NESpaceGrid<REAL>::someMoreAxisGridStuff()
 //   bool succeeded = true;
 //   for (int d = 0; d < OHMMS_DIM; d++)
 //   {
-    
+
 //     if (axis_labels[d] == "phi" || axis_labels[d] == "theta" )
 //       if (axis_grids[d].umin < 0.0 || axis_grids[d].umax > 1.0)
 //       {
@@ -592,8 +577,8 @@ void NESpaceGrid<REAL>::accumulate(const ParticlePos& R,
   const Real o2pi = 1.0 / (2.0 * M_PI);
   using CoordForm = SpaceGridInput::CoordForm;
   auto& agr       = input_.get_axis_grids();
-  std::fill(particles_outside.begin(),particles_outside.end(), true);
-  
+  std::fill(particles_outside.begin(), particles_outside.end(), true);
+
   switch (input_.get_coord_form())
   {
   case CoordForm::CARTESIAN:
@@ -603,16 +588,32 @@ void NESpaceGrid<REAL>::accumulate(const ParticlePos& R,
       {
         particles_outside[p] = false;
         Point u              = dot(axinv_, (R[p] - origin_));
+	// numerical accuracy of the dot is not good enough for this to be not produce out of bounds indexes
+	// with REAL = float, u 10^-8 outside of umin_ to  umax_ is not uncommon i.e  p > (1 in 32000)
+	// for the coordinate ranges typical of our simulations. I guess the branch predictor will mostly
+	// mitigate this.
+	auto gmapIndex = [this](int d, const auto& u) { int raw_index = floor((u[d] - this->umin_[d]) * this->odu_[d]);
+	  if ( raw_index == gmap_[d].size() )
+	    return raw_index - 1;
+	  else if ( raw_index == -1 )
+	    return 0;
+	  else
+	    return raw_index;
+	};
         try
         {
           for (int d = 0; d < OHMMS_DIM; ++d)
-            iu[d] = gmap_[d].at(floor((u[d] - umin_[d]) * odu_[d]));
+            iu[d] = gmap_[d].at(gmapIndex(d,u));
         }
         catch (const std::exception& exc)
         {
           std::ostringstream error;
-          error << "NESpaceGrid: particle: " << p << " position: " << R[p]
-                << " falls outside of the cell, for a period system all particle positions must be in the cell!\n";
+          error << "NESpaceGrid: particle: " << p << " position: " << R[p] << " u: " << u + origin_ << "   u-org: " << u << '\n'
+                << "which maps to ";
+	  for (int d = 0; d < OHMMS_DIM; ++d)
+	    error << gmapIndex(d, u) << ",  umin: " << umin_[d] << "  umax: " << umax_[d] << "  odu: " << odu_[d] << '\n';
+	  error << "which falls outside of the cell, for a period system all particle positions must be in the cell!\n";
+	  error << "It is very likely you have not set up your space grid correctly.\n";
           std::throw_with_nested(std::runtime_error(error.str()));
         }
         buf_index = buffer_offset_;
@@ -622,24 +623,29 @@ void NESpaceGrid<REAL>::accumulate(const ParticlePos& R,
           data_[buf_index] += values(p, v);
       }
     }
-    else
-    {
-      for (p = 0; p < nparticles; p++)
-      {
-        Point u = dot(axinv_, (R[p] - origin_));
-        if (u[0] > umin_[0] && u[0] < umax_[0] && u[1] > umin_[1] && u[1] < umax_[1] && u[2] > umin_[2] &&
-            u[2] < umax_[2])
-        {
-          particles_outside[p] = false;
-          iu[0]                = gmap_[0][floor((u[0] - umin_[0]) * odu_[0])];
-          iu[1]                = gmap_[1][floor((u[1] - umin_[1]) * odu_[1])];
-          iu[2]                = gmap_[2][floor((u[2] - umin_[2]) * odu_[2])];
-          buf_index            = buffer_offset_ + nvalues * (dm_[0] * iu[0] + dm_[1] * iu[1] + dm_[2] * iu[2]);
-          for (v = 0; v < nvalues; v++, buf_index++)
-            data_[buf_index] += values(p, v);
-        }
-      }
-    }
+    // This branch is in fact impossible to reach here or in legacy,
+    // And for purposes of coverage testing I've commented it.
+    // \todo  support cartesian grids in nonperiod cases.
+    //
+    // else
+    // {
+    //   // cartesian coordinates is TBD...
+    //   for (p = 0; p < nparticles; p++)
+    //   {
+    //     Point u = dot(axinv_, (R[p] - origin_));
+    //     if (u[0] > umin_[0] && u[0] < umax_[0] && u[1] > umin_[1] && u[1] < umax_[1] && u[2] > umin_[2] &&
+    //         u[2] < umax_[2])
+    //     {
+    //       particles_outside[p] = false;
+    //       iu[0]                = gmap_[0][floor((u[0] - umin_[0]) * odu_[0])];
+    //       iu[1]                = gmap_[1][floor((u[1] - umin_[1]) * odu_[1])];
+    //       iu[2]                = gmap_[2][floor((u[2] - umin_[2]) * odu_[2])];
+    //       buf_index            = buffer_offset_ + nvalues * (dm_[0] * iu[0] + dm_[1] * iu[1] + dm_[2] * iu[2]);
+    //       for (v = 0; v < nvalues; v++, buf_index++)
+    //         data_[buf_index] += values(p, v);
+    //     }
+    //   }
+    // }
     break;
   case CoordForm::CYLINDRICAL:
     for (p = 0; p < nparticles; p++)

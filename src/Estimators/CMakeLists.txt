@@ -23,6 +23,7 @@ set(QMCEST_SRC
     ScalarEstimatorInputs.cpp
     SpinDensityInput.cpp
     MomentumDistributionInput.cpp
+    EnergyDensityInput.cpp
     EstimatorManagerBase.cpp
     EstimatorManagerNew.cpp
     EstimatorManagerCrowd.cpp
@@ -39,7 +40,9 @@ set(QMCEST_SRC
     PerParticleHamiltonianLogger.cpp
     ReferencePointsInput.cpp
     NEReferencePoints.cpp
-    NESpaceGrid.cpp)
+    NESpaceGrid.cpp
+    EnergyDensityEstimator.cpp
+    StructureFactorInput.cpp)
 
 ####################################
 # create libqmcestimators

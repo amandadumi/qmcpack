@@ -1,24 +1,20 @@
 #!/bin/bash
-# This recipe is intended for ALCF Sunspot https://www.alcf.anl.gov/support-center/aurora-sunspot
-# last revision: Feb 20th 2024
+# This recipe is intended for ALCF Aurora https://www.alcf.anl.gov/support-center/aurora-sunspot
+# last revision: Jan 13th 2025
 #
 # How to invoke this script?
-# build_alcf_sunspot_icpx.sh # build all the variants assuming the current directory is the source directory.
-# build_alcf_sunspot_icpx.sh <source_dir> # build all the variants with a given source directory <source_dir>
-# build_alcf_sunspot_icpx.sh <source_dir> <install_dir> # build all the variants with a given source directory <source_dir> and install to <install_dir>
+# build_alcf_aurora_icpx.sh # build all the variants assuming the current directory is the source directory.
+# build_alcf_aurora_icpx.sh <source_dir> # build all the variants with a given source directory <source_dir>
+# build_alcf_aurora_icpx.sh <source_dir> <install_dir> # build all the variants with a given source directory <source_dir> and install to <install_dir>
 
 for module_name in oneapi/release oneapi/eng-compiler
 do
   if module is-loaded $module_name ; then module unload $module_name; fi
 done
 
-module load spack-pe-gcc cmake
-module load cray-hdf5
-module load oneapi/eng-compiler/2023.12.15.002
+module load oneapi/eng-compiler/2024.07.30.002
+module load cmake hdf5/1.14.3 boost/1.84.0
 module list >& module_list.txt
-
-# edit this line for your own boost header files.
-export BOOST_ROOT=/home/yeluo/opt/boost_1_80_0
 
 echo "**********************************"
 echo '$ icpx -v'
@@ -27,7 +23,7 @@ echo "**********************************"
 
 TYPE=Release
 Machine=aurora
-Compiler=icpx20231130
+Compiler=icpx20240629
 
 if [[ $# -eq 0 ]]; then
   source_folder=`pwd`
@@ -45,7 +41,7 @@ else
   exit
 fi
 
-for name in offload_sycl_real_MP offload_sycl_real offload_sycl_cplx_MP offload_sycl_cplx \
+for name in gpu_real_MP gpu_real gpu_cplx_MP gpu_cplx \
             cpu_real_MP cpu_real cpu_cplx_MP cpu_cplx
 do
 
@@ -60,13 +56,9 @@ if [[ $name == *"_MP"* ]]; then
   CMAKE_FLAGS="$CMAKE_FLAGS -DQMC_MIXED_PRECISION=ON"
 fi
 
-if [[ $name == *"offload"* ]]; then
-  CMAKE_FLAGS="$CMAKE_FLAGS -DENABLE_OFFLOAD=ON"
+if [[ $name == *"gpu"* ]]; then
+  CMAKE_FLAGS="$CMAKE_FLAGS -DQMC_GPU_ARCHS=intel_gpu_pvc"
   CMAKE_CXX_FLAGS="-mllvm -vpo-paropt-atomic-free-reduction-slm=true"
-fi
-
-if [[ $name == *"sycl"* ]]; then
-  CMAKE_FLAGS="$CMAKE_FLAGS -DENABLE_SYCL=ON"
 fi
 
 folder=build_${Machine}_${Compiler}_${name}

@@ -86,8 +86,6 @@ public:
 
   /** current update mode */
   int UpdateMode;
-  ///list of variables this WaveFunctionComponent handles
-  opt_variables_type myVars;
   ///Bytes in WFBuffer
   size_t Bytes_in_WFBuffer;
 
@@ -486,19 +484,6 @@ public:
   */
   virtual void evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi);
 
-
-  /** Calculates the derivatives of \f$ \nabla \textnormal{log} \psi_f \f$ with respect to
-      the optimizable parameters, and the dot product of this is then
-      performed with the passed-in G_in gradient vector. This object is then
-      returned as dgradlogpsi.
-   */
-
-  virtual void evaluateGradDerivatives(const ParticleSet::ParticleGradient& G_in, std::vector<ValueType>& dgradlogpsi)
-  {
-    APP_ABORT("Need specialization of WaveFunctionComponent::evaluateGradDerivatives in " + getClassName() +
-              " class.\n");
-  }
-
   virtual void finalizeOptimization() {}
 
   /** evaluate the ratios of one virtual move with respect to all the particles
@@ -515,7 +500,9 @@ public:
 
   /** Used by SOECPComponent for faster SOC evaluation
    */
-  virtual void evaluateSpinorRatios(const VirtualParticleSet& VP, const std::pair<ValueVector, ValueVector>& spinor_multiplier, std::vector<ValueType>& ratios);
+  virtual void evaluateSpinorRatios(const VirtualParticleSet& VP,
+                                    const std::pair<ValueVector, ValueVector>& spinor_multiplier,
+                                    std::vector<ValueType>& ratios);
 
   /** evaluate ratios to evaluate the non-local PP multiple walkers
    * @param wfc_list the list of WaveFunctionComponent references of the same component in a walker batch
@@ -526,6 +513,12 @@ public:
                                  const RefVectorWithLeader<const VirtualParticleSet>& vp_list,
                                  std::vector<std::vector<ValueType>>& ratios) const;
 
+  // Batched version of evaluateSpinorRatios
+  virtual void mw_evaluateSpinorRatios(const RefVectorWithLeader<WaveFunctionComponent>& wfc_list,
+                                       const RefVectorWithLeader<const VirtualParticleSet>& vp_list,
+                                       const RefVector<std::pair<ValueVector, ValueVector>>& spinor_multiplier_list,
+                                       std::vector<std::vector<ValueType>>& ratios) const;
+
   /** evaluate ratios to evaluate the non-local PP
    * @param VP VirtualParticleSet
    * @param ratios ratios with new positions VP.R[k] the VP.refPtcl
@@ -535,6 +528,18 @@ public:
                                    const opt_variables_type& optvars,
                                    std::vector<ValueType>& ratios,
                                    Matrix<ValueType>& dratios);
+
+  /** evaluate ratios and derivatives to evaluate the SOECP
+   * @param VP VirtualParticleSet
+   * @param spinor_multiplier contribution of SOECP for up/down channels. Gets multiplied into Spinor SPOSet up/down components
+   * @param ratios ratios with new positions VP.R[k] the VP.refPtcl
+   * @param dratios Nq x Num_param matrix. \f$\partial_{\alpha}(\ln \Psi ({\bf R}^{\prime}) - \ln \Psi ({\bf R})) \f$
+   */
+  virtual void evaluateSpinorDerivRatios(const VirtualParticleSet& VP,
+                                         const std::pair<ValueVector, ValueVector>& spinor_multiplier,
+                                         const opt_variables_type& optvars,
+                                         std::vector<ValueType>& ratios,
+                                         Matrix<ValueType>& dratios);
 
   /** compute the current gradients and spin gradients for the iat-th particle of multiple walkers
    * @param wfc_list the list of WaveFunctionComponent pointers of the same component in a walker batch
@@ -563,7 +568,6 @@ public:
                                     std::vector<PsiValue>& ratios,
                                     std::vector<GradType>& grad_new,
                                     std::vector<ComplexType>& spingrad_new) const;
-
 };
 } // namespace qmcplusplus
 #endif

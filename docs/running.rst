@@ -5,7 +5,7 @@ Running QMCPACK
 
 QMCPACK requires at least one xml input file, and is invoked via:
 
-``qmcpack [command line options] <XML input file(s)>``
+``qmcpack [command line options] <XML input file(s) and/or text file(s)>``
 
 .. _commandline:
 
@@ -16,14 +16,16 @@ QMCPACK offers several command line options that affect how calculations
 are performed. If the flag is absent, then the corresponding
 option is disabled:
 
-- ``--dryrun`` Validate the input file without performing the simulation. This is a good way to ensure that QMCPACK will do what you think it will.
+- ``--dryrun`` Validate the input file without performing the simulation. All the QMC and loop sections are skipped.
+  Wavefunctions and pseudopotentials will be loaded and processed. This option can be used to verify all the required
+  files are available or to check memory usage.
 
 - ``--enable-timers=none|coarse|medium|fine`` Control the timer granularity when the build option ``ENABLE_TIMERS`` is enabled.
 
-- ``help`` Print version information as well as a list of optional
+- ``--help`` Print version information as well as a list of optional
   command-line arguments.
 
-- ``noprint`` Do not print extra information on Jastrow or pseudopotential.
+- ``--noprint`` Do not print extra information on Jastrow or pseudopotential.
   If this flag is not present, QMCPACK will create several ``.dat`` files
   that contain information about pseudopotentials (one file per PP) and Jastrow
   factors (one per Jastrow factor). These file might be useful for visual inspection
@@ -31,14 +33,20 @@ option is disabled:
 
 - ``--verbosity=low|high|debug`` Control the output verbosity. The default low verbosity is concise and, for example, does not include all electron or atomic positions for large systems to reduce output size. Use "high" to see this information and more details of initialization, allocations, QMC method settings, etc.
 
-- ``version`` Print version information and optional arguments. Same as ``help``.
+- ``--version`` Print version information and optional arguments. Same as ``help``.
 
 .. _inputs:
 
 Input files
 -----------
 
-The input is one or more XML file(s), documented in :ref:`input-overview`.
+The input is one or more XML file(s), documented in :ref:`input-overview`. Input XML files must end in the suffix ``.xml``.
+
+An ensemble of calculations can be run by specifying multiple input XML files or text files containing a list of valid XML input
+files. In the latter case, a single filename of an XML input should be specified on each line. Ensemble runs split available MPI
+tasks evenly between all the specified inputs. Because QMCPACK will only exit when all calculations are completed, it is recommended
+for computational efficiency that either all calculations have similar costs and runtimes, or the ``max_seconds`` input parameter
+should be used to enforce similar runtimes.
 
 Output files
 ------------

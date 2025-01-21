@@ -242,7 +242,9 @@ void WaveFunctionComponent::evaluateRatios(const VirtualParticleSet& P, std::vec
   APP_ABORT(o.str());
 }
 
-void WaveFunctionComponent::evaluateSpinorRatios(const VirtualParticleSet& P, const std::pair<ValueVector, ValueVector>& spinor_multiplier, std::vector<ValueType>& ratios)
+void WaveFunctionComponent::evaluateSpinorRatios(const VirtualParticleSet& P,
+                                                 const std::pair<ValueVector, ValueVector>& spinor_multiplier,
+                                                 std::vector<ValueType>& ratios)
 {
   evaluateRatios(P, ratios);
 }
@@ -256,6 +258,17 @@ void WaveFunctionComponent::mw_evaluateRatios(const RefVectorWithLeader<WaveFunc
     wfc_list[iw].evaluateRatios(vp_list[iw], ratios[iw]);
 }
 
+void WaveFunctionComponent::mw_evaluateSpinorRatios(
+    const RefVectorWithLeader<WaveFunctionComponent>& wfc_list,
+    const RefVectorWithLeader<const VirtualParticleSet>& vp_list,
+    const RefVector<std::pair<ValueVector, ValueVector>>& spinor_multiplier_list,
+    std::vector<std::vector<ValueType>>& ratios) const
+{
+  assert(this == &wfc_list.getLeader());
+  for (int iw = 0; iw < wfc_list.size(); iw++)
+    wfc_list[iw].evaluateSpinorRatios(vp_list[iw], spinor_multiplier_list[iw], ratios[iw]);
+}
+
 void WaveFunctionComponent::evaluateDerivRatios(const VirtualParticleSet& VP,
                                                 const opt_variables_type& optvars,
                                                 std::vector<ValueType>& ratios,
@@ -263,6 +276,15 @@ void WaveFunctionComponent::evaluateDerivRatios(const VirtualParticleSet& VP,
 {
   //default is only ratios and zero derivatives
   evaluateRatios(VP, ratios);
+}
+
+void WaveFunctionComponent::evaluateSpinorDerivRatios(const VirtualParticleSet& VP,
+                                                      const std::pair<ValueVector, ValueVector>& spinor_multiplier,
+                                                      const opt_variables_type& optvars,
+                                                      std::vector<ValueType>& ratios,
+                                                      Matrix<ValueType>& dratios)
+{
+  evaluateDerivRatios(VP, optvars, ratios, dratios);
 }
 
 void WaveFunctionComponent::registerTWFFastDerivWrapper(const ParticleSet& P, TWFFastDerivWrapper& twf) const
