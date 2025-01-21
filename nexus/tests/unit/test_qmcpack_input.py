@@ -308,26 +308,26 @@ def generate_serial_references():
         'simulation/qmcsystem/wavefunctions/psi0/jastrows/J3/source' : 'ion0',
         'simulation/qmcsystem/wavefunctions/psi0/jastrows/J3/type' : 'eeI',
         'simulation/qmcsystem/wavefunctions/psi0/name' : 'psi0',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/href' : '../scf/pwscf_output/pwscf.pwscf.h5',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/meshfactor' : 1.0,
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/precision' : 'float',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/source' : 'ion0',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_d/name' : 'spo_d',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_d/size' : 200,
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_d/spindataset' : 1,
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_d/type' : 'bspline',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_u/name' : 'spo_u',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_u/size' : 200,
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_u/spindataset' : 0,
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/sposets/spo_u/type' : 'bspline',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/tilematrix' : np.array([
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/href' : '../scf/pwscf_output/pwscf.pwscf.h5',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/meshfactor' : 1.0,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/precision' : 'float',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/source' : 'ion0',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_d/name' : 'spo_d',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_d/size' : 200,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_d/spindataset' : 1,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_d/type' : 'bspline',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_u/name' : 'spo_u',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_u/size' : 200,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_u/spindataset' : 0,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/sposets/spo_u/type' : 'bspline',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/tilematrix' : np.array([
             [2, 0, 0],
             [0, 1, -1],
             [0, 1, 1]]),
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/truncate' : False,
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/twistnum' : 0,
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/type' : 'bspline',
-        'simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/version' : 0.1,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/truncate' : False,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/twistnum' : 0,
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/type' : 'bspline',
+        'simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/version' : 0.1,
         'simulation/qmcsystem/wavefunctions/psi0/target' : 'e',
         }
 
@@ -376,7 +376,7 @@ def generate_serial_references():
         #end if
     #end for
     ref['simulation/project/application/version'] = '1.0'
-    ref['simulation/qmcsystem/wavefunctions/psi0/sposet_builders/bspline/version'] = '0.10'
+    ref['simulation/qmcsystem/wavefunctions/psi0/sposet_collections/bspline/version'] = '0.10'
     ref['simulation/qmcsystem/hamiltonians/h0/estimators/0/grid'] = (72, 44, 44)
     ref['simulation/qmcsystem/hamiltonians/h0/estimators/0/name'] = 'SpinDensity'
     ref['simulation/qmcsystem/hamiltonians/h0/estimators/0/type'] = 'spindensity'
@@ -754,7 +754,7 @@ def test_compose():
                 wavefunction = section(
                     name   = 'psi0',
                     target = 'e',
-                    sposet_builder = section(
+                    sposet_collection = section(
                         type       = 'bspline',
                         href       = '../scf/pwscf_output/pwscf.pwscf.h5',
                         tilematrix = np.array([[2,0,0],
@@ -1307,7 +1307,6 @@ def test_generate():
         blocks          = 600,
         steps           =  5,
         timestep        = 0.005,
-        nonlocalmoves   = 'yes',
         )
     
     qi.pluralize()
@@ -1347,7 +1346,6 @@ def test_generate():
         blocks           = 600,
         steps            =  5,
         timestep         = 0.005,
-        nonlocalmoves    = 'yes',
         )
     
     qi.pluralize()
@@ -1400,7 +1398,7 @@ def test_read():
     # remove extraneous data members for purpose of comparison
     del qi_read._metadata.spo_u
     del qi_read._metadata.spo_d
-    spob = qi_read.simulation.qmcsystem.wavefunctions.psi0.sposet_builders
+    spob = qi_read.simulation.qmcsystem.wavefunctions.psi0.sposet_collections
     sposets = spob.bspline.sposets
     del sposets.spo_u.spos
     del sposets.spo_d.spos
@@ -1442,7 +1440,7 @@ def test_write():
     assert('<group' in text)
     assert('<attrib' in text)
     assert('<wavefunction' in text)
-    assert('<sposet_builder' in text)
+    assert('<sposet_collection' in text)
     assert('<determinantset>' in text)
     assert('<slaterdeterminant>' in text)
     assert('<determinant' in text)
@@ -1466,7 +1464,7 @@ def test_write():
     # remove extraneous data members for purpose of comparison
     del qi_write._metadata.spo_u
     del qi_write._metadata.spo_d
-    spob = qi_write.simulation.qmcsystem.wavefunctions.psi0.sposet_builders
+    spob = qi_write.simulation.qmcsystem.wavefunctions.psi0.sposet_collections
     sposets = spob.bspline.sposets
     del sposets.spo_u.spos
     del sposets.spo_d.spos
@@ -1533,7 +1531,7 @@ def test_get():
     V    = psi.groups.V
     O    = psi.groups.O
     wf   = qs.wavefunction
-    sb   = wf.sposet_builder
+    sb   = wf.sposet_collection
     spos = sb.sposets
     spou = spos.spo_u
     spod = spos.spo_d
@@ -1572,7 +1570,7 @@ def test_get():
         #V                 = V, # can find group or pseudo
         #O                 = O,
         wavefunction      = wf,
-        sposet_builder    = sb,
+        sposet_collection    = sb,
         sposet            = spos,
         spo_u             = spou,
         spo_d             = spod,
@@ -1641,7 +1639,7 @@ def test_get():
     O    = psi.groups.O
     wfs  = qs.wavefunctions
     wf   = wfs.psi0
-    sbs  = wf.sposet_builders
+    sbs  = wf.sposet_collections
     sb   = sbs.bspline
     spos = sb.sposets
     spou = spos.spo_u
@@ -1682,7 +1680,7 @@ def test_get():
         #V                 = V, # can find group or pseudo
         #O                 = O,
         wavefunction      = wfs,
-        sposet_builder    = sbs,
+        sposet_collection    = sbs,
         psi0              = wf,
         sposet            = spos,
         spo_u             = spou,

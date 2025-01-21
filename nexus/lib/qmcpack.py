@@ -903,6 +903,7 @@ def generate_qmcpack(**kwargs):
         #end if
         inp_args.run_path = run_path
         sim_args.input = generate_qmcpack_input(**inp_args)
+        print('qmcpack in generate_qmcpack')
     #end if
     qmcpack = Qmcpack(**sim_args)
 

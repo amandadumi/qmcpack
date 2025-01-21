@@ -840,6 +840,7 @@ class Simulation(NexusCore):
                         dep.results[result_name] = sim.get_result(result_name,sim)
                     else:
                         dep.results['other'] = obj()
+
                     #end if
                 #end for
             #end for
@@ -847,7 +848,6 @@ class Simulation(NexusCore):
                 for dep in self.ordered_dependencies:
                     sim = dep.sim
                     for result_name,result in dep.results.items():
-                        print(f'in simulation.py{result_name}')
                         if result_name!='other':
                             if self.has_generic_input():
                                 self.error('a simulation result cannot be incorporated into generic formatted or template input\nplease use {0} instead of {1}\nsim id: {2}\ndirectory: {3}\nresult: {4}'.format(cls.input_type.__class__.__name__,self.input.__class__.__name__,self.id,self.locdir,result_name))

@@ -92,10 +92,10 @@
          </group>
       </particleset>
       <wavefunction name="psi0" target="e">
-         <sposet_builder type="bspline" href="../scf/pwscf_output/pwscf.pwscf.h5" tilematrix="2 0 0 0 1 -1 0 1 1" twistnum="0" source="ion0" version="0.10" meshfactor="1.0" precision="float" truncate="no">
+         <sposet_collection type="bspline" href="../scf/pwscf_output/pwscf.pwscf.h5" tilematrix="2 0 0 0 1 -1 0 1 1" twistnum="0" source="ion0" version="0.10" meshfactor="1.0" precision="float" truncate="no">
             <sposet type="bspline" name="spo_u" size="200" spindataset="0"/>
             <sposet type="bspline" name="spo_d" size="200" spindataset="1"/>
-         </sposet_builder>
+         </sposet_collection>
          <determinantset>
             <slaterdeterminant>
                <determinant id="updet" group="u" sposet="spo_u" size="200"/>

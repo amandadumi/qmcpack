@@ -1885,13 +1885,6 @@ sposet_collection= QIxmlFactory(
     typekey = 'type'
     )
 
-# sposet_collection = QIxmlFactory(
-
-#class sposet_collection(QIxml):
-#    tag    = 'sposet_collection'
-#    attributes = ['type','href','name','source','transform',]
-#    elements   = ['sposet','rotated_sposet','basisset','sposet_builder']
-
 class wavefunction(QIxml):
     #            rsqmc                        afqmc
     attributes = ['name','target','id','ref','href']+['info','type']
@@ -1956,7 +1949,7 @@ class slaterdeterminant(QIxml):
 #end class slaterdeterminant
 
 class determinant(QIxml):
-    attributes = ['id','group','sposet','ref','spin','href','orbitals','spindataset','name','cuspinfo','debug']
+    attributes = ['id','group','sposet','size','ref','spin','href','orbitals','spindataset','name','cuspinfo','debug']
     identifier = 'id'
     write_types = obj(debug=yesno)
 #end class determinant
@@ -3916,7 +3909,6 @@ class QmcpackInput(SimulationInput,Names):
         udet,ddet = self.get('updet','downdet')
 
 
-            #if ddet!=None:
     #end def incorporate_system
         
     def get_electron_particle_set(self):
@@ -4819,10 +4811,10 @@ def generate_determinantset_new(up         = 'u',
     elns = system.particles.get_electrons()
     nup  = elns.up_electron.count
     ndn  = elns.down_electron.count
-
     if not len(sposets)==1 and not len(sposets)==0:
-        id_u = sposets[0]
-        id_d = sposets[1]
+        sets = list(sposets.keys())
+        id_u = sposets[sets[0]]['name']
+        id_d = sposets[sets[1]]['name']
     elif len(sposets)==1:
         sets = list(sposets.keys())
         id_u = sposets[sets[0]]['name']
@@ -7513,7 +7505,6 @@ def generate_basic_input(**kwargs):
     if kw.hybrid_rcut is not None or kw.hybrid_lmax is not None:
         kw.hybridrep = True
     #end if
-
     metadata = QmcpackInput.default_metadata.copy()
 
     proj = project(
@@ -7605,7 +7596,7 @@ def generate_basic_input(**kwargs):
         if kw.opt_orbital:
             dset = generate_determinantset_new(
                 sposets= ssb.rotated_sposets,
-                # spin_polarized = kw.spin_polarized,
+                #spin_polarized = kw.spin_polarized,
                 delay_rank     = kw.delay_rank,
                 matrix_inv_cpu = kw.matrix_inv_cpu,
                 system         = kw.system,
@@ -7613,7 +7604,7 @@ def generate_basic_input(**kwargs):
         else:
             dset = generate_determinantset_new(
                 sposets= ssb.sposets,
-                # spin_polarized = kw.spin_polarized,
+                #spin_polarized = kw.spin_polarized,
                 delay_rank     = kw.delay_rank,
                 matrix_inv_cpu = kw.matrix_inv_cpu,
                 system         = kw.system,
@@ -7710,7 +7701,7 @@ def generate_basic_input(**kwargs):
     #end if
 
     if spobuilders is not None:
-        wfn.sposet_builders = make_collection(spobuilders)
+        wfn.sposet_collections= make_collection(spobuilders)
     #end if
 
     hmltn = generate_hamiltonian(
@@ -7722,9 +7713,7 @@ def generate_basic_input(**kwargs):
         wf_elem      = wfn,
         )
 
-    if spobuilders is not None:
-        wfn.sposet_collections = make_collection(spobuilders)
-    #end if
+
     qmcsys = qmcsystem(
         simulationcell  = simcell,
         wavefunction    = wfn,
@@ -7782,7 +7771,7 @@ def generate_basic_input(**kwargs):
             calc.use_nonlocalpp_deriv = True
         #end if
     #end for
-
+    print('made it to end of basic input')
     return qi
 #end def generate_basic_input
 

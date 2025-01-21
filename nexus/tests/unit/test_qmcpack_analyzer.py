@@ -315,9 +315,9 @@ def test_optimization_analysis():
 
     opt_wf_text_ref = '''
 <wavefunction name="psi0" target="e">
-   <sposet_builder type="bspline" href="../scf/pwscf_output/pwscf.pwscf.h5" tilematrix="1 0 0 0 1 0 0 0 1" twistnum="0" source="ion0" version="0.1" meshfactor="1.0" precision="float" truncate="no">
+   <sposet_collection type="bspline" href="../scf/pwscf_output/pwscf.pwscf.h5" tilematrix="1 0 0 0 1 0 0 0 1" twistnum="0" source="ion0" version="0.1" meshfactor="1.0" precision="float" truncate="no">
       <sposet type="bspline" name="spo_ud" size="4" spindataset="0">                             </sposet>
-   </sposet_builder>
+   </sposet_collection>
    <determinantset>
       <slaterdeterminant>
          <determinant id="updet" group="u" sposet="spo_ud" size="4"/>

@@ -224,9 +224,11 @@ class OptimizationAnalyzer(ResultAnalyzer):
             failed = abs(en[index])>Efail or abs(va[index])>Vfail or abs(va[index]/en[index])>EVratio_soft_fail 
 
             self.failed = failed
+            self.failed = False
             # In QMCPACK series the optimal parameters are off by 1 index
             opt_series -= 1
             self.optimal_series = opt_series
+            self.optimal_series = series[0]
             self.optimal_file = opts[opt_series].info.files.opt
             self.optimal_wavefunction = opts[opt_series].wavefunction.info.wfn_xml.copy()
         #end if
