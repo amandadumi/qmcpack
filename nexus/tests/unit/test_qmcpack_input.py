@@ -2061,7 +2061,6 @@ if versions.seekpath_available:
 
 
 def test_orbital_optimization():
-    print('in oo test')
     from nexus import generate_physical_system
     from nexus import generate_qmcpack_input
 
@@ -2080,37 +2079,40 @@ def test_orbital_optimization():
         )
     
     qmc_oo = generate_qmcpack_input(
-        input_type     = 'basic',
-        system         = dia,
-        opt_orbital    = True,
-        jastrows       = [],
-        qmc            = 'vmc',
-        pseudos        = ['C.BFD.xml'],
+        input_type       = 'basic',
+        system           = dia,
+        rotated_orbitals = True,
+        spin_polarized   = True,
+        jastrows         = [],
+        qmc              = 'vmc',
+        pseudos          = ['C.BFD.xml'],
         )
-    
-    sd_expected = '''<slaterdeterminant>
-   <determinant id="updet" group="u" sposet="rot_spo_ud" size="36"/>
-   <determinant id="downdet" group="d" sposet="rot_spo_ud" size="36"/>
-</slaterdeterminant>'''.strip()
-
-    sd_text = qmc_oo.get('slaterdeterminant').write().strip()
-    assert(sd_text==sd_expected)
-
 
     wf_expected ='''<wavefunction name="psi0" target="e">
    <sposet_collection type="bspline" href="MISSING.h5" tilematrix="3 0 0 0 1 0 0 0 3" twistnum="0" source="ion0" version="0.10" meshfactor="1.0" precision="float" truncate="no">
-      <rotated_sposet name="rot_spo_ud" method="global">
-         <sposet type="bspline" name="spo_ud" size="36" spindataset="0"/>
+      <rotated_sposet name="rot_spo_u" method="global">
+         <sposet type="bspline" name="spo_u" size="36" spindataset="0"/>
+      </rotated_sposet>
+      <rotated_sposet name="rot_spo_d" method="global">
+         <sposet type="bspline" name="spo_d" size="36" spindataset="1"/>
       </rotated_sposet>
    </sposet_collection>
    <determinantset>
       <slaterdeterminant>
-         <determinant id="updet" group="u" sposet="rot_spo_ud" size="36"/>
-         <determinant id="downdet" group="d" sposet="rot_spo_ud" size="36"/>
+         <determinant id="updet" group="u" sposet="rot_spo_u" size="36"/>
+         <determinant id="downdet" group="d" sposet="rot_spo_d" size="36"/>
       </slaterdeterminant>
    </determinantset>
-</wavefunction>'''.strip()
+</wavefunction>
+'''.strip()
 
     wf_text = qmc_oo.get('wavefunction').write().strip()
-    print(wf_text)
     assert(wf_text==wf_expected)
+
+    sd_expected = '''<slaterdeterminant>
+   <determinant id="updet" group="u" sposet="rot_spo_u" size="36"/>
+   <determinant id="downdet" group="d" sposet="rot_spo_d" size="36"/>
+</slaterdeterminant>
+'''.strip()
+    sd_text = qmc_oo.get('slaterdeterminant').write().strip()
+    assert(sd_text==sd_expected)

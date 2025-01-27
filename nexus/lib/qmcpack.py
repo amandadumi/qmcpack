@@ -765,6 +765,7 @@ class Qmcpack(Simulation):
                 #end if
 
             elif isinstance(sim,Convert4qmc):
+
                 res = QmcpackInput(result.location)
                 qs  = input.simulation.qmcsystem
                 oldwfn = qs.wavefunction
@@ -1274,7 +1275,7 @@ class Qmcpack(Simulation):
                         eigs_spin = edata[spin_channel].Energy
 
                         # Construct the correct set of occupied orbitals by hand based on
-                        # orb1 and orb that were input by the user
+                        # orb1 and orb2 values that were input by the user
                         excited = eigs_spin
                         order = eigs_spin.argsort()
                         ground = excited[order]
@@ -1592,7 +1593,6 @@ def generate_qmcpack(**kwargs):
         #end if
         inp_args.run_path = run_path
         sim_args.input = generate_qmcpack_input(**inp_args)
-        print('qmcpack in generate_qmcpack')
     #end if
     qmcpack = Qmcpack(**sim_args)
 

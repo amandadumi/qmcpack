@@ -4655,7 +4655,7 @@ def generate_bspline_builder(type           = 'bspline',
                              hybridrep      = None,
                              href           = 'MISSING.h5',
                              ions           = 'ion0',
-                             opt_orbital     = False,
+                             use_rotated_sposets     = False,
                              spo_up         = 'spo_u',
                              spo_down       = 'spo_d',
                              sposets        = None,
@@ -4693,9 +4693,9 @@ def generate_bspline_builder(type           = 'bspline',
         source     = ions,
         )
     
-    if opt_orbital == False:
+    if use_rotated_sposets == False:
         bsb.sposets = bare_sposets
-    elif opt_orbital == True:
+    elif use_rotated_sposets == True:
         print('we are in opt orbital place')
         builder_sposets = generate_rotated_sposets(sposets=bare_sposets)
         bsb.rotated_sposets = builder_sposets
@@ -7360,7 +7360,7 @@ gen_basic_input_defaults = obj(
     randomsrc      = True,            
     meshfactor     = 1.0,              
     orbspline      = None,             
-    opt_orbital    = False,
+    rotated_orbitals    = False,
     precision      = 'float',          
     twistnum       = None,             
     twist          = None,             
@@ -7404,7 +7404,7 @@ gen_basic_input_defaults = obj(
     J3_rcut        = 5.0,              
     J1_rcut_open   = 5.0,              
     J2_rcut_open   = 10.0,
-    driver         = 'batched', # legacy,batched
+    driver         = 'legacy', # legacy,batched
     # batched driver inputs
     orbitals_cpu   = None,     # place/evaluate orbitals on cpu if on gpu
     matrix_inv_cpu = None,     # evaluate matrix inverse on cpu if on gpu
@@ -7560,21 +7560,21 @@ def generate_basic_input(**kwargs):
                 #end if
             #end if
             ssb = generate_sposet_builder(
-                type           = kw.orbspline,
-                twist          = kw.twist,
-                twistnum       = kw.twistnum,
-                meshfactor     = kw.meshfactor,
-                precision      = kw.precision,
-                truncate       = kw.truncate,
-                buffer         = kw.buffer,
-                hybridrep      = kw.hybridrep,
-                href           = kw.orbitals_h5,
-                spin_polarized = kw.spin_polarized,
-                system         = kw.system,
-                opt_orbital    = kw.opt_orbital,
-                orbitals_cpu   = kw.orbitals_cpu,
-                gpusharing     = kw.gpusharing,
-                spinor         = kw.spinor,
+                type             = kw.orbspline,
+                twist            = kw.twist,
+                twistnum         = kw.twistnum,
+                meshfactor       = kw.meshfactor,
+                precision        = kw.precision,
+                truncate         = kw.truncate,
+                buffer           = kw.buffer,
+                hybridrep        = kw.hybridrep,
+                href             = kw.orbitals_h5,
+                spin_polarized   = kw.spin_polarized,
+                system           = kw.system,
+                use_rotated_sposets = kw.rotated_orbitals,
+                orbitals_cpu     = kw.orbitals_cpu,
+                gpusharing       = kw.gpusharing,
+                spinor           = kw.spinor,
                 )
         #end if
         if kw.partition is None:
@@ -7585,26 +7585,19 @@ def generate_basic_input(**kwargs):
                 partition_meshfactors = kw.partition_mf,
                 )
         #end if
-        if kw.opt_orbital:
-            dset = generate_determinantset(
-                sposets= ssb.rotated_sposets,
-                spin_polarized = kw.spin_polarized,
-                delay_rank     = kw.delay_rank,
-                det_batch      = kw.det_batch,
-                matrix_inv_cpu = kw.matrix_inv_cpu,
-                system         = kw.system,
-                spinor         = kw.spinor,
-              )
+        if kw.rotated_orbitals:
+            spos = ssb.rotated_sposets
         else:
-            dset = generate_determinantset(
-                sposets= ssb.sposets,
-                spin_polarized = kw.spin_polarized,
-                delay_rank     = kw.delay_rank,
-                det_batch      = kw.det_batch,
-                matrix_inv_cpu = kw.matrix_inv_cpu,
-                system         = kw.system,
-                spinor         = kw.spinor,
-                )
+            spos = ssb.sposets
+        dset = generate_determinantset(
+            sposets        = spos,
+            spin_polarized = kw.spin_polarized,
+            delay_rank     = kw.delay_rank,
+            det_batch      = kw.det_batch,
+            matrix_inv_cpu = kw.matrix_inv_cpu,
+            system         = kw.system,
+            spinor         = kw.spinor,
+            )
     elif kw.det_format=='old':
         spobuilders = None
         if kw.orbspline is None:
@@ -8044,7 +8037,7 @@ def generate_opt_jastrow_input(id  = 'qmc',
         twist          = twist          ,
         spin_polarized = spin_polarized ,
         orbitals_h5    = orbitals_h5    ,
-        opt_orbitals   = False          ,
+        rotated_orbitals   = False          ,
         system         = system         ,
         pseudos        = pseudos        ,
         jastrows       = jastrows       ,

@@ -840,7 +840,6 @@ class Simulation(NexusCore):
                         dep.results[result_name] = sim.get_result(result_name,sim)
                     else:
                         dep.results['other'] = obj()
-
                     #end if
                 #end for
             #end for
@@ -1270,7 +1269,6 @@ class Simulation(NexusCore):
                 #end if
             elif mode==modes.all:
                 if not self.setup:
-                    print("SIM: in set up")
                     self.write_inputs()
                     self.send_files(False)
                 #end if

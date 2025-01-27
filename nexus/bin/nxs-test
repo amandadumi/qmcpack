@@ -1294,6 +1294,8 @@ def qmcpack_input():
     nunit('generate_kspace_jastrow')
 
     nunit('excited_state')
+    
+    nunit('orbital_optimization')
 
     nunit_all()
 #end def qmcpack_input
