@@ -1307,6 +1307,7 @@ def test_generate():
         blocks          = 600,
         steps           =  5,
         timestep        = 0.005,
+        nonlocalmoves   = 'yes',
         )
     
     qi.pluralize()
@@ -1346,6 +1347,7 @@ def test_generate():
         blocks           = 600,
         steps            =  5,
         timestep         = 0.005,
+        nonlocalmoves   = 'yes',
         )
     
     qi.pluralize()
@@ -1918,13 +1920,13 @@ def test_excited_state():
         )
 
     expect = '''<slaterdeterminant>
-   <determinant id="updet" size="36">
-      <occupation mode="excited" spindataset="0" pairs="1" format="band">             
+   <determinant id="updet" sposet="spo-up" size="36">
+      <occupation mode="excited" pairs="1" format="band">             
 0 3 4 4
        </occupation>
    </determinant>
-   <determinant id="downdet" size="36">
-      <occupation mode="ground" spindataset="1"/>
+   <determinant id="downdet" sposet="spo-dn" size="36">
+      <occupation mode="ground"/>
    </determinant>
 </slaterdeterminant>'''.strip()
 
@@ -1944,13 +1946,13 @@ def test_excited_state():
         )
 
     expect = '''<slaterdeterminant>
-   <determinant id="updet" size="36">
-      <occupation mode="excited" spindataset="0" pairs="1" format="energy">             
+   <determinant id="updet" sposet="spo-up" size="36">
+      <occupation mode="excited" pairs="1" format="energy">             
 -35 36
         </occupation>
    </determinant>
-   <determinant id="downdet" size="36">
-      <occupation mode="ground" spindataset="1"/>
+   <determinant id="downdet" sposet="spo-dn" size="36">
+      <occupation mode="ground"/>
    </determinant>
 </slaterdeterminant>'''.strip()
 
@@ -1992,13 +1994,13 @@ if versions.seekpath_available:
             )
 
         expect = '''<slaterdeterminant>
-   <determinant id="updet" size="24">
-      <occupation mode="excited" spindataset="0" pairs="1" format="band">             
+   <determinant id="updet" sposet="spo-up" size="24">
+      <occupation mode="excited"  pairs="1" format="band">             
 0 5 3 6
        </occupation>
    </determinant>
-   <determinant id="downdet" size="24">
-      <occupation mode="ground" spindataset="1"/>
+   <determinant id="downdet" sposet="spo-d" size="24">
+      <occupation mode="ground"/>
    </determinant>
 </slaterdeterminant>'''.strip()
         text = qmc_optical.get('slaterdeterminant').write().strip()
@@ -2055,3 +2057,58 @@ if versions.seekpath_available:
     #end def test_symbolic_excited_state
 #end if
 
+
+def test_orbital_optimization():
+    print('in oo test')
+    from nexus import generate_physical_system
+    from nexus import generate_qmcpack_input
+
+    dia = generate_physical_system(
+        units     = 'A',
+        axes      = [[ 1.785,  1.785,  0.   ],
+                     [ 0.   ,  1.785,  1.785],
+                     [ 1.785,  0.   ,  1.785]],
+        elem      = ['C','C'],
+        pos       = [[ 0.    ,  0.    ,  0.    ],
+                     [ 0.8925,  0.8925,  0.8925]],
+        tiling    = [3,1,3], 
+        kgrid     = (1,1,1), 
+        kshift    = (0,0,0), 
+        C         = 4
+        )
+    
+    qmc_oo = generate_qmcpack_input(
+        input_type     = 'basic',
+        system         = dia,
+        opt_orbital    = True,
+        jastrows       = [],
+        qmc            = 'vmc',
+        pseudos        = ['C.BFD.xml'],
+        )
+    
+    sd_expected = '''<slaterdeterminant>
+   <determinant id="updet" group="u" sposet="rot_spo_ud" size="36"/>
+   <determinant id="downdet" group="d" sposet="rot_spo_ud" size="36"/>
+</slaterdeterminant>'''.strip()
+
+    sd_text = qmc_oo.get('slaterdeterminant').write().strip()
+    assert(sd_text==sd_expected)
+
+
+    wf_expected ='''<wavefunction name="psi0" target="e">
+   <sposet_collection type="bspline" href="MISSING.h5" tilematrix="3 0 0 0 1 0 0 0 3" twistnum="0" source="ion0" version="0.10" meshfactor="1.0" precision="float" truncate="no">
+      <rotated_sposet name="rot_spo_ud" method="global">
+         <sposet type="bspline" name="spo_ud" size="36" spindataset="0"/>
+      </rotated_sposet>
+   </sposet_collection>
+   <determinantset>
+      <slaterdeterminant>
+         <determinant id="updet" group="u" sposet="rot_spo_ud" size="36"/>
+         <determinant id="downdet" group="d" sposet="rot_spo_ud" size="36"/>
+      </slaterdeterminant>
+   </determinantset>
+</wavefunction>'''.strip()
+
+    wf_text = qmc_oo.get('wavefunction').write().strip()
+    print(wf_text)
+    assert(wf_text==wf_expected)

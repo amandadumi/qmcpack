@@ -1950,6 +1950,7 @@ class slaterdeterminant(QIxml):
 
 class determinant(QIxml):
     attributes = ['id','group','sposet','size','ref','spin','href','orbitals','spindataset','name','cuspinfo','debug']
+    elements   = ['occupation','coefficient']
     identifier = 'id'
     write_types = obj(debug=yesno)
 #end class determinant
@@ -3908,7 +3909,20 @@ class QmcpackInput(SimulationInput,Names):
             
         udet,ddet = self.get('updet','downdet')
 
+        if udet!=None:
+            udet.size = elns.up_electron.count
+        #end if
+        if ddet!=None:
+            ddet.size = elns.down_electron.count
+        #end if
 
+        if abs(net_spin) > 1e-1:
+            if ddet!=None:
+                ss = self.get('sposets')
+                ss[ddet.sposet].spindataset = 1
+                #end if
+            #end if
+        #end if
     #end def incorporate_system
         
     def get_electron_particle_set(self):
@@ -4543,8 +4557,6 @@ def generate_particlesets(electrons   = 'e',
 #end def generate_particlesets
 
 
-
-
 def generate_sposets(type           = None,
                      occupation     = None,
                      spin_polarized = False,
@@ -4809,62 +4821,11 @@ def partition_sposets(sposet_builder,partition,partition_meshfactors=None):
 
     return [ssb,cssb]
 #end def partition_sposets
-def generate_determinantset_new(up         = 'u',
-                            down           = 'd',
-                            sposets=[],
-                            delay_rank     = None,
-                            matrix_inv_cpu = None,
-                            system         = None,
-                            spinor         = None,
-                            ):
-    elns = system.particles.get_electrons()
-    nup  = elns.up_electron.count
-    ndn  = elns.down_electron.count
-    if not len(sposets)==1 and not len(sposets)==0:
-        sets = list(sposets.keys())
-        id_u = sposets[sets[0]]['name']
-        id_d = sposets[sets[1]]['name']
-    elif len(sposets)==1:
-        sets = list(sposets.keys())
-        id_u = sposets[sets[0]]['name']
-        id_d = sposets[sets[0]]['name']
-    elif len(sposets)==0:
-        print('probably something wrong')
-    # end if
-    
-    determinants_list = []
-    if nup > 0:
-        determinants_list.append(
-            determinant(
-                id     =  id_u,
-                group  = up,
-                )
-        )   
-    if ndn > 0:
-        determinants_list.append(
-            determinant(
-                id     = id_d,
-                group  = down,
-                )
-        )
-        dset = determinantset(
-        slaterdeterminant = slaterdeterminant(
-            determinants = collection(*determinants_list)
-            )
-        )
-    if delay_rank is not None:
-        dset.slaterdeterminant.delay_rank = delay_rank
-    #end if
-    if matrix_inv_cpu is not None and matrix_inv_cpu:
-        dset.slaterdeterminant.matrix_inverter = 'host'
-    #end if
-    return dset
-    
+
 
 def generate_determinantset(up             = 'u',
                             down           = 'd',
-                            spo_up         = 'spo_u',
-                            spo_down       = 'spo_d',
+                            sposets        =  [],
                             spin_polarized = False,
                             delay_rank     = None,
                             det_batch      = None,
@@ -4879,6 +4840,17 @@ def generate_determinantset(up             = 'u',
     nup  = elns.up_electron.count
     ndn  = elns.down_electron.count
     use_spinor = spinor is not None and spinor
+    if len(sposets)==1 and not spin_polarized and not use_spinor:
+        sets = list(sposets.keys())
+        spo_u = sposets[sets[0]]['name']
+        spo_d = sposets[sets[0]]['name']
+    elif len(sposets)>1:
+        sets = list(sposets.keys())
+        spo_u = sposets[sets[0]]['name']
+        spo_d = sposets[sets[1]]['name']
+    elif len(sposets)==0:
+        print('probably something wrong')
+    '''
     if not spin_polarized and nup==ndn and not use_spinor:  
         spo_u = 'spo_ud'
         spo_d = 'spo_ud'
@@ -4886,6 +4858,7 @@ def generate_determinantset(up             = 'u',
         spo_u = spo_up
         spo_d = spo_down
     #end if
+    '''
     determinants_list = []
     if not use_spinor:
         if nup > 0:
@@ -4894,6 +4867,7 @@ def generate_determinantset(up             = 'u',
                     id     = 'updet',
                     group  = up,
                     sposet = spo_u,
+                    size   = nup
                     )
             )
         #end if
@@ -4903,6 +4877,7 @@ def generate_determinantset(up             = 'u',
                     id     = 'downdet',
                     group  = down,
                     sposet = spo_d,
+                    size   =  ndn,
                     )
             )
         #end if
@@ -4913,6 +4888,7 @@ def generate_determinantset(up             = 'u',
                     id     = 'updet',
                     group  = up,
                     sposet = spo_u,
+                    size   = nup+ndn,
                     )
             )
         #end if
@@ -5068,6 +5044,8 @@ def generate_determinantset_old(type           = 'bspline',
                 determinant(
                     id   = 'updet',
                     sposet  = 'spo-up',
+                    size = nup,
+                    occupation=section(mode='ground')
                     ),
             )
         #end if
@@ -5076,6 +5054,8 @@ def generate_determinantset_old(type           = 'bspline',
                 determinant(
                     id   = 'downdet',
                     sposet  = 'spo-dn',
+                    size = ndn,
+                    occupation=section(mode='ground')
                     )
             )
         #end if
@@ -5085,6 +5065,8 @@ def generate_determinantset_old(type           = 'bspline',
                 determinant(
                     id   = 'updet',
                     sposet  = 'spo-up',
+                    size = nup+ndn,
+                    occupation=section(mode='ground')
                     ),
             )
         #end if
@@ -5246,7 +5228,8 @@ def generate_determinantset_old(type           = 'bspline',
             return dset
 
         #end if
-        occ = sdet.sposet.occupation
+
+        occ = sdet.occupation
         occ.pairs    = 1
         occ.mode     = 'excited'
         occ.contents = '\n'+exc2+'\n'
@@ -5569,10 +5552,9 @@ def process_dm1b_estimator(dm,wfname,wf_elem):
             else:
                 rsponame = det.id
             #end if
-            builders = QIcollections.get('sposet_collections')
             builders = wf.get('sposet_collections')
             if builders is None:
-                builders = [wf.sposet_collection.bspline]
+                builders = [wf.sposet_collections.bspline]
             #end if
             rspo = None
             for bld in builders:
@@ -7515,6 +7497,7 @@ def generate_basic_input(**kwargs):
     if kw.hybrid_rcut is not None or kw.hybrid_lmax is not None:
         kw.hybridrep = True
     #end if
+
     metadata = QmcpackInput.default_metadata.copy()
 
     proj = project(
@@ -7574,7 +7557,6 @@ def generate_basic_input(**kwargs):
                 #end if
                 if kw.run_path is not None:
                     kw.orbitals_h5 = os.path.relpath(kw.orbitals_h5,kw.run_path)
-
                 #end if
             #end if
             ssb = generate_sposet_builder(
@@ -7604,18 +7586,21 @@ def generate_basic_input(**kwargs):
                 )
         #end if
         if kw.opt_orbital:
-            dset = generate_determinantset_new(
+            dset = generate_determinantset(
                 sposets= ssb.rotated_sposets,
-                #spin_polarized = kw.spin_polarized,
+                spin_polarized = kw.spin_polarized,
                 delay_rank     = kw.delay_rank,
+                det_batch      = kw.det_batch,
                 matrix_inv_cpu = kw.matrix_inv_cpu,
                 system         = kw.system,
+                spinor         = kw.spinor,
               )
         else:
-            dset = generate_determinantset_new(
+            dset = generate_determinantset(
                 sposets= ssb.sposets,
-                #spin_polarized = kw.spin_polarized,
+                spin_polarized = kw.spin_polarized,
                 delay_rank     = kw.delay_rank,
+                det_batch      = kw.det_batch,
                 matrix_inv_cpu = kw.matrix_inv_cpu,
                 system         = kw.system,
                 spinor         = kw.spinor,
@@ -7739,7 +7724,6 @@ def generate_basic_input(**kwargs):
         wf_elem      = wfn,
         )
 
-
     qmcsys = qmcsystem(
         simulationcell  = simcell,
         wavefunction    = wfn,
@@ -7762,6 +7746,7 @@ def generate_basic_input(**kwargs):
     if kw.traces is not None:
         sim.traces = kw.traces
     #end if
+
     if len(kw.calculations)==0 and kw.qmc is not None:
         qmc_inputs = kw.obj(*qmc_keys)
         if kw.qmc=='opt':
@@ -7797,7 +7782,7 @@ def generate_basic_input(**kwargs):
             calc.use_nonlocalpp_deriv = True
         #end if
     #end for
-    print('made it to end of basic input')
+
     return qi
 #end def generate_basic_input
 
@@ -8071,6 +8056,7 @@ def generate_opt_jastrow_input(id  = 'qmc',
 
     return input
 #end def generate_opt_jastrow_input
+
 
 
 
