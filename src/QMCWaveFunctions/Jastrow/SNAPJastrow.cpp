@@ -79,6 +79,7 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name,const ParticleSet& ions, Pa
         name << "snap_coeff_" << i;
         name << "_"  << k ;
         myVars.insert(name.str(), snap_beta[i][k], true);
+        app_debug() << "atom type "<< i<< "coeff " <<k << " "<< snap_beta[i][k] << std::endl;
       }
     }
     resizeWFOptVectors();
@@ -99,6 +100,7 @@ void SNAPJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   app_debug() << "in set coefficients" <<std::endl;
   for (int i=0; i < id_coeffs.size(); i++){
     snap_beta[id][i] = id_coeffs[i];
+    app_debug()<< "snap coefficient for particle id: " << id << " is: " << id_coeffs[i]  <<std::endl;;
     myVars[(id*ncoeff) + i] = snap_beta[id][i];
   }
 
@@ -482,6 +484,11 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
 
 
   void SNAPJastrow::evaluateDerivRatios(const VirtualParticleSet& VP,const opt_variables_type& optvars, std::vector<ValueType>& ratios, Matrix<ValueType>& dratios){
+    app_log() << "inside evaluateDerivRatios" <<std::endl;
+    for (int dim = 0; dim < 3; dim ++){
+      lmp->atom->x[VP.refPtcl][dim] = VP.getRefPS().R[VP.refPtcl][dim]/bohr_over_ang;
+    }
+    sna_global->compute_array();
     evaluateRatios(VP,ratios);
     Vector<RealType> dlogpsi_nlpp_ref;
     dlogpsi_nlpp_ref.resize(myVars.size());
@@ -508,8 +515,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
           int ntype = int(k/ncoeff); 
           int coeff = k%ncoeff; 
           //calculate reference deriv
-          // are all particles up to date?
-          // update descriptor
           //linear derivs for ref
           if (coeff != 0){ // lmps isn't aware of beta 0 so start at 1 for bispectrum in qmcpack, convert for lmps
               dlogpsi_nlpp_ref[k] = -sna_global->array[0][(ntype*(ncoeff-1))+coeff-1]*hartree_over_ev;// dlogpsi will be bispectrum component 
@@ -554,6 +559,10 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
   void SNAPJastrow::evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios){
     ScopedTimer local_timer(timers_.eval_ratio_timer);
     double Eold, Enew;
+    for (int dim = 0; dim < 3; dim ++){ // move things back
+      lmp->atom->x[VP.refPtcl][dim] = VP.getRefPS().R[VP.refPtcl][dim]/bohr_over_ang;
+    }
+    sna_global->compute_array();
     calculate_ESNAP(VP.getRefPS(), sna_global, snap_beta, Eold);
     for (int r = 0; r < ratios.size(); r++){
      for (int dim= 0; dim < 3; dim++){
@@ -667,7 +676,6 @@ void SNAPJastrow::resetParametersExclusive(const opt_variables_type& active){
      ntype = int(i/ncoeff);
      coeff = i%ncoeff; 
      snap_beta[ntype][coeff] = myVars[i] = active[k_global];
-     app_debug() << "resetParametersExclusive snap beta is " << snap_beta[ntype][coeff] << std::endl;
     }
     }
   }

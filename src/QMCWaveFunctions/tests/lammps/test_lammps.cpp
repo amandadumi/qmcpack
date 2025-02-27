@@ -402,7 +402,7 @@ TEST_CASE("snap_jastrow_ion_nelec", "[wavefunction]"){
 
   const char * xmltext = R"XML(<tmp>
   <wavefunction name="psi0" target="e">
-  <jastrow name="snap" type="snap" function="snap" snap_type="quadratic" rcut="7">
+  <jastrow name="snap" type="snap" function="snap" snap_type="linear" rcut="7">
   </jastrow>
 </wavefunction>
 </tmp>)XML";
@@ -461,7 +461,7 @@ TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
 
   const char * xmltext = R"XML(<tmp>
   <wavefunction name="psi0" target="e">
-  <jastrow name="snap" type="snap" function="snap" snap_type="quadratic" rcut="7">
+  <jastrow name="snap" type="snap" function="snap" snap_type="linear" rcut="7">
   </jastrow>
 </wavefunction>
 </tmp>)XML";
@@ -484,47 +484,51 @@ TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
   REQUIRE(sj->snap_beta[0].size() == 6);
 };
 
-TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
-  Communicate* c = OHMMS::Controller;
-  std::cout<< "starting test for molecule" <<std::endl;
-  const SimulationCell simulation_cell;
-  ParticleSet ions(simulation_cell), electrons(simulation_cell);
-  electrons.create({1,1});
-  electrons.setName("e_u");
-  electrons.R[0][0] = 0.2;
-  electrons.R[0][1] = 0.2;
-  electrons.R[0][2] = 0.2;
-  electrons.R[1][0] = 0.1;
-  electrons.R[1][1] = 0.1;
-  electrons.R[1][2] = 0.1;
+// TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
+//   Communicate* c = OHMMS::Controller;
+//   std::cout<< "starting test for molecule" <<std::endl;
+//   const SimulationCell simulation_cell;
+//   ParticleSet ions(simulation_cell), electrons(simulation_cell);
+//   electrons.create({1,1});
+//   electrons.setName("e_u");
+//   electrons.R[0][0] = 0.2;
+//   electrons.R[0][1] = 0.2;
+//   electrons.R[0][2] = 0.2;
+//   electrons.R[1][0] = 0.1;
+//   electrons.R[1][1] = 0.1;
+//   electrons.R[1][2] = 0.1;
 
-  ions.create({1});
-  ions.setName("ions");
-  SpeciesSet& tspecies  = ions.getSpeciesSet();
-  int ion_a  = tspecies.addSpecies("H");
+//   ions.create({1});
+//   ions.setName("ions");
+//   SpeciesSet& tspecies  = ions.getSpeciesSet();
+//   int ion_a  = tspecies.addSpecies("H");
 
-  ions.R[0][0] = 0.0;
-  ions.R[0][1] = 0.0;
-  ions.R[0][2] = 0.0;
-  ions.update();
-  electrons.update();
+//   ions.R[0][0] = 0.0;
+//   ions.R[0][1] = 0.0;
+//   ions.R[0][2] = 0.0;
+//   ions.update();
+//   electrons.update();
   
-  const char * xmltext = R"XML(<tmp>
-  <wavefunction name="psi0" target="e">
-  <jastrow name="snap" type="snap" function="snap" snap_type="quadratic" rcut="7">
-  </jastrow>
-</wavefunction>
-</tmp>)XML";
+//   const char * xmltext = R"XML(<tmp>
+//   <wavefunction name="psi0" target="e">
+//   <jastrow name="snap" type="snap" function="snap" snap_type="linear" rcut="7">
+//   </jastrow>
+// </wavefunction>
+// </tmp>)XML";
 
-  Libxml2Document doc;
-  bool okay;
-  okay    = doc.parseFromString(xmltext);
-  REQUIRE(okay);
-  xmlNodePtr root = doc.getRoot();
-  xmlNodePtr jas_node = xmlFirstElementChild(root);
-  xmlNodePtr corr_node = xmlFirstElementChild(jas_node);
-  SNAPJastrowBuilder SJBuilder(c,electrons,ions);
-  auto sj_uptr = SJBuilder.buildComponent(corr_node);
-  SNAPJastrow* sj = static_cast<SNAPJastrow*>(sj_uptr.get());
-}
+//   Libxml2Document doc;
+//   bool okay;
+//   okay    = doc.parseFromString(xmltext);
+//   REQUIRE(okay);
+//   xmlNodePtr root = doc.getRoot();
+//   xmlNodePtr jas_node = xmlFirstElementChild(root);
+//   xmlNodePtr corr_node = xmlFirstElementChild(jas_node);
+//   SNAPJastrowBuilder SJBuilder(c,electrons,ions);
+//   auto sj_uptr = SJBuilder.buildComponent(corr_node);
+//   SNAPJastrow* sj = static_cast<SNAPJastrow*>(sj_uptr.get());
+
+//   double initial_lmp_x = 0.2*0.529177;
+//   double initial_lmp_y = 0.2*0.529177;
+//   double initial_lmp_z = 0.2*0.529177;
+// }
 }

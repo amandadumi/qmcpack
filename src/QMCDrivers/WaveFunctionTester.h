@@ -61,7 +61,7 @@ public:
 private:
   ParticleSetPool& PtclPool;
   ParticleSet::ParticlePos deltaR;
-  std::string checkRatio, checkClone, checkHamPbyP, sourceName, wftricks, checkEloc;
+  std::string checkRatio, checkClone, checkHamPbyP, sourceName, wftricks, checkEloc, singleParticleScan,record_wf_energy;
   std::string checkBasic, checkRatioV;
   xmlNodePtr myNode;
   double deltaParam;
@@ -83,6 +83,8 @@ private:
   void runRatioTest2();
   /** test ratios with virtual moves */
   void runRatioV();
+  void runSingleParticleScan();
+  void runRecordWFComponent();
   /** test clone implementations of new wavefunctions and operators */
   void runCloneTest();
   void runDerivTest();

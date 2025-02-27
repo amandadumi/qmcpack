@@ -49,6 +49,8 @@ WaveFunctionTester::WaveFunctionTester(const ProjectData& project_data,
       checkHamPbyP("no"),
       wftricks("no"),
       checkEloc("no"),
+      singleParticleScan("no"),
+      record_wf_energy("no"),
       checkBasic("yes"),
       checkRatioV("no"),
       deltaParam(0.0),
@@ -63,6 +65,8 @@ WaveFunctionTester::WaveFunctionTester(const ProjectData& project_data,
   m_param.add(sourceName, "source");
   m_param.add(wftricks, "orbitalutility");
   m_param.add(checkEloc, "printEloc");
+  m_param.add(singleParticleScan, "single_scan");
+  m_param.add(record_wf_energy, "record_wf_energy");
   m_param.add(checkBasic, "basic");
   m_param.add(checkRatioV, "virtual_move");
   m_param.add(deltaParam, "delta");
@@ -124,11 +128,12 @@ bool WaveFunctionTester::run()
     runCloneTest();
   else if (checkEloc != "no")
     printEloc();
-  else if (sourceName.size() != 0)
-  {
-    runGradSourceTest();
+  //else if (sourceName.size() != 0)
+  //{
+    //int x =0;
+    //runGradSourceTest();
     // runZeroVarianceTest();
-  }
+  //}
   else if (checkRatio == "deriv")
   {
     makeGaussRandom(deltaR);
@@ -151,12 +156,180 @@ bool WaveFunctionTester::run()
     runBasicTest();
   else if (checkRatioV == "yes")
     runRatioV();
+  else if (singleParticleScan == "yes"){
+    app_log() << "made it to single particllescan" << std::endl;
+    runSingleParticleScan();
+  }
+  else if (record_wf_energy == "yes"){
+    app_log() << "made it to run wf energy" << std::endl;
+    runRecordWFComponent();
+  }
   else
     app_log() << "No wavefunction test specified" << std::endl;
 
   //RealType ene = H.evaluate(W);
   //app_log() << " Energy " << ene << std::endl;
   return true;
+}
+
+
+void WaveFunctionTester::runRecordWFComponent(){
+
+  std::array<char, 32> fname;
+  if (std::snprintf(fname.data(), fname.size(), "wf_comp.dat", OHMMS::Controller->rank()) < 0)
+    throw std::runtime_error("Error generating filename");
+  FILE* fzout = fopen(fname.data(), "w");
+  
+  auto pit(PtclPool.getPool().find(sourceName));
+  app_log() << pit->first << std::endl;
+  ParticleSet& source = *((*pit).second);
+  int nat = W.getTotalNum();
+  //pick the first walker
+
+  // grid is specific to water in that it's ligned along the x axis so i want to sample y and z.
+  std::vector<int> Grid = {1,40,40};
+  /* while (kids != NULL)
+  {
+    std::string cname((const char*)(kids->name));
+    if (cname == "grid"){
+      std::cout<< "we found the grid parameter" <<std::endl;
+      putContent(Grid, kids);
+    }
+    kids = kids->next;
+  }
+  */
+
+  //Create the deltaR
+  RealType overG0(1.0/Grid[0]);
+  RealType overG1(1.0/Grid[1]);
+  RealType overG2(1.0/Grid[2]);
+
+  // I think this is creating a single particle position.
+  ParticleSet::ParticlePos R_cart(1);
+  R_cart.setUnit(PosUnit::Cartesian);
+  // I think this is creating a single particle position that can old information to map to a lattice?
+  ParticleSet::ParticlePos R_unit(1);
+  Walker_t& thisWalker(**(W.begin()));
+  app_log() << "initial electron positions are" <<std::endl;
+  app_log()<< thisWalker.R <<std::endl;
+  app_log() << "initial ion positions are" <<std::endl;
+  app_log()<< source.R <<std::endl;
+  
+  W.R = thisWalker.R;
+  W.update();
+  
+  auto& wf_list = Psi.getOrbitals(); // list of all trial components.
+  ValueType logpsi = Psi.evaluateLog(W); // actual logpsi of entire wavefunction.
+  std::vector<RealType> logpsivals;// container for the log of each trial component.
+  logpsivals.resize(wf_list.size());
+  Psi.getLogs(logpsivals);
+  for (int twf = 0; twf < logpsivals.size();twf++){
+   std::string psi_name;
+   psi_name = wf_list[twf]->getClassName();
+   fprintf(fzout,"%15s ",psi_name.c_str());
+   fprintf(fzout,"%15.12e %15.12e %15.12e ",W.R[0][0],W.R[0][1],W.R[0][2]);
+   fprintf(fzout,"%15.12e %15.12e %15.12e ",W.R[1][0],W.R[1][1],W.R[1][2]);
+   fprintf(fzout,"%15.12e %15.12e %15.12e ",source.R[0][0],source.R[0][1],source.R[0][2]);
+   fprintf(fzout, "%15.12e \n", logpsivals[twf]);
+  }
+  fprintf(fzout, "\n");
+}
+void WaveFunctionTester::runSingleParticleScan()
+{
+  app_log() << " ===== runSingleParticleScan =====\n";
+  xmlNodePtr kids = myNode->children;
+  // Find source ParticleSet
+  auto pit(PtclPool.getPool().find(sourceName));
+  app_log() << pit->first << std::endl;
+  ParticleSet& source = *((*pit).second);
+  int nat = W.getTotalNum();
+  //pick the first walker
+
+  // grid is specific to water in that it's ligned along the x axis so i want to sample y and z.
+  std::vector<int> Grid = {1,40,40};
+  /* while (kids != NULL)
+  {
+    std::string cname((const char*)(kids->name));
+    if (cname == "grid"){
+      std::cout<< "we found the grid parameter" <<std::endl;
+      putContent(Grid, kids);
+    }
+    kids = kids->next;
+  }
+  */
+  std::array<char, 32> fname;
+  if (std::snprintf(fname.data(), fname.size(), "sps.dat", OHMMS::Controller->rank()) < 0)
+    throw std::runtime_error("Error generating filename");
+  FILE* fzout = fopen(fname.data(), "w");
+
+  //Create the deltaR
+  RealType overG0(1.0/Grid[0]);
+  RealType overG1(1.0/Grid[1]);
+  RealType overG2(1.0/Grid[2]);
+
+  // I think this is creating a single particle position.
+  ParticleSet::ParticlePos R_cart(1);
+  R_cart.setUnit(PosUnit::Cartesian);
+  // I think this is creating a single particle position that can old information to map to a lattice?
+  ParticleSet::ParticlePos R_unit(1);
+  R_unit.setUnit(PosUnit::Lattice);
+  Walker_t& thisWalker(**(W.begin()));
+  app_log() << "initial electron positions are" <<std::endl;
+  app_log()<< thisWalker.R <<std::endl;
+  W.R = thisWalker.R;
+  //TODO define configuration here.
+  W.update();
+  
+  auto& wf_list = Psi.getOrbitals(); // list of all trial components.
+  ValueType logpsi = Psi.evaluateLog(W); // actual logpsi of entire wavefunction.
+
+  int iat = 0; // which atom are we moving.
+  RealType boxlen = 8.0; // how long from boxmin will we explore.
+  RealType boxmin = 2.5 - boxlen/2; // in bohr where does box start
+  std::vector<RealType> logpsivals;// container for the log of each trial component.
+  logpsivals.resize(wf_list.size());
+  //loop over grid points in dim 1
+    for (int i = 0; i < Grid[0]; i++){
+     //loop over grid points in dim 2?
+     for (int j = 0; j < Grid[1]; j++){
+      //loop over grid points in dim 3
+      for (int k = 0; k < Grid[2]; k++){
+        //Set up the distance covered in each direction
+        if (Grid[0]==1){
+          R_unit[0][0] = 0;
+        }
+        else {
+          R_unit[0][0] = boxmin +((boxlen*overG0) * RealType(i));
+        }
+        R_unit[0][1] = boxmin +((boxlen*overG1) * RealType(j));
+        R_unit[0][2] = boxmin +((boxlen*overG2) * RealType(k));
+        // Find the change in position of this particle to the new place. 
+        // here it is the first particle.
+        app_log() << "current R is " << R_unit << std::endl;
+        PosType dr(R_unit[0] - W.R[iat]);
+        // Use this to move to particle to that grid point
+        W.R[0] += dr;
+        W.update();
+        app_log() << "updated electron positions are" <<std::endl;
+        app_log() << W.R << std::endl;
+
+        Psi.evaluateLog(W);
+        //this should loop through the trial wave function and gather the logPsi for each component
+        Psi.getLogs(logpsivals);
+        for (int twf = 0; twf < logpsivals.size();twf++){
+         std::string psi_name;
+         psi_name = wf_list[twf]->getClassName();
+         fprintf(fzout,"%15s ",psi_name.c_str());
+         fprintf(fzout,"%8.3e %8.3e %8.3e ",W.R[iat][0],W.R[iat][1],W.R[iat][2]);
+         fprintf(fzout, "%16.8e \n", logpsivals[twf]);
+        }
+        fprintf(fzout, "\n");
+        W.rejectMove(iat);
+        Psi.rejectMove(iat);
+      } // end k loop
+
+    } //end j loop
+  } //end i loop
 }
 
 void WaveFunctionTester::runCloneTest()
@@ -330,7 +503,7 @@ public:
 
 
   /** Generate points to evaluate */
-  void finiteDifferencePoints(RealType delta, MCWalkerConfiguration& W, PosChangeVector& positions);
+  void finiteDifferencePoints(RealType delta, MCWalkerConfiguration& W, PosChangeVector& posituuu);
 
   /** Compute finite difference after log psi is computed for each point */
   void computeFiniteDiff(RealType delta,
@@ -1719,7 +1892,7 @@ void WaveFunctionTester::runDerivTest()
 
   //W.R += deltaR;
   W.update();
-  //ValueType psi = Psi.evaluate(W);
+  //ValueType psi = Psi.evaluate(W)
   Psi.evaluateLog(W);
   RealType eloc = H.evaluate(W);
   app_log() << "  HamTest "

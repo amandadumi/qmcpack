@@ -93,25 +93,21 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
             putContent2(snap_coeffs, xmlCoefs);
             app_log() << "  Read " << snap_coeffs.size() << " coefficients for type " << type << std::endl;
             std::cout << "SNAPJastrowBuilder::putkids -> parsed coeffs" << std::endl;
+            std::cout << "jtarget " << jtarget.getName() << " pset_id" << pset_id << std::endl;
 
             // ## hard coded mapping for He 2 elec
 
-            std::cout <<"species name is " << eSet.speciesName[0] << std::endl;
             
             int snap_beta_idx = 0;
             std::cout << jtarget.getName() <<std::endl;
-            if (jtarget.getName() == pset_id){
-             for (int es=0; es < eSet.speciesName.size(); es++){
-                if( spec_id == eSet.speciesName[es]){
-                    app_log() <<"species name is " << eSet.speciesName[es] << std::endl;
-                    std::cout <<"species name is " << eSet.speciesName[es] << std::endl;
-                    snap_beta_idx += es;
-                }
-             }
-             SJ.set_coefficients(snap_coeffs, snap_beta_idx);
+            for (int es=0; es < eSet.speciesName.size(); es++){
+              if( id_opt == eSet.speciesName[es]){
+                  app_log() <<"species name is " << eSet.speciesName[es] << std::endl;
+                  snap_beta_idx += es;
+              }
+            SJ.set_coefficients(snap_coeffs, snap_beta_idx);
             std::cout<< "SNAPJastrowBuilder::pukids -> after set coefficients" <<std::endl;
             }
-            else if (jsource->getName() == pset_id){
              for (int is=0; is < iSet.speciesName.size(); is++){
                 if( spec_id == iSet.speciesName[is]){
                   app_log() <<"species name is " << iSet.speciesName[is] << std::endl;
@@ -119,7 +115,6 @@ bool SNAPJastrowBuilder::putkids(xmlNodePtr kids, SNAPJastrow& SJ)
                 }
              }
              SJ.set_coefficients(snap_coeffs, snap_beta_idx);
-            }
           }
           xmlCoefs = xmlCoefs->next;
       }
