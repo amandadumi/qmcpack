@@ -40,7 +40,7 @@ public:
     ValueDerivVec lap_u;
 
     SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, ParticleSet& els, const std::string input_snap_type, int input_twojmax,double input_rcut);
-
+?
     ~SNAPJastrow();
 
     std::string getClassName() const override {return "SNAPJastrow";}
@@ -112,6 +112,8 @@ public:
     without having to internally change the lammps object.
     */
     void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, const std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ESNAP(const ParticleSet& P, std::vector<double> current_bispectrum, const std::vector<std::vector<double>> new_coeff, double& new_u);
+    void update_stored_snap();
     void calculate_ddc_gradlap_lammps(ParticleSet& P,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
@@ -149,7 +151,10 @@ public:
     const int myTableID;
     const ParticleSet& Ions;
     std::string snap_type;
+    double current_esnap;
     std::vector<std::vector<double>> snap_beta;
+    std::vector<double> current_bispectrum;
+    std::vector<std::vector<double>> current_bispectrum_gradient;
     double hartree_over_ev = 1.000000589/27.211399998784;
     double bohr_over_ang = 1/0.529177; //1.88973; 
     // global arrays
