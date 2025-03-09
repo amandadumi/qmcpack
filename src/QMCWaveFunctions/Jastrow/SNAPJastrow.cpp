@@ -197,8 +197,8 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
     }
     this_lmp->input->one(group_ints);
     this_lmp->input->one("variable	quadratic equal 0");
-    this_lmp->input->one("variable	bzero equal 1");
-    this_lmp->input->one("variable	switchflag equal 1");
+    this_lmp->input->one("variable	bzero equal 0");
+    this_lmp->input->one("variable	switchflag equal 0");
     snap_command = snap_command + rad_command + wj_command + " quadraticflag ${quadratic} bzeroflag ${bzero} switchflag ${switchflag}\"";
     this_lmp->input->one(snap_command);
 
@@ -322,6 +322,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
   }
 
     SNAPJastrow::GradType SNAPJastrow::evalGrad(ParticleSet& P, int iat){
+    for (int i = 0; i < Nelec; i++){
+      update_lmp_pos(P, lmp, i, false); //nothing in documentation suggests this is for a proposed move?
+    }
     GradType grad_iat;
     for (int dim=0; dim < 3; dim++){
      int row = (3*iat)+dim;
@@ -331,6 +334,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
          grad_iat[dim] += snap_beta[n][k]*current_bispectrum_gradient[row][col]*hartree_over_ev/bohr_over_ang;
        }
      }
+    }
+    for (int i = 0; i < Nelec; i++){
+      update_lmp_pos(P, lmp, i, false);
     }
     return grad_iat;
     }
@@ -576,6 +582,12 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
           int ntype = int(k/ncoeff); 
           int coeff = k%ncoeff; 
           //calculate reference deriv
+          // are all particles up to date?
+          for (int i = 0 ; i < Nelec; i ++){
+            update_lmp_pos(VP.getRefPS(), lmp, i, false); // make sure lmps objects positions are up to date with ref set
+          }
+          // update descriptor
+          sna_global->compute_array();
           //linear derivs for ref
           if (coeff != 0){ // lmps isn't aware of beta 0 so start at 1 for bispectrum in qmcpack, convert for lmps
               dlogpsi_nlpp_ref[k] = -current_bispectrum[(ntype*(ncoeff-1))+coeff-1]*hartree_over_ev;// dlogpsi will be bispectrum component 
@@ -715,7 +727,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
 void SNAPJastrow::extractOptimizableObjectRefs(UniqueOptObjRefs& opt_obj_refs){opt_obj_refs.push_back(*this);}
 
 void SNAPJastrow::checkInVariablesExclusive(opt_variables_type& active){
-  //myVars.setIndexDefault(); // I don't actually know what this is doing?
+  myVars.setIndexDefault(); // I don't actually know what this is doing?
   active.insertFrom(myVars);
 }
 

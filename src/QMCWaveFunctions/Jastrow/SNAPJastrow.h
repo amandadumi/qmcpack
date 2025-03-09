@@ -146,8 +146,8 @@ public:
     int ncoeff;
     int twojmax=2;
     double rcut=7;
-    double dist_delta = 0.0000001;
-    double coeff_delta = 0.0000001;
+    double dist_delta = 0.00000001;
+    double coeff_delta = 0.00000001;
     const int myTableID;
     const ParticleSet& Ions;
     std::string snap_type;
