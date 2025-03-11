@@ -12,6 +12,8 @@
 #include "modify.h"
 #include "compute.h"
 #include "compute_snap.h"
+#include "compute_sna_atom.h"
+#include "compute_snad_atom.h"
 #include "atom.h"
 #include "pair.h"
 #include "pair_snap.h"
@@ -110,7 +112,7 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSnap* snap_global, const std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSNAAtom* sna, const std::vector<std::vector<double>> new_coeff, double& new_u);
     void calculate_ESNAP(const ParticleSet& P, std::vector<std::vector<double>> current_bispectrum, const std::vector<std::vector<double>> new_coeff, double& new_u);
     void update_stored_snap();
     void calculate_ddc_gradlap_lammps(ParticleSet& P,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
@@ -157,7 +159,9 @@ public:
     double hartree_over_ev = 1.000000589/27.211399998784;
     double bohr_over_ang = 1/0.529177; //1.88973; 
     // global arrays
-    LAMMPS_NS::ComputeSnap* sna_global;
+    //LAMMPS_NS::ComputeSnap* sna_global;
+    LAMMPS_NS::ComputeSNAAtom* sna;
+    LAMMPS_NS::ComputeSNADAtom* snad;
     //lammps instance
     LAMMPS_NS::LAMMPS *lmp;
     MPI_Comm comm_lammps;
