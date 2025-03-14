@@ -65,7 +65,7 @@ public:
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
     void acceptMove(ParticleSet& P, int iat, bool safe_to_delay = false) override; 
 
-    inline void restore(int iat) override {}
+        void restore(int iat) override;
     /** From exsisting lammps object, get bispectrum components.
     | * 
     | */
@@ -94,7 +94,7 @@ public:
                                   bool fromscratch) override;
     
 
-    void computeGL(const ParticleSet& P);
+    void computeGL(const ParticleSet& P,int iel);
 
     LogValue evaluateLog(const ParticleSet& P, ParticleSet::ParticleGradient& G, ParticleSet::ParticleLaplacian& L) override;
     
