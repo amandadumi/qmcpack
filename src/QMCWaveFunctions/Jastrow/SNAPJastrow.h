@@ -65,7 +65,7 @@ public:
     /** Accpted move. Update Vat[iat],Grad[iat] and Lap[iat] */
     void acceptMove(ParticleSet& P, int iat, bool safe_to_delay = false) override; 
 
-        void restore(int iat) override;
+    void restore(int iat) override;
     /** From exsisting lammps object, get bispectrum components.
     | * 
     | */
@@ -113,8 +113,6 @@ public:
     without having to internally change the lammps object.
     */
     void calculate_ESNAP(const ParticleSet& P, LAMMPS_NS::ComputeSNAAtom* sna, const std::vector<std::vector<double>> new_coeff, double& new_u);
-    void calculate_ESNAP(const ParticleSet& P, std::vector<std::vector<double>> current_bispectrum, const std::vector<std::vector<double>> new_coeff, double& new_u);
-    void update_stored_snap();
     void calculate_ddc_gradlap_lammps(ParticleSet& P,  std::vector<std::vector<double>>& fd_coeff, std::vector<std::vector<double>>& bd_coeff, int cur_val);
     void update_lmp_pos(const ParticleSet& P,LAMMPS_NS::LAMMPS* lmp_pntr, int iat, bool proposed);
     void evaluate_fd_derivs(ParticleSet& P, int coeff_idx);
@@ -147,8 +145,8 @@ public:
     int ncoeff;
     int twojmax=2;
     double rcut=7;
-    double dist_delta = 0.00000001;
-    double coeff_delta = 0.00000001;
+    double dist_delta = 0.0000001;
+    double coeff_delta = 0.0000001;
     const int myTableID;
     const ParticleSet& Ions;
     std::string snap_type;
