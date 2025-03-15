@@ -152,10 +152,9 @@ public:
     const int myTableID;
     const ParticleSet& Ions;
     std::string snap_type;
-    double current_esnap;
+    double current_esnap=0;
     std::vector<std::vector<double>> snap_beta;
     std::vector<std::vector<double>> current_bispectrum;
-    std::vector<std::vector<double>> current_bispectrum_gradient;
     double hartree_over_ev = 1.000000589/27.211399998784;
     double bohr_over_ang = 1/0.529177; //1.88973; 
     // global arrays

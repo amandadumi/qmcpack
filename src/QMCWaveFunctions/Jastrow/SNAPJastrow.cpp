@@ -76,7 +76,6 @@ SNAPJastrow::SNAPJastrow(const std::string& obj_name, const ParticleSet& ions, P
     
     snap_beta = std::vector<std::vector<double>>(lmp->atom->ntypes, std::vector<double>(ncoeff,0.0));
     current_bispectrum = std::vector<std::vector<double>>(Nelec+Nions, std::vector<double>(ncoeff-1, 0.0));
-    current_bispectrum_gradient = std::vector<std::vector<double>>(Nelec+Nions, std::vector<double>(3*lmp->atom->ntypes*(ncoeff-1),0.0)); // 3*N x ntype*ncoeff
     for (int k = 0; k < ncoeff; k++){
       for (int i=0; i < lmp->atom->ntypes; i++){
         std::stringstream name;
@@ -240,9 +239,6 @@ LAMMPS_NS::LAMMPS* SNAPJastrow::initialize_lammps(const ParticleSet& els, double
   }
 
 double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, int ntype, const std::vector<std::vector<double>> coeffs, bool bispectrum_only){
-  for (int e=0 ; e< Nelec; e++)
-    update_lmp_pos(P,lmp,e,false);  
-  
   double G_finite_diff_forward;
   double G_finite_diff_back;
   // if taking wave function laplacian, we just need bispectrum component but for electron laplacian we use the snap coefficients.
@@ -313,7 +309,6 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
                                     ParticleSet::ParticleGradient& G,
                                     ParticleSet::ParticleLaplacian& L){
     ScopedTimer local_timer(timers_.eval_log_timer);
-    app_debug() << "in evaluateLog" <<std::endl;
     for (int e=0 ; e< Nelec; e++)
       update_lmp_pos(P, lmp, e, false);  
     sna->compute_peratom();
@@ -428,6 +423,9 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
 
   void SNAPJastrow::evaluate_linear_derivs(ParticleSet& P, int coeff_idx){
     app_debug() << "in linearderivs" <<std::endl;
+    for (int e=0 ; e < Nelec; e++)
+      update_lmp_pos(P,lmp,e,true);  
+    snad->compute_peratom();
     int ntype = int(coeff_idx/ncoeff);  
     int coeff = coeff_idx%ncoeff; //which coeff of this type are we on.
     if (coeff != 0){ // anything but beta 0 is the bispectrum component
@@ -700,7 +698,7 @@ double SNAPJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, in
     snad->compute_peratom();
     update_stored_snap(); 
     double esnap;
-    calculate_ESNAP(P, current_bispectrum, snap_beta, esnap);
+    calculate_ESNAP(P, sna,  snap_beta, esnap);
     current_esnap=esnap;
     log_value_ = static_cast<SNAPJastrow::LogValue>(esnap);
     computeGL(P,iat);
