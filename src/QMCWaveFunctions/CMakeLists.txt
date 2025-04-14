@@ -53,7 +53,10 @@ set(JASTROW_SRCS
     Jastrow/kSpaceJastrowBuilder.cpp
     Jastrow/RadialJastrowBuilder.cpp
     Jastrow/CountingJastrowBuilder.cpp
+    Jastrow/SNAJastrowBuilder.cpp
     Jastrow/RPAJastrow.cpp
+    Jastrow/SNAJastrow.cpp
+    Jastrow/SNADesc.cpp
     Jastrow/J1OrbitalSoA.cpp
     LatticeGaussianProduct.cpp
     LatticeGaussianProductBuilder.cpp)
