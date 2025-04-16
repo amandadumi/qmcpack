@@ -128,7 +128,8 @@ public:
     int ntypes;
     int twojmax=2;
     double rcut=7;
-    double rcutfac=0.99363;
+    double rcutfac=1.0;
+    double rfac0=0.99363;
     double rmin = 0;
     std::vector<std::vector<double>> rcutij;
     std::vector<int> type_map;
