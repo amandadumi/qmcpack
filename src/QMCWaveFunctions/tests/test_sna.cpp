@@ -52,37 +52,24 @@ TEST_CASE("sna_jastrow_update_rij", "[wavefunction]")
   int ee_table = electrons.addTable(electrons);
   int ei_table = electrons.addTable(ions);
   electrons.update();
-  std::vector<double> true_bispectrum{25.94907, 51.844575,    77.659852,     77.63319,     77.52618,    25.979614,    51.905603,    77.751273, 77.72458,    77.617449,    25.949069,   0.38461147};
 
-  const char * xmltext = R"(<tmp>
-  <jastrow name="snap" type="snap" function="snap" snap_type="linear" rcut="7">
-  </jastrow>
-</tmp>)";
-  Libxml2Document doc;
-  bool okay;
-  okay    = doc.parseFromString(xmltext);
-  REQUIRE(okay);
-
-  xmlNodePtr root = doc.getRoot();
-
-  xmlNodePtr jas_node = xmlFirstElementChild(root);
   auto jas = std::make_unique<SNAJastrow>(std::string("snap"),ions,electrons,std::string("linear"), 2, 7.0);
-  std::cout<< "initialiized object" <<std::endl;
-  jas->put(root); 
-  jas->evaluateLog(electrons, electrons.G, electrons.L);
+  std::cout<< "initialized object" <<std::endl;
+  //jas->evaluateLog(electrons, electrons.G, electrons.L);
   jas->update_sna_rij(electrons,0);
   double true_dist = 0.1;
   double internal_dist = electrons.getDistTableAA(ee_table).getDisplRow(1)[0][0];
-  REQUIRE(jas->sna_desc.rij[1][0] == Approx(true_dist));//elec1
-  REQUIRE(jas->sna_desc.rij[1][0] == Approx(internal_dist));//elec1
-  true_dist = -0.2;
-  internal_dist = electrons.getDistTableAB(ei_table).getDisplRow(0)[0][0];
-  REQUIRE(jas->sna_desc.rij[2][0] == Approx(true_dist));//elec1
-  REQUIRE(jas->sna_desc.rij[2][0] == Approx(internal_dist));//elec1
-  //update rij to reflect the ion
-  jas->update_sna_rij(electrons,2);
+  REQUIRE(jas->sna_desc.rij[0][0] == Approx(true_dist));//elec1
+  REQUIRE(jas->sna_desc.rij[0][0] == Approx(internal_dist));//elec1
+  // what about from electron 0 to ion 0?
   true_dist = 0.2;
   internal_dist = -electrons.getDistTableAB(ei_table).getDisplRow(0)[0][0];
+  REQUIRE(jas->sna_desc.rij[1][0] == Approx(true_dist));//elec1
+  REQUIRE(jas->sna_desc.rij[1][0] == Approx(internal_dist));//elec1
+  //update rij to reflect the ion
+  jas->update_sna_rij(electrons,2);
+  true_dist = -0.2;
+  internal_dist = electrons.getDistTableAB(ei_table).getDisplRow(0)[0][0];
   REQUIRE(jas->sna_desc.rij[0][0] == Approx(true_dist));//elec1
   REQUIRE(jas->sna_desc.rij[0][0] == Approx(internal_dist));//elec1
 
@@ -159,13 +146,13 @@ TEST_CASE("snap_jastrow_init_with_coeff", "[wavefunction]")
 TEST_CASE("snap_jastrow_check_bispectrum", "[wavefunction]")
 {
   Communicate* c = OHMMS::Controller;
-  std::cout<< "starting test" <<std::endl;
+  std::cout<< "starting snap_jastrow_check_bispectrum" <<std::endl;
 //   // short input xml check that lammps positions are correct.
   const SimulationCell simulation_cell;
   ParticleSet ions(simulation_cell), electrons(simulation_cell);
 
-  electrons.create({1,1});
   electrons.setName("e");
+  electrons.create({1,1});
   SpeciesSet& especies  = electrons.getSpeciesSet();
   int elec_up  = especies.addSpecies("e_u");
   int elec_down  = especies.addSpecies("e_d");
@@ -179,7 +166,7 @@ TEST_CASE("snap_jastrow_check_bispectrum", "[wavefunction]")
   ions.create({1});
   ions.setName("ions");
   SpeciesSet& tspecies  = ions.getSpeciesSet();
-  int ion_a  = tspecies.addSpecies("He");
+  int ion_a  = tspecies.addSpecies("H");
   ions.R[0][0] = 0.0;
   ions.R[0][1] = 0.0;
   ions.R[0][2] = 0.0;
@@ -189,37 +176,83 @@ TEST_CASE("snap_jastrow_check_bispectrum", "[wavefunction]")
   int ei_table = electrons.addTable(ions);
   electrons.update();
   
-  std::vector<double> true_bispectrum{25.94907, 51.844575,    77.659852,     77.63319,     77.52618,    25.979614,    51.905603,    77.751273, 77.72458,    77.617449,    25.949069,   0.38461147};
-  const char * xmltext = R"(<tmp>
-  <jastrow name="snap" type="snap" function="snap" snap_type="linear" rcut="7">
-  </jastrow>
-</tmp>)";
+ std::vector<double> true_bispectrum_e1 = {26.949,53.8442,80.6591,80.6323,80.5251};
+ std::vector<double> true_bispectrum_e2= {26.9796,53.9054,80.7507,80.7239,80.6166};
+ std::vector<double> true_bispectrum_ion = {26.949,53.8442,80.6591,80.6323,80.5251};
 
 
 
-  Libxml2Document doc;
-  bool okay;
-  okay    = doc.parseFromString(xmltext);
-  REQUIRE(okay);
-  
-  xmlNodePtr root = doc.getRoot();
-
-  xmlNodePtr jas_node = xmlFirstElementChild(root);
   auto jas = std::make_unique<SNAJastrow>(std::string("snap"), ions, electrons,std::string("linear"), 2, 7.0);
-  jas->put(root); 
-  jas->evaluateLog(electrons, electrons.G, electrons.L);
   jas->update_sna_rij(electrons,0);
   double true_dist = 0.1;
   double internal_dist = electrons.getDistTableAA(ee_table).getDisplRow(1)[0][0];
-  REQUIRE(jas->sna_desc.rij[1][0] == Approx(true_dist));//elec1
+  REQUIRE(jas->sna_desc.rij[0][0] == Approx(internal_dist));//elec1
+  REQUIRE(jas->sna_desc.rij[0][0] == Approx(true_dist));//elec1
+  std::cout<< "snap_jastrow_check_bispectrum before compute_bispectrum" <<std::endl;
   jas->compute_bispectrum(0);
   std::cout<< "bisepctrum entry is"<< jas->sna[0][0] <<std::endl;
   std::cout<< "bisepctrum entry is"<< jas->sna[0][1] <<std::endl;
   std::cout<< "bisepctrum entry is"<< jas->sna[0][2] <<std::endl;
-  REQUIRE(jas->sna[0][0] == Approx(true_bispectrum[0]));//elec1
+  std::cout<< "bisepctrum entry is"<< jas->sna[0][3] <<std::endl;
+  std::cout<< "bisepctrum entry is"<< jas->sna[0][4] <<std::endl;
+  REQUIRE(jas->sna[0][0] == Approx(true_bispectrum_e1[0]));//elec1
+  jas->update_sna_rij(electrons,1);
+  jas->compute_bispectrum(1);
+  REQUIRE(jas->sna[1][1] == Approx(true_bispectrum_e2[1]));//elec1
+  jas->update_sna_rij(electrons,2);
+  jas->compute_bispectrum(2);
+  REQUIRE(jas->sna[2][2] == Approx(true_bispectrum_ion[2]));//elec1
   jas->compute_bispectrum(0);
 }
 
+TEST_CASE("snap_jastrow_check_d_dr_bispectrum", "[wavefunction]")
+{
+  Communicate* c = OHMMS::Controller;
+  std::cout<< "starting snap_jastrow_check_d_dr_bispectrum" <<std::endl;
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+
+  electrons.setName("e");
+  electrons.create({1,1});
+  SpeciesSet& especies  = electrons.getSpeciesSet();
+  int elec_up  = especies.addSpecies("e_u");
+  int elec_down  = especies.addSpecies("e_d");
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1;
+  electrons.R[1][2] = 0.1;
+
+  ions.create({1});
+  ions.setName("ions");
+  SpeciesSet& tspecies  = ions.getSpeciesSet();
+  int ion_a  = tspecies.addSpecies("H");
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.update();
+
+  int ee_table = electrons.addTable(electrons);
+  int ei_table = electrons.addTable(ions);
+  electrons.update();
+  
+ std::vector<double> true_d_dr_bispectrum_e1 = {0.385492,1.10836, 2.33577, 2.50294, 3.17617, 0.385492, 1.10836, 2.33577, 2.50294, 3.17617, 0.385492, 1.10836, 2.33577, 2.50294, 3.17617, 0.12866, 0.59546, 1.56795, 1.73551, 2.41027, 0.12866, 0.59546, 1.56795, 1.73551, 2.41027, 0.12866, 0.59546, 1.56795, 1.73551, 2.41027, 0.25693, 0.851232, 1.95008, 2.11725, 2.79048, 0.25693, 0.851232, 1.95008, 2.11725, 2.79048, 0.25693, 0.851232, 1.95008, 2.11725,2.79048};
+ std::vector<double> true_d_dr_bispectrum_e2= { -0.128562, -0.257125, -0.385687, -0.385687, -0.385687, -0.128562, -0.257125, -0.385687, -0.385687, -0.385687, -0.128562, -0.257125, -0.385687, -0.385687, -0.385687, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.128562, 0.257125, 0.385687, 0.385687, 0.385687, 0.128562, 0.257125, 0.385687, 0.385687, 0.385687, 0.128562, 0.257125, 0.385687, 0.385687, 0.385687};
+ std::vector<double> true_d_dr_bispectrum_ion = {-0.25693, -0.851232, -1.95008, -2.11725, -2.79048, -0.25693, -0.851232, -1.95008, -2.11725, -2.79048, -0.25693, -0.851232, -1.95008, -2.11725, -2.79048, -0.12866, -0.59546, -1.56795, -1.73551, -2.41027, -0.12866, -0.59546, -1.56795, -1.73551, -2.41027, -0.12866, -0.59546, -1.56795, -1.73551, -2.41027, -0.385492, -1.10836, -2.33577, -2.50294, -3.17617, -0.385492, -1.10836, -2.33577, -2.50294, -3.17617, -0.385492, -1.10836, -2.33577, -2.50294, -3.17617};
+
+  auto jas = std::make_unique<SNAJastrow>(std::string("snap"), ions, electrons,std::string("linear"), 2, 7.0);
+  jas->update_sna_rij(electrons,0);
+  double true_dist = 0.1;
+  double internal_dist = electrons.getDistTableAA(ee_table).getDisplRow(1)[0][0];
+  REQUIRE(jas->sna_desc.rij[0][0] == Approx(internal_dist));//elec1
+  REQUIRE(jas->sna_desc.rij[0][0] == Approx(true_dist));//elec1
+  std::cout<< "everything is okay until the gradient call?"<<std::endl;
+  jas->compute_d_dr_bispectrum(0);
+  std::cout<< "d_dr_bisepctrum entry is"<< jas->snad[0][2] <<std::endl;
+  std::cout<< "d_dr_bisepctrum entry is"<< jas->snad[0][3] <<std::endl;
+  REQUIRE(jas->sna[0][0] == Approx(true_d_dr_bispectrum_e1[0]));//elec1
+}
 TEST_CASE("snap_jastrow_checkinvariables ", "[wavefunction]"){
   Communicate* c = OHMMS::Controller;
   std::cout<< "starting test" <<std::endl;

@@ -11,6 +11,7 @@ namespace qmcplusplus
       void SNADesc::init(int Npart, int input_twojmax,double input_rcut){
       twojmax = input_twojmax;
       nelements = 1;
+      nmax = Npart -1;
       rmin0 = 0.0;
       compute_ncoeff();
       build_indexlist();
@@ -19,7 +20,7 @@ namespace qmcplusplus
       init_clebsch_gordan();
       init_rootpqarray();
 
-     rij = std::vector<std::vector<double>>(Npart,std::vector<double>(3,0.0));
+     rij = std::vector<std::vector<double>>(nmax,std::vector<double>(3,0.0));
      inside = std::vector<int>(Npart,Npart);
      wj = std::vector<double>(Npart,1.0);
      rcutij = std::vector<double>(Npart,1.0);
@@ -43,6 +44,8 @@ namespace qmcplusplus
   dblist = std::vector<std::vector<double>>(idxb_max*ntriples,std::vector<double>(3,0));
   ylist_r = std::vector<double>(idxu_max*nelements, 0.0);
   ylist_i = std::vector<double>(idxu_max*nelements, 0.0);
+  ulist_r_ij = std::vector<std::vector<double>>(nmax, std::vector<double>(idxu_max,0.0));
+  ulist_i_ij = std::vector<std::vector<double>>(nmax, std::vector<double>(idxu_max,0.0));
 }
 
   void SNADesc::compute_ncoeff()
@@ -103,7 +106,6 @@ namespace qmcplusplus
   //   utot(j,ma,mb) += u(r0;j,ma,mb) for all j,ma,mb
 
   zero_uarraytot(ielem);
-//  std::cout<< "SNADesc::compute_ui after zero_uarraytot call" <<std::endl;
   for (int j = 0; j < jnum; j++) {
     x = rij[j][0];
     y = rij[j][1];
@@ -114,7 +116,7 @@ namespace qmcplusplus
     theta0 = (r - rmin0) * rfac0 * mypi / (rcutij[j] - rmin0);
     //    theta0 = (r - rmin0) * rscale0;
     z0 = r / tan(theta0);
-    // std::cout <<"x "<< x<<" y "<<y<<" z " <<z<<" r " <<r<<" theta0 "<<theta0<<" z0 "<<z0<<std::endl;
+    //std::cout <<"x "<< x<<" y "<<y<<" z " <<z<<" r " <<r<<" theta0 "<<theta0<<" z0 "<<z0<<std::endl;
 
     compute_uarray(x, y, z, z0, r, j);
 //  std::cout<< "SNADesc::compute_ui after compute_uarray call" <<std::endl;
@@ -124,8 +126,12 @@ namespace qmcplusplus
       add_uarraytot(r, wj[j], rcutij[j], j, 0);
   }
   // std::cout << "ulistot_i is " <<std::endl;
+   //for (int i = 0; i < idxu_max*nelements; ++i){
+   //  std::cout << ulisttot_i[i] << " " ;
+  // }
+  // std::cout << "ulistot_r is " <<std::endl;
   // for (int i = 0; i < idxu_max*nelements; ++i){
-  // ////  std::cout << ulisttot_i[i] << " " ;
+  //   std::cout << ulisttot_r[i] << " " ;
   // }
 
 }
@@ -257,7 +263,7 @@ namespace qmcplusplus
     }
 }
     void SNADesc::compute_zi(){
-   //  std::cout<< "SNADesc::compute_zi entered function" <<std::endl;
+     std::cout<< "SNADesc::compute_zi entered function" <<std::endl;
 
   int idouble = 0;
   //double * zptr_r;
@@ -284,9 +290,8 @@ namespace qmcplusplus
         const int mb2max = idxz[jjz].mb2max;
         const int nb = idxz[jjz].nb;
         //std::cout<< "SNADesc::compute_zi accessed the snaindex z struct okay"<<std::endl;
-        // std::cout << j1<< " "<< j2<< " "<< j<<" " <<ma1min<<" " <<ma2max<<" " <<na<<" " <<mb1min<<" " <<mb2max<<std::endl;
+       //  std::cout << j1<< " "<< j2<< " "<< j<<" " <<ma1min<<" " <<ma2max<<" " <<na<<" " <<mb1min<<" " <<mb2max<<std::endl;
 
-        //const double cgblock = cglist[idxcg_block[j1][j2][j]];
         int cgblock = idxcg_block[j1][j2][j];
 
         zlist_r[zidx + jjz] = 0.0;
@@ -306,19 +311,22 @@ namespace qmcplusplus
           //const double *u2_r = &ulisttot_r[elem2*idxu_max+jju2];
           //const double *u2_i = &ulisttot_i[elem2*idxu_max+jju2];
           int u1 = elem1*idxu_max+jju1;
-          int u2 = elem1*idxu_max+jju1;
+          int u2 = elem2*idxu_max+jju2;
 
           int ma1 = ma1min;
           int ma2 = ma2max;
           int icga = ma1min * (j2 + 1) + ma2max;
+           //std::cout << icga <<std::endl;
           for (int ia = 0; ia < na; ia++) {
+             //std::cout<< cglist[cgblock+icga]<<std::endl;
+             //std::cout<< ulisttot_r[u1+ma1] << " "<< ulisttot_r[u2+ma2] <<" " << ulisttot_i[u1+ma1] <<" "<< ulisttot_i[u2+ma2]<<std::endl;
             suma1_r += cglist[cgblock+ icga] * (ulisttot_r[u1+ma1] * ulisttot_r[u2+ma2] - ulisttot_i[u1+ma1] * ulisttot_i[u2+ma2]);
             suma1_i += cglist[cgblock+ icga] * (ulisttot_r[u1+ma1] * ulisttot_i[u2+ma2] + ulisttot_i[u1+ma1] * ulisttot_r[u2+ma2]);
             ma1++;
             ma2--;
             icga += j2;
           } // end loop over ia
-          // std::cout<< "sum_a1_i is " << suma1_i << std::endl;
+          //std::cout<< "sum_a1_i is " << suma1_i << std::endl;
           zlist_r[zidx+jjz] += cglist[cgblock + icgb] * suma1_r;
           zlist_i[zidx+jjz] += cglist[cgblock + icgb] * suma1_i;
 
@@ -400,7 +408,7 @@ namespace qmcplusplus
             //const double *u2_r = &ulisttot_r[elem2*idxu_max+jju2];
             //const double *u2_i = &ulisttot_i[elem2*idxu_max+jju2];
             int u1 = elem1*idxu_max+jju1;
-            int u2 = elem1*idxu_max+jju2;
+            int u2 = elem2*idxu_max+jju2;
 
             int ma1 = ma1min;
             int ma2 = ma2max;
@@ -582,7 +590,6 @@ namespace qmcplusplus
   //        dbdr(j1,j2,j) += 2*zdb*(j+1)/(j2+1)
 
   int db_idx;
-  std::vector<double> dudr_r, dudr_i;
   std::vector<double> sumzdu_r =  std::vector<double>(3,0.0);
   int jjz, jju;
 
@@ -825,67 +832,67 @@ namespace qmcplusplus
 
 }
 
-    void SNADesc::compute_duidrj(std::vector<double> rij, double wj, double rcut, int jj, int jelem){
-   //  std::cout<< "SNADesc::compute_duidrj entered function" <<std::endl;
-  double rsq, r, x, y, z, z0, theta0, cs, sn;
-  double dz0dr;
+  void SNADesc::compute_duidrj(std::vector<double> rij, double wj, double rcut, int jj, int jelem){
+    std::cout<< "SNADesc::compute_duidrj entered function" <<std::endl;
+    double rsq, r, x, y, z, z0, theta0, cs, sn;
+    double dz0dr;
 
-  x = rij[0];
-  y = rij[1];
-  z = rij[2];
- // std::cout<< "SNADesc::compute_duidrj xyz is "<<x<<" "<<y<<" "<<z<<std::endl;
-  rsq = x * x + y * y + z * z;
-  r = std::sqrt(rsq);
-  double rscale0 = rfac0 * mypi / (rcut - rmin0);
-  theta0 = (r - rmin0) * rscale0;
-  cs = std::cos(theta0);
-  sn = std::sin(theta0);
-  z0 = r * cs / sn;
-  dz0dr = z0 / r - (r*rscale0) * (rsq + z0 * z0) / rsq;
+    x = rij[0];
+    y = rij[1];
+    z = rij[2];
+   std::cout<< "SNADesc::compute_duidrj xyz is "<<x<<" "<<y<<" "<<z<<std::endl;
+    rsq = x * x + y * y + z * z;
+    r = std::sqrt(rsq);
+    double rscale0 = rfac0 * mypi / (rcut - rmin0);
+    theta0 = (r - rmin0) * rscale0;
+    cs = std::cos(theta0);
+    sn = std::sin(theta0);
+    z0 = r * cs / sn;
+    dz0dr = z0 / r - (r*rscale0) * (rsq + z0 * z0) / rsq;
+  std::cout<< "SNADesc::compute_duidrj okay up to compute_duarray"<<std::endl;
 
   elem_duarray = jelem;
   compute_duarray(x, y, z, z0, r, dz0dr, wj, rcut, jj);
 }
 
     void SNADesc::init_rootpqarray(){
-  std::cout<< "SNADesc:: in rootpqarray" <<std::endl;
-  for (int p = 1; p <= twojmax; p++)
-    for (int q = 1; q <= twojmax; q++){
-      rootpqarray[p][q] = std::sqrt(static_cast<double>(p)/q);
+      for (int p = 1; p <= twojmax; p++)
+        for (int q = 1; q <= twojmax; q++){
+          rootpqarray[p][q] = std::sqrt(static_cast<double>(p)/q);
+        }
     }
-}
+
     void SNADesc::zero_uarraytot(int ielem){
       for (int jelem = 0; jelem < nelements; jelem++)
       for (int j = 0; j <= twojmax; j++) {
         int jju = idxu_block[j];
-        //std::cout << "the value of jju in compute_ui is " << jju << std::endl;
         for (int mb = 0; mb <= j; mb++) {
           for (int ma = 0; ma <= j; ma++) {
             ulisttot_r[jelem*idxu_max+jju] = 0.0;
             ulisttot_i[jelem*idxu_max+jju] = 0.0;
 
-            // utot(j,ma,ma) = wself, sometimes
-            if (jelem == ielem || wselfall_flag)
-              // std::cout << "we are in this wselfall_flag area"<< std::endl;
+            if (jelem == ielem || wselfall_flag){
+              //std::cout << "we are in this wselfall_flag area"<< std::endl;
+              //std::cout << "wself is "<< wself << std::endl;
               if (ma==mb)
                 ulisttot_r[jelem*idxu_max+jju] = wself; ///// double check this
-              //std::cout <<  ulisttot_r[jelem*idxu_max+jju];
+            }
             jju++;
           }
         }
       }
       //std::cout << std::endl;
-  }
+    }
+
     void SNADesc::add_uarraytot(double r, double wj, double rcut, int jj, int jelem){
 
+       std::cout << "SNA::add_uarraytot" << std::endl;
       double sfac;
 
       sfac = compute_sfac(r, rcut);
 
       sfac *= wj;
-      // std::cout << "sfac is " << sfac << std::endl;
-    std::vector<double> ulist_r = ulist_r_ij[jj];
-    std::vector<double> ulist_i = ulist_i_ij[jj];
+       std::cout << "sfac is " << sfac << std::endl;
       // std::cout << "ulist_r "<< std::endl;
       for (int j = 0; j <= twojmax; j++) {
         int jju = idxu_block[j];
@@ -894,147 +901,146 @@ namespace qmcplusplus
             // std::cout << " " << ulist_r[jju] << std::endl;
             // std::cout << jelem*idxu_max+jju << std::endl;
             ulisttot_r[jelem*idxu_max+jju] +=
-              sfac * ulist_r[jju];
+              sfac * ulist_r_ij[jj][jju];
             ulisttot_i[jelem*idxu_max+jju] +=
-              sfac * ulist_i[jju];
+              sfac * ulist_i_ij[jj][jju];
             jju++;
             // std::cout << " " << ulist_r[jju] << std::endl;
             // std::cout << "jj " << jj <<" jju" << jju<<std::endl;
 
           }
+      }
     }
-
-  // std::cout<<std::endl;
-  // std::cout << "ulistot_r is " <<std::endl;
-  // for (int i = 0; i < idxu_max*nelements; ++i){
-  //   std::cout << ulisttot_r[i] << " " ;
-  // }
-  // std::cout<<std::endl;
-}
     void SNADesc::compute_uarray(double x, double y, double z, double z0, double r, int jj){
-  //std::cout<< "SNADesc::compute_uarray" <<std::endl;
-  double r0inv;
-  double a_r, b_r, a_i, b_i;
-  double rootpq;
+    //std::cout<< "SNADesc::compute_uarray" <<std::endl;
+    double r0inv;
+    double a_r, b_r, a_i, b_i;
+    double rootpq;
 
-  // compute Cayley-Klein parameters for unit quaternion
+    // compute Cayley-Klein parameters for unit quaternion
 
-  r0inv = 1.0 / std::sqrt(r * r + z0 * z0);
-  a_r = r0inv * z0;
-  a_i = -r0inv * z;
-  b_r = r0inv * y;
-  b_i = -r0inv * x;
-  // std::cout<< "weird ar things:" <<std::endl;
-  // std::cout << "a_r " << a_r <<" a_i " << a_i <<" b_r "<< b_r <<" b_i"<<b_i << std::endl;
-  // VMK Section 4.8.2
+    r0inv = 1.0 / std::sqrt(r * r + z0 * z0);
+    a_r = r0inv * z0;
+    a_i = -r0inv * z;
+    b_r = r0inv * y;
+    b_i = -r0inv * x;
+    // std::cout<< "weird ar things:" <<//std::endl;
+    std::cout << "a_r " << a_r <<" a_i " << a_i <<" b_r "<< b_r <<" b_i"<<b_i << std::endl;
+    // VMK Section 4.8.2
 
 
 
-  ulist_r_ij[jj][0] = 1.0;
-  ulist_i_ij[jj][0] = 0.0;
+    ulist_r_ij[jj][0] = 1.0;
+    ulist_i_ij[jj][0] = 0.0;
 
-  for (int j = 1; j <= twojmax; j++) {
+    for (int j = 1; j <= twojmax; j++) {
 
-    int jju = idxu_block[j];
-    // std::cout<< "jju is " << jju <<std::endl;
-    int jjup = idxu_block[j-1];
-    // std::cout<< "jjup is " << jjup <<std::endl;
+      int jju = idxu_block[j];
+      // std::cout<< "jju is " << jju <<std::endl;
+      int jjup = idxu_block[j-1];
+      // std::cout<< "jjup is " << jjup <<std::endl;
 
-    // fill in left side of matrix layer from previous layer
+      // fill in left side of matrix layer from previous layer
 
-    for (int mb = 0; 2*mb <= j; mb++) {
-      // std::cout << "jju is " << jju << " !!"<<std::endl;
-      // std::cout << "jjup is " << jjup << " !!"<<std::endl;
-      ulist_r_ij[jj][jju] = 0.0;
-      ulist_i_ij[jj][jju] = 0.0;
+      for (int mb = 0; 2*mb <= j; mb++) {
+         //std::cout << "jju is " << jju << " !!"<<std::endl;
+         //std::cout << "jjup is " << jjup << " !!"<<std::endl;
+        ulist_r_ij[jj][jju] = 0.0;
+        ulist_i_ij[jj][jju] = 0.0;
 
-      for (int ma = 0; ma < j; ma++) {
-        rootpq = rootpqarray[j - ma][j - mb];
-        ulist_r_ij[jj][jju] +=
-          rootpq *
-          (a_r * ulist_r_ij[jj][jjup] +
-           a_i * ulist_i_ij[jj][jjup]);
-         // std::cout << "first term is " << a_r * ulist_r[jjup] << std::endl;
-         // std::cout << "second term is " << a_i * ulist_i[jjup] << std::endl;
-         // std::cout << "rootpq is " << rootpq << std::endl;
-         // std::cout << "ulist_r of jjup " << ulist_r[jjup] <<std::endl;
-         // std::cout << "ulist_i of jjup " << ulist_i[jjup] <<std::endl<<std::endl;
-         // std::cout << "ulist_rij at jj " << jj << " and jju " <<jju << " is " << ulist_r[jju] <<std::endl<<std::endl;
-        ulist_i_ij[jj][jju] +=
-          rootpq *
-          (a_r * ulist_i_ij[jj][jjup] -
-           a_i * ulist_r_ij[jj][jjup]);
-           // std::cout << "first term is " << a_r * ulist_i[jjup] << std::endl;
-           // std::cout << "second term is " << a_i * ulist_r[jjup] << std::endl;
-           // std::cout << "ulist_i_ij at jj " << jj << " and jju " <<jju << " is " << ulist_i[jju] <<std::endl;
-        rootpq = rootpqarray[ma + 1][j - mb];
-        ulist_r_ij[jj][jju+1] =
-          -rootpq *
-          (b_r * ulist_r_ij[jj][jjup] +
-           b_i * ulist_i_ij[jj][jjup]);
-           // std::cout << "rootpq is " << rootpq << std::endl;
-           // std::cout << "first term is " << b_r * ulist_r[jjup] << std::endl;
-           // std::cout << "second term is " << b_i * ulist_i[jjup] << std::endl;
-           // std::cout << "ulist_r_ij at jj " << jj << " and jju (+1) " << jju << " is " << ulist_r[jju+1] <<std::endl;
-        ulist_i_ij[jj][jju+1] =
-          -rootpq *
-          (b_r * ulist_i_ij[jj][jjup] -
-           b_i * ulist_r_ij[jj][jjup]);
-           // std::cout << "first term is " << b_r * ulist_i[jjup] << std::endl;
-           // std::cout << "second term is " << b_i * ulist_r[jjup] << std::endl;
-           // std::cout << "ulist_r_rij at jj " << jj << " and jju (+1) " << jju << " is " << ulist_i[jju+1] <<std::endl;
-        jju++;
-        jjup++;
-      }
-      jju++;
-    }
-
-    // copy left side to right side with inversion symmetry VMK 4.4(2)
-    // u[ma-j][mb-j] = (-1)^(ma-mb)*Conj([u[ma][mb])
-
-    jju = idxu_block[j];
-    jjup = jju+(j+1)*(j+1)-1;
-    // std::cout << "jjup is " <<jjup << std::endl;
-    int mbpar = 1;
-    for (int mb = 0; 2*mb <= j; mb++) {
-      int mapar = mbpar;
-      for (int ma = 0; ma <= j; ma++) {
-        // std::cout << "for ma " << ma << "  mapar is " << mapar <<std::endl;
-        if (mapar == 1) {
-          ulist_r_ij[jj][jjup] = ulist_r_ij[jj][jju];
-          ulist_i_ij[jj][jjup] = -ulist_i_ij[jj][jju];
-        } else {
-          ulist_r_ij[jj][jjup] = -ulist_r_ij[jj][jju];
-          ulist_i_ij[jj][jjup] = ulist_i_ij[jj][jju];
+        for (int ma = 0; ma < j; ma++) {
+          rootpq = rootpqarray[j - ma][j - mb];
+          ulist_r_ij[jj][jju] +=
+            rootpq *
+            (a_r * ulist_r_ij[jj][jjup] +
+            a_i * ulist_i_ij[jj][jjup]);
+          // std::cout << "first term is " << a_r * ulist_r_ij[jj][jjup] << std::endl;
+          // std::cout << "second term is " << a_i * ulist_i_ij[jj][jjup] << std::endl;
+          // std::cout << "rootpq is " << rootpq << std::endl;
+          // std::cout << "ulist_r of jjup " << ulist_r[jjup] <<std::endl;
+          // std::cout << "ulist_i of jjup " << ulist_i[jjup] <<std::endl<<std::endl;
+           //std::cout << "ulist_rij at jj " << jj << " and jju " <<jju << " is " << ulist_r_ij[jj][jju] <<std::endl<<std::endl;
+          ulist_i_ij[jj][jju] +=
+            rootpq *
+            (a_r * ulist_i_ij[jj][jjup] -
+            a_i * ulist_r_ij[jj][jjup]);
+             //std::cout << "first term is " << a_r * ulist_i_ij[jj][jjup] << std::endl;
+            // std::cout << "second term is " << a_i * ulist_r_ij[jj][jjup] << std::endl;
+            // std::cout << "ulist_i_ij at jj " << jj << " and jju " <<jju << " is " << ulist_i_ij[jj][jju] <<std::endl;
+          rootpq = rootpqarray[ma + 1][j - mb];
+          ulist_r_ij[jj][jju+1] =
+            -rootpq *
+            (b_r * ulist_r_ij[jj][jjup] +
+            b_i * ulist_i_ij[jj][jjup]);
+            // std::cout << "rootpq is " << rootpq << std::endl;
+            // std::cout << "first term is " << b_r * ulist_r_ij[jj][jjup] << std::endl;
+            // std::cout << "second term is " << b_i * ulist_i_ij[jj][jjup] << std::endl;
+            // std::cout << "ulist_r_ij at jj " << jj << " and jju (+1) " << jju << " is " << ulist_r_ij[jj][jju+1] <<std::endl;
+          ulist_i_ij[jj][jju+1] =
+            -rootpq *
+            (b_r * ulist_i_ij[jj][jjup] -
+            b_i * ulist_r_ij[jj][jjup]);
+             //std::cout << "first term is " << b_r * ulist_i_ij[jj][jjup] << std::endl;
+            // std::cout << "second term is " << b_i * ulist_r_ij[jj][jjup] << std::endl;
+            //std::cout << "ulist_r_rij at jj " << jj << " and jju (+1) " << jju << " is " << ulist_i_ij[jj][jju+1] <<std::endl;
+          jju++;
+          jjup++;
         }
-        mapar = -mapar;
         jju++;
-        jjup--;
       }
-      mbpar = -mbpar;
+
+      // copy left side to right side with inversion symmetry VMK 4.4(2)
+      // u[ma-j][mb-j] = (-1)^(ma-mb)*Conj([u[ma][mb])
+
+      jju = idxu_block[j];
+      jjup = jju+(j+1)*(j+1)-1;
+      // std::cout << "jjup is " <<jjup << std::endl;
+      int mbpar = 1;
+      for (int mb = 0; 2*mb <= j; mb++) {
+        int mapar = mbpar;
+        for (int ma = 0; ma <= j; ma++) {
+          // std::cout << "for ma " << ma << "  mapar is " << mapar <<std::endl;
+          if (mapar == 1) {
+            ulist_r_ij[jj][jjup] = ulist_r_ij[jj][jju];
+            ulist_i_ij[jj][jjup] = -ulist_i_ij[jj][jju];
+          } else {
+            ulist_r_ij[jj][jjup] = -ulist_r_ij[jj][jju];
+            ulist_i_ij[jj][jjup] = ulist_i_ij[jj][jju];
+          }
+          mapar = -mapar;
+          jju++;
+          jjup--;
+        }
+        mbpar = -mbpar;
+      }
+    }
+    std::cout << "ulist_i_ij" <<std::endl;
+     for (int i = 0; i <nmax; i++){
+       for (int j = 0;j< idxu_max;j++){
+         std::cout << ulist_i_ij[i][j] << " ";
+       }
+       std::cout << std::endl <<std::endl;
+     }
+    
+    std::cout << "ulist_r_ij" <<std::endl;
+    for (int i = 0; i <nmax; i++){
+      for (int j = 0;j< idxu_max;j++){
+        std::cout << ulist_r_ij[i][j] << " ";
+      }
+      std::cout << std::endl<< std::endl;
     }
   }
-  // std::cout << "ulist_i_ij" <<std::endl;
-  // for (int i = 0; i <nmax; i++){
-  //   for (int j = 0;j< idxu_max;j++){
-  //     std::cout << ulist_i_ij[i][j] << " ";
-  //   }
-  //   std::cout << std::endl <<std::endl;
-  // }
-  //
-  // std::cout << "ulist_r_ij" <<std::endl;
-  // for (int i = 0; i <nmax; i++){
-  //   for (int j = 0;j< idxu_max;j++){
-  //     std::cout << ulist_i_ij[i][j] << " ";
-  //   }
-  //   std::cout << std::endl<< std::endl;
-  // }
-}
     void SNADesc::compute_duarray(double x, double y, double z,
                           double z0, double r, double dz0dr,
                           double wj, double rcut, int jj)
  {
-//  std::cout<< "SNADesc::compute_duarray" <<std::endl;
+  std::cout<< "SNADesc::compute_duarray" <<std::endl;
+  std::cout<< "input_args: " << "z0 " << z0 <<   std::endl;
+  std::cout<< "input_args: " << "r " << r <<   std::endl;
+  std::cout<< "input_args: " << "dz0dr " << dz0dr   <<std::endl;
+  std::cout<< "input_args: " << "wj " << wj<<  std::endl;
+  std::cout<< "input_args: " << "rcut " <<rcut<<  std::endl;
+  std::cout<< "input_args: " << "jj " <<jj<<   std::endl;
   double r0inv;
   double a_r, a_i, b_r, b_i;
   double da_r[3], da_i[3], db_r[3], db_i[3];
@@ -1077,9 +1083,6 @@ namespace qmcplusplus
   db_i[0] += -r0inv;
   db_r[1] += r0inv;
 
-  std::vector<double> ulist_r = ulist_r_ij[jj];
-  std::vector<double> ulist_i = ulist_i_ij[jj];
-
   dulist_r[0][0] = 0.0;
   dulist_r[0][1] = 0.0;
   dulist_r[0][2] = 0.0;
@@ -1090,6 +1093,8 @@ namespace qmcplusplus
   for (int j = 1; j <= twojmax; j++) {
     int jju = idxu_block[j];
     int jjup = idxu_block[j-1];
+    std::cout<< " ulist_r is " << ulist_r_ij[jj][jjup]<<std::endl;
+    std::cout<< " ulist_i is " << ulist_i_ij[jj][jjup]<<std::endl;
     for (int mb = 0; 2*mb <= j; mb++) {
       dulist_r[jju][0] = 0.0;
       dulist_r[jju][1] = 0.0;
@@ -1101,17 +1106,15 @@ namespace qmcplusplus
       for (int ma = 0; ma < j; ma++) {
         rootpq = rootpqarray[j - ma][j - mb];
         for (int k = 0; k < 3; k++) {
-        //  std::cout<< " ulist is " << ulist_r[jjup]<<std::endl;
-        //  std::cout<< " ulist is " << da_r[k]<<std::endl;
-        //  std::cout<< " ulist is " << a_r<<std::endl;
+          std::cout<< " da_k is " << da_r[k]<<std::endl;
           dulist_r[jju][k] +=
-            rootpq * (da_r[k] * ulist_r[jjup] +
-                      da_i[k] * ulist_i[jjup] +
+            rootpq * (da_r[k] * ulist_r_ij[jj][jjup] +
+                      da_i[k] * ulist_i_ij[jj][jjup] +
                       a_r * dulist_r[jjup][k] +
                       a_i * dulist_i[jjup][k]);
           dulist_i[jju][k] +=
-            rootpq * (da_r[k] * ulist_i[jjup] -
-                      da_i[k] * ulist_r[jjup] +
+            rootpq * (da_r[k] * ulist_i_ij[jj][jjup] -
+                      da_i[k] * ulist_r_ij[jj][jjup] +
                       a_r * dulist_i[jjup][k] -
                       a_i * dulist_r[jjup][k]);
         }
@@ -1119,13 +1122,13 @@ namespace qmcplusplus
         rootpq = rootpqarray[ma + 1][j - mb];
         for (int k = 0; k < 3; k++) {
           dulist_r[jju+1][k] =
-            -rootpq * (db_r[k] * ulist_r[jjup] +
-                       db_i[k] * ulist_i[jjup] +
+            -rootpq * (db_r[k] * ulist_r_ij[jj][jjup] +
+                       db_i[k] * ulist_i_ij[jj][jjup] +
                        b_r * dulist_r[jjup][k] +
                        b_i * dulist_i[jjup][k]);
           dulist_i[jju+1][k] =
-            -rootpq * (db_r[k] * ulist_i[jjup] -
-                       db_i[k] * ulist_r[jjup] +
+            -rootpq * (db_r[k] * ulist_i_ij[jj][jjup] -
+                       db_i[k] * ulist_r_ij[jj][jjup] +
                        b_r * dulist_i[jjup][k] -
                        b_i * dulist_r[jjup][k]);
         }
@@ -1172,17 +1175,17 @@ namespace qmcplusplus
     int jju = idxu_block[j];
     for (int mb = 0; 2*mb <= j; mb++)
       for (int ma = 0; ma <= j; ma++) {
-        dulist_r[jju][0] = dsfac * ulist_r[jju] * ux +
+        dulist_r[jju][0] = dsfac * ulist_r_ij[jj][jju] * ux +
                                   sfac * dulist_r[jju][0];
-        dulist_i[jju][0] = dsfac * ulist_i[jju] * ux +
+        dulist_i[jju][0] = dsfac * ulist_i_ij[jj][jju] * ux +
                                   sfac * dulist_i[jju][0];
-        dulist_r[jju][1] = dsfac * ulist_r[jju] * uy +
+        dulist_r[jju][1] = dsfac * ulist_r_ij[jj][jju] * uy +
                                   sfac * dulist_r[jju][1];
-        dulist_i[jju][1] = dsfac * ulist_i[jju] * uy +
+        dulist_i[jju][1] = dsfac * ulist_i_ij[jj][jju] * uy +
                                   sfac * dulist_i[jju][1];
-        dulist_r[jju][2] = dsfac * ulist_r[jju] * uz +
+        dulist_r[jju][2] = dsfac * ulist_r_ij[jj][jju] * uz +
                                   sfac * dulist_r[jju][2];
-        dulist_i[jju][2] = dsfac * ulist_i[jju] * uz +
+        dulist_i[jju][2] = dsfac * ulist_i_ij[jj][jju] * uz +
                                   sfac * dulist_i[jju][2];
         jju++;
       }

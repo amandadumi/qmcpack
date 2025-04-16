@@ -28,7 +28,7 @@ class SNADesc
       std::vector<double>rcutij;
       std::vector<std::vector<double>> rij;
       std::vector<int> element;    // index on [0,nelements)
-      std::vector<int> nmax;
+      int nmax;
       int twojmax;
       std::vector<double> ylist_r, ylist_i;
       int idxcg_max, idxu_max, idxz_max, idxb_max;
@@ -81,8 +81,7 @@ class SNADesc
       double factorial(int n);
 
   
-      double wself;
-
+      double wself=1;
       int bzero_flag;       // 1 if bzero subtracted from barray
       int elem_duarray;       // 1 if bzero subtracted from barray
       std::vector<double> bzero;        // array of B values for isolated atoms
@@ -92,8 +91,8 @@ class SNADesc
       int nelements;        // number of elements
       int ndoubles;         // number of multi-element pairs
       int ntriples;         // number of multi-element triplets
-      double mypi = 3.14159;
-      double rfac0 = .99; // rfac0_in;
+      double mypi = 3.14159265359;
+      double rfac0 = .99363; // rfac0_in;
       double rmin0 = 0.0; //rmin0_in;
       int switch_flag = 1;//switch_flag_in;
 };
