@@ -30,7 +30,6 @@ class SNADesc
       std::vector<int> element;    // index on [0,nelements)
       int nmax;
       int twojmax;
-      std::vector<double> ylist_r, ylist_i;
       int idxcg_max, idxu_max, idxz_max, idxb_max;
 
 
@@ -40,8 +39,6 @@ class SNADesc
       double compute_dsfac(double r, double rcut);
       void compute_ui(int jnum,int ielem);
       void compute_zi();
-      void compute_yi(std::vector<double> beta);
-      void compute_yterm();
       void compute_bi(int ielem);
       void compute_duidrj(std::vector<double>rij,
                           double wj, double rcut, 

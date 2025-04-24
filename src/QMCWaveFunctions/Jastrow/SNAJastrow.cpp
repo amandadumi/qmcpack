@@ -47,10 +47,9 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
    // create object for 2snap descriptor
     ntypes = NIonGroups+els.groups(); 
     app_debug()<<"entering snap function" <<std::endl;
-    sna_desc.init(Nelec+Nions,input_twojmax,input_rcut);
+    sna_desc.init(Nelec+Nions, input_twojmax, input_rcut);
     ii_Table_ID_ = Ions.addTable(Ions); 
 
-    
     twojmax = input_twojmax;
     if (twojmax%2==0){
       int m = (twojmax/2)+1;
@@ -125,6 +124,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
 
 
  double SNAJastrow::FD_Lap(const ParticleSet& P, int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs, bool bispectrum_only){
+  app_debug() << "SNAPJastrow::FD_Lap entered function " <<std::endl;
   double G_finite_diff_forward;
   double G_finite_diff_back;
   // if taking wave function laplacian, we just need bispectrum component but for electron laplacian we use the snap coefficients.
@@ -132,31 +132,70 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   if (not bispectrum_only){
     this_coeff = coeffs[ntype][coeff];
   }
-  update_sna_rij(P, iat);
-  compute_bispectrum(iat);
   int col = (ntype*(3*ncoeff))+(dim*ncoeff)+coeff;
-  RealType r0 = P.R[iat][dim]/bohr_over_ang;
-  //forward direction
-  RealType rp = r0 + (dist_delta/bohr_over_ang);
-  for (int j= 0; j < Nions+Nelec; j++){
-       sna_desc.rij[j][dim] += rp;
-  }
-  compute_bispectrum(iat);
-  compute_d_dr_bispectrum(iat);
 
-  G_finite_diff_forward = this_coeff * snad[iat][col] * hartree_over_ev/bohr_over_ang;
-  
-  //backward direction
-  RealType rm  = r0 - (dist_delta/bohr_over_ang);
-  for (int j= 0; j < Nions+Nelec;j++){
-       sna_desc.rij[j][dim] += rm;
+  //forward direction
+  // clear snad array
+  for (int part = 0; part < Nelec+Nions; part++) 
+    for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+      snad[part][entry] = 0.0;
+  // create the descriptor for all particles. We can optimize this, but this is lazy way for now. should reduce this to just loop over particles in ntype.
+  for (int par = 0; par < Nions + Nelec; par++){
+    update_sna_rij(P, par,false);// update sna_rij  
+    if (par == iat) // if the rij we are creating is from par == iat, shift all of rij
+      for (int j= 0; j < Nions+Nelec-1; j++)
+        sna_desc.rij[j][dim] += dist_delta;
+    else // if rij par !=iat then we just need to update the row corresponding to iat.
+      for (int j= 0; j < Nions+Nelec-1; j++)
+          if (sna_desc.inside[j] == iat)
+            sna_desc.rij[j][dim] -= dist_delta; // switch sign to go from other perspective.
+    // change the sign for rij for the snad contribution.
+    for (int i = 0; i < Nelec+Nions-1; i ++)
+      for (int j = 0; j < 3; j ++)
+        sna_desc.rij[i][j]*=-1.0;
+    compute_d_dr_bispectrum(par);
   }
-  compute_bispectrum(iat);
-  compute_d_dr_bispectrum(iat);
-  G_finite_diff_back = this_coeff * snad[iat][col] * hartree_over_ev/bohr_over_ang;
-  //fill L
-  double finite_diff_lap = (G_finite_diff_forward - G_finite_diff_back)/(2*dist_delta); 
-  
+  G_finite_diff_forward = -this_coeff * snad[iat][col];
+  // back to normal sign for next bispectrum
+
+
+
+
+  //backward direction
+  for (int part = 0; part < Nelec+Nions; part++) 
+    for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+      snad[part][entry] = 0.0;
+  for (int par = 0; par < Nions + Nelec; par++){
+    update_sna_rij(P, par,false); // update sna_rij  
+    if (par == iat) // if the rij we are creating is from par == iat, shift all of rij
+      for (int j= 0; j < Nions+Nelec-1; j++)
+        sna_desc.rij[j][dim] -= dist_delta;
+    else // if rij par !=iat then we just need to update the row corresponding to iat.
+      for (int j= 0; j < Nions+Nelec-1; j++)
+          if (sna_desc.inside[j] == iat)
+            sna_desc.rij[j][dim] += dist_delta; // switch sign to go from other perspective.
+    // change the sign for rij for the snad contribution.
+    for (int i = 0; i < Nelec+Nions-1; i ++)
+      for (int j = 0; j < 3; j ++)
+        sna_desc.rij[i][j]*=-1.0;
+    compute_d_dr_bispectrum(par);
+  }
+  G_finite_diff_back = -this_coeff * snad[iat][col];
+
+  double finite_diff_lap = -(G_finite_diff_forward - G_finite_diff_back)/(2*dist_delta); 
+
+  // put initial position back in place
+  for (int part = 0; part < Nelec+Nions; part++) 
+    for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+      snad[part][entry] = 0.0;
+  for (int par = 0; par < Nions + Nelec; par++){
+    update_sna_rij(P, par,false);// update sna_rij  
+    for (int i = 0; i < Nelec+Nions-1; i ++)
+      for (int j = 0; j < 3; j ++)
+        sna_desc.rij[i][j]*=-1.0;
+    compute_d_dr_bispectrum(par);
+  }
+  app_debug() << "SNAPJastrow::FD_Lap at end of function " <<std::endl;
   return finite_diff_lap;
  }
 
@@ -170,11 +209,11 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   }
  
   void SNAJastrow::computeGL(const ParticleSet& P, int iel){
-    app_debug() << "SNAJastrow::evaluateLog entered function" <<std::endl;
+    app_debug() << "SNAJastrow::computeGL entered function" <<std::endl;
     ScopedTimer local_timer(timers_.eval_gl_timer);
     double grad_val;
     int row,col;
-    row = iel;             // get the derivative of a specific component with regards to the change in r of this particle. 
+    row = iel; // get the derivative with respect to r of a specific particle. 
     // reset the internal array
     grad_u[iel] = 0;
     lap_u[iel] = 0;
@@ -188,8 +227,9 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
           col = (n*(3*ncoeff))+(dim*ncoeff)+k;
           grad_val = snad[row][col];
           //app_debug() << "grad val is " << grad_val << std::endl;
-          // in snap global, the force is stored (i.e. -dB/dr) which is the correct sign since we are taking the negative of Esnap expression
-          grad_u[iel][dim] += snap_beta[n][k]*grad_val*hartree_over_ev/bohr_over_ang;
+          // we are calculating db/dr, but since we are using -e_sna, the gradient also needs explicit sign change 
+          grad_u[iel][dim] += snap_beta[n][k]*grad_val;
+          // the sign change is incorporated in the finite difference step
           lap_u[iel] += FD_Lap(P, iel, dim, k, n, snap_beta, false);
         } // end dim loop
       }// end k loop
@@ -203,38 +243,47 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                                     ParticleSet::ParticleLaplacian& L){
     app_debug() << "SNAJastrow::evaluateLog entered function" <<std::endl;
     ScopedTimer local_timer(timers_.eval_log_timer);
-    for (int e=0 ; e< Nelec; e++){
-        app_debug() << "SNAJastrow::evaluateLog in particle " << e  <<std::endl;
-        update_sna_rij(P, e);  
-        compute_bispectrum(e);
-        compute_d_dr_bispectrum(e);
-    }
     double esnap;
-    calculate_ESNA(P, snap_beta, esnap);
-        app_debug() << "SNAJastrow::evaluated esnap" <<std::endl;
+    calculate_ESNA(P, snap_beta, esnap,false);
     log_value_ = static_cast<SNAJastrow::LogValue>(esnap);
-    for (int iel = 0; iel < Nelec; iel++) {
-      computeGL(P,iel);
-      G[iel] += grad_u[iel];
-      L[iel] += lap_u[iel];
+    for (int part = 0; part < Nelec+Nions; part++) 
+      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+        snad[part][entry] = 0.0;
+    //update all of SNAD 
+    for (int par = 0; par < Nions + Nelec; par++){
+      update_sna_rij(P, par,false);  
+      for (int i = 0; i < Nelec+Nions-1; i ++)
+        for (int j = 0; j < 3; j ++)
+          sna_desc.rij[i][j]*=-1.0;
+      compute_d_dr_bispectrum(par);
     }
+    for (int e=0 ; e< Nelec; e++){
+        computeGL(P,e);
+        G[e] += grad_u[e];
+        L[e] += lap_u[e];
+    }
+    app_debug() << "SNAJastrow::evaluateLog evalutated GL" <<std::endl;
     return log_value_;
   }
 
     SNAJastrow::GradType SNAJastrow::evalGrad(ParticleSet& P, int iat){
     app_debug() << "in SNAJastrow::evalGrad" <<std::endl;
-
-    for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e);  
-      compute_d_dr_bispectrum(e);
+    
+    for (int par = 0; par < Nions + Nelec; par++){
+      update_sna_rij(P, par,false);  
+      for (int i = 0; i < Nelec+Nions-1; i ++)
+        for (int j = 0; j < 3; j ++)
+          sna_desc.rij[i][j]*=-1.0;
+      compute_d_dr_bispectrum(par);
     }
+
     GradType grad_iat;
     for (int dim=0; dim < 3; dim++){
      int row = (3*iat) + dim;
      for (int k = 0; k < ncoeff ; k++){
        for (int n = 0; n < ntypes; n++){
          int col = (n * (3*ncoeff) ) + (dim*ncoeff) + k;
-         grad_iat[dim] += snap_beta[n][k]*snad[iat][col];
+         grad_iat[dim] -= snap_beta[n][k]*snad[iat][col];
        }
      }
     }
@@ -279,10 +328,16 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
 
   void SNAJastrow::evaluateDerivativesWF(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi){
     app_debug() << "in evalderivativeWF"<<std::endl;
-    for (int e=0 ; e < Nelec; e++){
-        update_sna_rij(P,e);  
-        compute_bispectrum(e);
-        compute_d_dr_bispectrum(e);
+    for (int part = 0; part < Nelec+Nions; part++) 
+      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+        snad[part][entry] = 0.0;
+    for (int par = 0; par < Nions + Nelec; par++){
+      update_sna_rij(P, par,false);  
+      compute_bispectrum(par);
+      for (int i = 0; i < Nelec+Nions-1; i ++)
+        for (int j = 0; j < 3; j ++)
+          sna_desc.rij[i][j]*=-1.0;
+      compute_d_dr_bispectrum(par);
     }
     bool recalculate(false);
     resizeWFOptVectors();
@@ -321,15 +376,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     
     int ntype = int(coeff_idx/ncoeff);  
     int coeff = coeff_idx%ncoeff; //which coeff of this type are we on.
-    if (ntype< P.groups()){
-      for (int iat = P.first(ntype); iat < P.last(ntype); iat++) { // loop over elements in each group
+    if (ntype< P.groups()){ // are we considering electron derivatives?
+      for (int iat = P.first(ntype); iat < P.last(ntype); iat++) // loop over elements in electron group
         dLogPsi[coeff_idx] += -sna[iat][coeff];
-      }
     }
     else{
-     for (int iat = Ions.first(ntype-P.groups()); iat < Ions.last(ntype-P.groups()); iat++) { // loop over elements in each group
+     for (int iat = Ions.first(ntype-P.groups()); iat < Ions.last(ntype-P.groups()); iat++) // loop over elements in each group
        dLogPsi[coeff_idx] += -sna[P.getTotalNum()+iat][coeff];
-      }
     }
      for (int iel =0; iel < Nelec; iel++){
        for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
@@ -342,7 +395,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
 
 
     
-  void SNAJastrow::calculate_ESNA(const ParticleSet& P, const std::vector<std::vector<double>> coeff, double& new_u){
+  void SNAJastrow::calculate_ESNA(const ParticleSet& P, const std::vector<std::vector<double>> coeff, double& new_u, bool proposed){
     app_debug() << "SNAJastrow::calculate_ESNA entered function" <<std::endl;
     ScopedTimer local_timer(timers_.eval_esnap_timer);
     double esnap_all=0;
@@ -352,13 +405,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     // calculate electron contribution
     // the global array is summed over groups of atoms of the same type. thus we just need to sum over groups.
     for (int ig = 0; ig < P.groups(); ig++) {
-      esnap_elec += coeff[ig][0]*P.groupsize(ig); // beta0 contribiution
       for (int iat = P.first(ig); iat < P.last(ig); iat++) { // loop over elements in each group
         app_debug() << "elec index is" << iat <<std::endl; 
-           update_sna_rij(P, iat); 
-           compute_bispectrum(iat);
+        update_sna_rij(P, iat, proposed); 
+        compute_bispectrum(iat);
         for (int k = 0; k < ncoeff; k++){
           bispectrum_val = sna[iat][k]; //block of bispectrum + current component to add.
+          app_debug() << bispectrum_val << std::endl;
           esnap_elec += coeff[ig][k] * bispectrum_val;
           //app_debug()<<"snap coefff for group "<<ig<< " coeff "<<k << " is " <<coeff[ig][k] <<std::endl;
         }
@@ -368,13 +421,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_debug() << "SNAJastrow::calculate_ESNA calc ion center contribution" <<std::endl;
 
     for (int ig = 0; ig < Ions.groups(); ig++) {
-      esnap_ion += coeff[P.groups()+ig][0]*Ions.groupsize(ig);
       for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
-           update_sna_rij(P, Nelec+iat); 
-           compute_bispectrum(Nelec+iat);
         app_debug() << "ion index is" << iat <<std::endl; 
+        update_sna_rij(P, Nelec+iat,proposed); 
+        compute_bispectrum(Nelec+iat);
         for (int k =0; k < ncoeff; k++){
-          bispectrum_val = sna[P.getTotalNum()+iat][k];
+          bispectrum_val = sna[Nelec+iat][k];
+          app_debug() << bispectrum_val << std::endl;
           esnap_ion += coeff[P.groups()+ig][k] * bispectrum_val;
           //app_debug()<< "snap coeff for group "<< P.groups()+ig << " coeff " << k << " is " << coeff[P.groups()+ig][k] <<std::endl;
         }
@@ -387,82 +440,6 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   }
 
   inline void SNAJastrow::update_sna_rij_vp(const VirtualParticleSet& VP, int iat){
- //get original distances at first and then just update info if iat is the virtual particle
-  const auto& ee_displ = VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(iat);
-  const auto& ei_displ = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(iat);
-  if (iat == VP.refPtcl){
-        const auto& ee_displ = VP.getDistTableAB(ee_Table_ID_).getDisplRow(iat);
-        const auto& ei_displ = VP.getDistTableAB(ei_Table_ID_).getDisplRow(iat);
-  }
-  const int itype = type_map[iat];
-  const double radi = radelem[itype]; 
-  bool elec = (itype <2);
-  if (elec){ // if iat is elec
-    for (int j=0; j < Nelec; j++){ //loop over all other electrons
-      if (iat != j ){
-         const auto& je_displ = ee_displ[j];//set the distance accordiing to the reference partcle set
-         if (j == VP.refPtcl){// if were updatng thhe row for the VP, grab that distance
-           const auto& je_displ = VP.getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat];// sign change here?
-        }
-         int jtype = type_map[Nelec+j];
-         int jelem = 0;
-         sna_desc.rij[j][0] = je_displ[0];
-         sna_desc.rij[j][1] = je_displ[1];
-         sna_desc.rij[j][2] = je_displ[2];
-         sna_desc.inside[j] = j;
-         sna_desc.wj[j] = 1;
-         sna_desc.rcutij[j] = (radi + radelem[jtype]) * rcutfac;
-         sna_desc.element[j] = jelem;
-      }
-   }
-   for (int j = 0; j< Nions; j++){
-       int jtype = type_map[Nelec+j];
-       int jelem = 0;
-       int j_sna = Nelec+j;
-       sna_desc.rij[j_sna][0] = ei_displ[0][j];
-       sna_desc.rij[j_sna][1] = ei_displ[1][j];
-       sna_desc.rij[j_sna][2] = ei_displ[2][j];
-       sna_desc.inside[j_sna] = j;
-       sna_desc.wj[j_sna] = 1;
-       sna_desc.rcutij[j_sna] = (radi + radelem[jtype]) * rcutfac;
-       sna_desc.element[j_sna] = jelem;
-   }
-  }
-  else{ //iat is an ion
-    for (int j = 0; j< Nelec; j++){
-       const auto je_displ = ei_displ[j];
-       if (j == VP.refPtcl){
-          const auto je_displ = VP.getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat];// sign change here?
-       }
-      const auto disp_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
-      int jtype = type_map[j];
-      int jelem = 0;
-      sna_desc.rij[j][0] = je_displ[0];
-      sna_desc.rij[j][1] = je_displ[1];
-      sna_desc.rij[j][2] = je_displ[2];
-      sna_desc.inside[j] = j;
-      sna_desc.wj[j] = 1;
-      sna_desc.rcutij[j] = (radi + radelem[jtype]) * rcutfac;
-      sna_desc.element[j] = jelem;
-    }
-    for (int j = 0; j< Nions; j++){
-      int jtype = type_map[Nelec+j];
-      int jelem = 0;
-      int j_sna = Nelec+j;
-      const auto& ii_displ = Ions.getDistTableAA(0).getDisplRow(iat);
-      sna_desc.rij[j_sna][0] = ii_displ[j][0];
-      sna_desc.rij[j_sna][1] = ii_displ[j][1];
-      sna_desc.rij[j_sna][2] = ii_displ[j][2];
-      sna_desc.inside[j_sna] = j;
-      sna_desc.wj[j_sna] = 1;
-      sna_desc.rcutij[j_sna] = (radi + radelem[jtype]) * rcutfac;
-      sna_desc.element[j_sna] = jelem;
-   }
-  }
-}
-
-
-  inline void SNAJastrow::update_sna_rij(const ParticleSet& P, int iat){
     const int itype = type_map[iat];
     const double radi = radelem[itype];
     bool elec = (itype <2);
@@ -470,13 +447,17 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     if (elec){
         for (int j = 0; j < Nelec; j++){
             if (iat != j){
-              const auto disp_ref = iat < j  ? -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : 1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+               const auto disp_ref = iat < j  ? VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+               if (j == VP.refPtcl)
+                 const auto disp_ref = VP.getDistTableAB(ee_Table_ID_).getDisplRow(j)[iat];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
+              else if (iat == VP.refPtcl)
+                 const auto disp_ref = -1.0*VP.getDistTableAB(ee_Table_ID_).getDisplRow(iat)[j];
+              
               int jtype = type_map[j];
               int jelem = 0;
-              app_debug() << "SNAJastrow::update_sna_rij xmove is "<< disp_ref[0] << std::endl;
-              sna_desc.rij[num_neigh][0] = -disp_ref[0];
-              sna_desc.rij[num_neigh][1] = -disp_ref[1];
-              sna_desc.rij[num_neigh][2] = -disp_ref[2];
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
               sna_desc.inside[num_neigh] = j;
               sna_desc.wj[num_neigh] = 1;
               sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
@@ -485,13 +466,15 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
             }
         }
         for (int j = 0; j< Nions; j++){
-              const auto disp_ref = P.getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
+              const auto disp_ref = -1.0*VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
+              if (iat == VP.refPtcl)
+                 const auto disp_ref = -1.0*VP.getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
               int j_sna = Nelec+j;
               int jtype = type_map[j_sna];
               int jelem = 0;
-              sna_desc.rij[num_neigh][0] = -disp_ref[0];
-              sna_desc.rij[num_neigh][1] = -disp_ref[1];
-              sna_desc.rij[num_neigh][2] = -disp_ref[2];
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
               sna_desc.inside[num_neigh] = j_sna;
               sna_desc.wj[num_neigh] = 1;
               sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
@@ -501,10 +484,11 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     }
     else{// ion
         for (int j = 0; j< Nelec; j++){
-              const auto disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec]; // iat is global particle index, shift for just ion
+               const auto disp_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec]; // iat is global particle index, shift for just ion
+               if (j == VP.refPtcl)
+                 const auto disp_ref = VP.getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
               int jtype = type_map[j];
               int jelem = 0;
-              app_debug() << "SNAJastrow::update_sna_rij disp_ref"<< disp_ref[0]<< std::endl;
               sna_desc.rij[num_neigh][0] = -disp_ref[0];
               sna_desc.rij[num_neigh][1] = -disp_ref[1];
               sna_desc.rij[num_neigh][2] = -disp_ref[2];
@@ -520,10 +504,115 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
               int jelem = 0;
               int j_sna = Nelec+j;
               const auto disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : 1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
-              sna_desc.rij[num_neigh][0] = -disp_ref[0];
-              sna_desc.rij[num_neigh][1] = -disp_ref[1];
-              sna_desc.rij[num_neigh][2] = -disp_ref[2];
-              sna_desc.inside[num_neigh] = j+Nelec;
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
+              sna_desc.inside[num_neigh] = j_sna;
+              sna_desc.wj[num_neigh] = 1;
+              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+              sna_desc.element[num_neigh] = jelem;
+              num_neigh +=1;
+          }
+        }
+
+    }
+  }
+
+
+  inline void SNAJastrow::update_sna_rij(const ParticleSet& P, int iat, bool proposed){
+    /* This is done in a weird way to stay compatible with lammps descriptor implementation which expects r_{ab}
+    here iat is the current atom you are building rij for and j is the neighbor
+    electron-electron
+      so if not dealing with a proposed move:
+      if youre iat < j  you get a dist of r_ba so take negative of this. 
+      if j > iat you are already in the lower triangle and displ should be right direction
+
+      if you have a proposed move
+      you get temp_displ which is always from active particle to other particles, where itself is included in the list. 
+      so the situation only changes if you are dealing with the active particle directly or as a neighbore
+      directly:
+        getTempDispl() will be for iat and then need getTempDispl(j) and represents rj -ri 
+    
+    electron-ion
+    */
+    const int itype = type_map[iat];
+    const double radi = radelem[itype];
+    bool elec = (itype <2);
+    int num_neigh = 0;// TODO: temporary fix for not treating cutoff
+    PosType disp_ref;
+    if (elec){
+        for (int j = 0; j < Nelec; j++){
+            if (iat != j){
+              disp_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+              if (proposed){
+                if (iat == P.getActivePtcl()){
+                  disp_ref = -1*P.getDistTableAA(ee_Table_ID_).getTempDispls()[j] ;
+                }
+                else if (j == P.getActivePtcl()){
+                  disp_ref = P.getDistTableAA(ee_Table_ID_).getTempDispls()[iat] ;
+                }
+              }
+              else{
+                disp_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+              }
+              int jtype = type_map[j];
+              int jelem = 0;
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
+              sna_desc.inside[num_neigh] = j;
+              sna_desc.wj[num_neigh] = 1;
+              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+              sna_desc.element[num_neigh] = jelem;
+              num_neigh +=1;
+            }
+        }
+        for (int j = 0; j< Nions; j++){
+              disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
+              if (proposed)
+                if (iat == P.getActivePtcl())
+                  disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getTempDispls()[j] ;
+              int j_sna = Nelec+j;
+              int jtype = type_map[j_sna];
+              int jelem = 0;
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
+              sna_desc.inside[num_neigh] = j_sna;
+              sna_desc.wj[num_neigh] = 1;
+              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+              sna_desc.element[num_neigh] = jelem;
+              num_neigh +=1;
+        }
+    }
+    else{// ion
+        for (int j = 0; j< Nelec; j++){
+              disp_ref = P.getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec];
+              if (proposed)
+                if (j == P.getActivePtcl())
+                  disp_ref = P.getDistTableAB(ei_Table_ID_).getTempDispls()[iat-Nelec] ;
+
+              int jtype = type_map[j];
+              int jelem = 0;
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
+              sna_desc.inside[num_neigh] = j;
+              sna_desc.wj[num_neigh] = 1;
+              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+              sna_desc.element[num_neigh] = jelem;
+              num_neigh +=1;
+        }
+        for (int j = 0; j< Nions; j++){
+          if (iat-Nelec != j){
+              int jtype = type_map[Nelec+j];
+              int jelem = 0;
+              int j_sna = Nelec+j;
+              disp_ref = iat-Nelec < j  ? Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
+              sna_desc.inside[num_neigh] = j_sna;
               sna_desc.wj[num_neigh] = 1;
               sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
               sna_desc.element[num_neigh] = jelem;
@@ -546,7 +635,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     sna_desc.compute_bi(ielem);
     for (int icoeff = 0; icoeff < ncoeff; icoeff++){
     //std::cout<< "desc object value"<<std::endl;
-    std::cout<< sna_desc.blist[icoeff] <<std::endl;
+      //std::cout<< sna_desc.blist[icoeff] <<std::endl;
       sna[iat][icoeff] = sna_desc.blist[icoeff];
   }
 }
@@ -556,67 +645,40 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   int ntotal = Nions + Nelec;
 
 
-  // clear local array
-  for (int i = 0; i < ntotal; i++)
-    for (int entry = 0; entry < 3*ntypes*ncoeff; entry++) {
-      snad[i][entry] = 0.0;
-    }
-  std::cout << "SNAJastrow::compute_d_dr_bispectrum after clear array"<< std::endl;
+  // clear local array for this particle.
+  //for (int entry = 0; entry < 3*ntypes*ncoeff; entry++) {
+  //  snad[iat][entry] = 0.0;
+  //}
 
-  // invoke full neighbor list (will copy or build if necessary)
 
-  // compute sna derivatives for each atom in group
-  // use full neighbor list to count atoms less than cutoff
-
-  //double** const x = P.R;
   int inum = iat;
   int itype = type_map[iat];
   int ielem = 0;
-  const double radi = radelem[itype]; 
-  //TODO make atom type mapping struct
-  const int typeoffset = 3*ncoeff*(itype);
-
-  // insure rij, inside, and typej  are of size jnum
-
-  // rij[][3] = displacements between atom I and those neighbors
-  // inside = indices of neighbors of I within cutoff
-  // typej = types of neighbors of I within cutoff
-  // note Rij sign convention => dU/dRij = dU/dRj = -dU/dRi
+  const int typeoffset = 3*ncoeff*itype;
 
   int ninside = Nions+Nelec-1;
+  sna_desc.compute_ui(ninside, ielem);
+  sna_desc.compute_zi();
   for (int jj = 0; jj < ninside; jj++) { //TODO: implement cutoff, currently going over all particles.
-  if (iat !=jj){
-    std::cout<< "iat: " << iat << " j " << jj <<std::endl;
-  
-    sna_desc.compute_ui(ninside, ielem);
-    sna_desc.compute_zi();
     const int j = sna_desc.inside[jj];
-    int jtype = type_map[jj];
-    const int jtypeoffset = 3*ncoeff*(jtype);
-
+    int jtype = type_map[j];
     sna_desc.compute_duidrj(sna_desc.rij[jj], sna_desc.wj[jj],
-                                sna_desc.rcutij[jj], ninside, sna_desc.element[jj]);
-    std::cout << "made it after compute_duidrj" <<std::endl;
+                                sna_desc.rcutij[jj], jj, sna_desc.element[jj]);
     sna_desc.compute_dbidrj();
-    std::cout << "made it after compute_dbidrj" <<std::endl;
-    ninside +=1;
     // Accumulate -dBi/dRi, -dBi/dRj
 
-    int snadi_idx = typeoffset;
-    int snadj_idx = jtypeoffset;
     int yoffset = ncoeff;
     int zoffset = 2*ncoeff;
     for (int icoeff = 0; icoeff < ncoeff; icoeff++) {
-      std::cout<< "icoeff is " << icoeff <<std::endl;
-      snad[iat][jtypeoffset + icoeff]           += sna_desc.dblist[icoeff][0];
-      snad[iat][jtypeoffset + icoeff + yoffset] += sna_desc.dblist[icoeff][1];
-      snad[iat][jtypeoffset + icoeff + zoffset] += sna_desc.dblist[icoeff][2];
-      snad[jj][typeoffset + icoeff]           -= sna_desc.dblist[icoeff][0];
-      snad[jj][typeoffset + icoeff + yoffset] -= sna_desc.dblist[icoeff][1];
-      snad[jj][typeoffset + icoeff + zoffset] -= sna_desc.dblist[icoeff][2];
+      //std::cout<< "icoeff is " << icoeff <<std::endl;
+      snad[iat][typeoffset + icoeff]           += sna_desc.dblist[icoeff][0];
+      snad[iat][typeoffset + icoeff + yoffset] += sna_desc.dblist[icoeff][1];
+      snad[iat][typeoffset + icoeff + zoffset] += sna_desc.dblist[icoeff][2];
+      snad[j][typeoffset + icoeff]           -= sna_desc.dblist[icoeff][0];
+      snad[j][typeoffset + icoeff + yoffset] -= sna_desc.dblist[icoeff][1];
+      snad[j][typeoffset + icoeff + zoffset] -= sna_desc.dblist[icoeff][2];
     }
   }// end neighbor loop
-}
 }//TODO}
 
 
@@ -651,7 +713,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
          //calculate reference deriv
          // are all particles up to date?
          for (int i = 0 ; i < Nelec; i ++){
-           update_sna_rij(VP.getRefPS(), i); 
+           update_sna_rij(VP.getRefPS(), i,false); 
            compute_bispectrum(i);
          }
          //linear derivs for ref
@@ -698,18 +760,10 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_debug() << "inside evaluateRatios" << std::endl;
     ScopedTimer local_timer(timers_.eval_ratio_timer);
     double Eold, Enew;
-    for (int i = 0 ; i < Nelec; i ++){
-      update_sna_rij(VP.getRefPS(), i); 
-      compute_bispectrum(i);
-    }
-    calculate_ESNA(VP.getRefPS(), snap_beta, Eold);
+    calculate_ESNA(VP.getRefPS(), snap_beta, Eold,false);
     for (int r = 0; r < ratios.size(); r++){
-        for (int e=0 ; e < Nelec; e++){
-          update_sna_rij_vp(VP,e);  
-          compute_bispectrum(e);
-        }
       //calculate Enew
-      calculate_ESNA(VP.getRefPS(), snap_beta, Enew);
+      calculate_ESNA(VP.getRefPS(), snap_beta, Enew,true);
       //store ratio
       ratios[r] = std::exp(static_cast<ValueType>(Enew-Eold));
     }
@@ -722,12 +776,15 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   void SNAJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
     app_debug() << "inside accept" << std::endl;
     for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e);  
+      update_sna_rij(P, e, false);  
       compute_bispectrum(e);
+      for (int i = 0; i < Nions+Nelec-1; i ++)
+        for (int j = 0; j < 3; j ++)
+          sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(e);
     }
     double esnap;
-    calculate_ESNA(P, snap_beta, esnap);
+    calculate_ESNA(P, snap_beta, esnap,false);
     current_esnap=esnap;
     log_value_ = static_cast<SNAJastrow::LogValue>(esnap);
     computeGL(P,iat);
@@ -753,16 +810,10 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
 
   SNAJastrow::PsiValue SNAJastrow::ratioGrad(ParticleSet& P, int iat, GradType& grad_iat){
     app_debug() << "inside ratiograd" << std::endl;
-    // TODO how to get proposed move distance tables
-    for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e);  
-      compute_bispectrum(e);
-    }
-    update_sna_rij(P, iat);  
-    compute_d_dr_bispectrum(iat);// compute snad fur current particle 
     double Enew, Eold;
     int row, col;
-    calculate_ESNA(P, snap_beta, Enew);
+    calculate_ESNA(P, snap_beta, Enew,true);
+    //TODO: add update to snad here.
     for (int dim = 0; dim < 3; dim++){
       for (int k = 0; k < ncoeff ; k++){
         for (int n = 0; n < ntypes; n++){
@@ -771,11 +822,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
         }
       }
     }
-    for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e);  
-      compute_bispectrum(e);
-    }
-    calculate_ESNA(P, snap_beta, Eold);
+    calculate_ESNA(P, snap_beta, Eold,false);
     SNAJastrow::PsiValue ratio = std::exp(static_cast<SNAJastrow::PsiValue>(Enew-Eold));
     return ratio;
   }
@@ -783,17 +830,8 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   SNAJastrow::PsiValue SNAJastrow::ratio(ParticleSet& P, int iat){
     app_debug() << "inside ratio" << std::endl;
     double Enew, Eold;
-    for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e);  
-      compute_bispectrum(e);
-    }
-    calculate_ESNA(P, snap_beta, Eold);
-    //Eold = current_esnap;
-    for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e);  
-      compute_bispectrum(e);
-    }
-    calculate_ESNA( P, snap_beta, Enew);
+    calculate_ESNA(P, snap_beta, Eold,false);
+    calculate_ESNA( P, snap_beta, Enew,true);
     //calculate the ratio
     SNAJastrow::PsiValue ratio = std::exp(static_cast<SNAJastrow::PsiValue>(Enew-Eold));
     return ratio;

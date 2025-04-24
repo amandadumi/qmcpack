@@ -93,10 +93,10 @@ public:
     used to see impact of small change in coefficients on snap energy (needed to calculated d E/d beta)
     without having to internally change the lammps object.
     */
-    void calculate_ESNA(const ParticleSet& P, const std::vector<std::vector<double>> new_coeff, double& new_u);
+    void calculate_ESNA(const ParticleSet& P, const std::vector<std::vector<double>> new_coeff, double& new_u, bool proposed);
     void compute_bispectrum(int iat); 
     void compute_d_dr_bispectrum(int iat);
-    void update_sna_rij(const ParticleSet& P,int iat);
+    void update_sna_rij(const ParticleSet& P,int iat,bool proposed);
     void update_sna_rij_vp(const VirtualParticleSet& VP,int iat);
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype, std::vector<std::vector<double>> coeffs,  bool bispectrum_only);
@@ -135,8 +135,8 @@ public:
     std::vector<int> type_map;
     std::vector<int> element;
     std::vector<double> radelem; 
-    double dist_delta = 0.0000001;
-    double coeff_delta = 0.0000001;
+    double dist_delta = 0.00000001;
+    double coeff_delta = 0.00000001;
     const int ee_Table_ID_;
     const int ei_Table_ID_;
     int ii_Table_ID_;
@@ -146,8 +146,6 @@ public:
     std::vector<std::vector<double>> snap_beta;
     std::vector<std::vector<double>> sna;
     std::vector<std::vector<double>> snad;
-    double hartree_over_ev = 1.000000589/27.211399998784;
-    double bohr_over_ang = 1/0.529177; //1.88973; 
     // global arrays
     ResourceHandle<SNAMultiWalkerMem<RealType>> mw_mem_handle_;
     opt_variables_type myVars;
@@ -155,7 +153,7 @@ public:
    std::vector<double> bispectrum_components; //N_part x N_bispec
    // initialize the vector that holds the derivatives
    std::vector<std::vector<double>> ddr_bispectrum_components; //Nelec x N_type*N_bispec*N_dim
-    SNADesc sna_desc;
+   SNADesc sna_desc;
   struct SNAJastrowTimers
   {
     NewTimer& eval_timer;
