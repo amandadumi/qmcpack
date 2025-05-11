@@ -246,17 +246,17 @@ TEST_CASE("snap_jastrow_check_d_dr_bispectrum", "[wavefunction]")
   double internal_dist = -electrons.getDistTableAA(ee_table).getDisplRow(1)[0][0];
   REQUIRE(jas->sna_desc.rij[0][0] == Approx(internal_dist));//elec1
   REQUIRE(jas->sna_desc.rij[0][0] == Approx(true_dist));//elec1
-  jas->compute_d_dr_bispectrum(0);
+  jas->compute_d_dr_bispectrum(0,jas->snad);
   jas->update_sna_rij(electrons,1,false);
   for (int i = 0; i < 2; i ++)
     for (int j = 0; j < 3; j ++)
       jas->sna_desc.rij[i][j]*=-1.0;
-  jas->compute_d_dr_bispectrum(1);
+  jas->compute_d_dr_bispectrum(1,jas->snad);
   jas->update_sna_rij(electrons,2,false);
   for (int i = 0; i < 2; i ++)
     for (int j = 0; j < 3; j ++)
       jas->sna_desc.rij[i][j]*=-1.0;
-  jas->compute_d_dr_bispectrum(2);
+  jas->compute_d_dr_bispectrum(2,jas->snad);
   for (int i = 0; i< 40; i++)
   REQUIRE(jas->snad[0][0] == Approx(true_d_dr_bispectrum_e1[0]));//elec1
   REQUIRE(jas->snad[0][39] == Approx(true_d_dr_bispectrum_e1[39]));//elec1
