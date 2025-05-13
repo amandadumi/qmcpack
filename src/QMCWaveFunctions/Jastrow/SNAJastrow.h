@@ -97,7 +97,7 @@ public:
     void compute_bispectrum(int iat); 
     void compute_d_dr_bispectrum(int iat, std::vector<std::vector<double>>& a_snad);
     void update_sna_rij(const ParticleSet& P,int iat,bool proposed);
-    void update_sna_rij_vp(const VirtualParticleSet& VP,int iat);
+    void update_sna_rij_vp(const VirtualParticleSet& VP,int iat,int r);
     void evaluate_linear_derivs(ParticleSet& P, int coeff_idx);
     double FD_Lap(const ParticleSet& P,int iat, int dim, int coeff, int ntype);
     double full_FD_Lap(const ParticleSet& P,int iat, std::vector<std::vector<double>> coeffs);
@@ -136,7 +136,7 @@ public:
     std::vector<int> type_map;
     std::vector<int> element;
     std::vector<double> radelem; 
-    double dist_delta = 0.00000001;
+    double dist_delta = 0.000000001;
     double coeff_delta = 0.0000001;
     const int ee_Table_ID_;
     const int ei_Table_ID_;
