@@ -86,8 +86,8 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
     snap_beta = std::vector<std::vector<double>>(NIonGroups+els.groups(), std::vector<double>(ncoeff,0.0));
     sna = std::vector<std::vector<double>>(Nelec+Nions, std::vector<double>(ncoeff,0.0));
     snad = std::vector<std::vector<double>>(Nions + Nelec, std::vector<double>(3*ntypes*ncoeff,0.0));
-    for (int k = 0; k < ncoeff; k++){
       for (int i=0; i < NIonGroups+els.groups(); i++){
+        for (int k = 0; k < ncoeff; k++){
         std::stringstream name;
         name << "sna_coeff_" << i;
         name << "_"  << k ;
@@ -140,6 +140,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     for (int part = 0; part < Nelec+Nions; part++) 
       for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
         temp_snad_forward[part][entry] = 0.0;
+        temp_snad_backward[part][entry] = 0.0;
 
     // create the descriptor for all particles. We can optimize this, but this is lazy way for now. should reduce this to just loop over particles in ntype.
     for (int par = 0; par < Nions + Nelec; par++){
@@ -157,11 +158,6 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par, temp_snad_forward);
     }
-
-    //backward direction
-    for (int part = 0; part < Nelec+Nions; part++) 
-      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
-        temp_snad_backward[part][entry] = 0.0;
 
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par,false); // update sna_rij  
@@ -872,7 +868,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     calculate_ESNA(P, snap_beta, esnap,false);
     current_esnap=esnap;
     log_value_ = static_cast<SNAJastrow::LogValue>(esnap);
-    computeGL(P,iat);
+    //computeGL(P,iat);
   }
 
  void SNAJastrow::restore(int iat){
@@ -899,6 +895,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     int row, col;
     calculate_ESNA(P, snap_beta, Enew,true);
     //TODO: add update to snad here.
+    for (int e=0 ; e< Nelec; e++){
+      update_sna_rij(P, e, true);  
+      for (int i = 0; i < Nions+Nelec-1; i ++)
+        for (int j = 0; j < 3; j ++)
+          sna_desc.rij[i][j]*=-1.0;
+      compute_d_dr_bispectrum(e,snad);
+    }
     for (int dim = 0; dim < 3; dim++){
       for (int k = 0; k < ncoeff ; k++){
         for (int n = 0; n < ntypes; n++){
