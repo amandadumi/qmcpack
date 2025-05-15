@@ -86,8 +86,8 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
     snap_beta = std::vector<std::vector<double>>(NIonGroups+els.groups(), std::vector<double>(ncoeff,0.0));
     sna = std::vector<std::vector<double>>(Nelec+Nions, std::vector<double>(ncoeff,0.0));
     snad = std::vector<std::vector<double>>(Nions + Nelec, std::vector<double>(3*ntypes*ncoeff,0.0));
-      for (int i=0; i < NIonGroups+els.groups(); i++){
-        for (int k = 0; k < ncoeff; k++){
+    for (int i=0; i < NIonGroups+els.groups(); i++){
+      for (int k = 0; k < ncoeff; k++){
         std::stringstream name;
         name << "sna_coeff_" << i;
         name << "_"  << k ;
@@ -331,10 +331,9 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   }
 
     SNAJastrow::GradType SNAJastrow::evalGrad(ParticleSet& P, int iat){
-    app_debug() << "in SNAJastrow::evalGrad" <<std::endl;
     
     for (int par = 0; par < Nions + Nelec; par++){
-      update_sna_rij(P, par,false);  
+      update_sna_rij(P, par,true);  
       for (int i = 0; i < Nelec+Nions-1; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
@@ -808,7 +807,6 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_debug() << "inside evaluateRatios" << std::endl;
     ScopedTimer local_timer(timers_.eval_ratio_timer);
     double Eold, Enew;
-    //calculate_ESNA(VP.getRefPS(), snap_beta, Eold, false);
     Eold = current_esnap;
     for (int r = 0; r < ratios.size(); r++){
        for (int i = 0 ; i < Nelec+Nions; i ++){
@@ -948,7 +946,7 @@ void SNAJastrow::resetParametersExclusive(const opt_variables_type& active){
      coeff = i%ncoeff; 
      snap_beta[ntype][coeff] = myVars[i] = active[k_global];
     }
-    }
+   }
   }
 
  
