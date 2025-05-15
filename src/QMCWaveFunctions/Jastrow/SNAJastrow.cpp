@@ -138,9 +138,10 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   // clear snad array
   for (int dim = 0; dim < 3; dim++){
     for (int part = 0; part < Nelec+Nions; part++) 
-      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++){
         temp_snad_forward[part][entry] = 0.0;
         temp_snad_backward[part][entry] = 0.0;
+      }
 
     // create the descriptor for all particles. We can optimize this, but this is lazy way for now. should reduce this to just loop over particles in ntype.
     for (int par = 0; par < Nions + Nelec; par++){
