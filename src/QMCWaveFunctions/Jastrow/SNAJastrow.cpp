@@ -859,7 +859,6 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_debug() << "inside accept" << std::endl;
     for (int e=0 ; e< Nelec; e++){
       update_sna_rij(P, e, false);  
-      compute_bispectrum(e);
       for (int i = 0; i < Nions+Nelec-1; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
@@ -869,7 +868,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     calculate_ESNA(P, snap_beta, esnap,false);
     current_esnap=esnap;
     log_value_ = static_cast<SNAJastrow::LogValue>(esnap);
-    //computeGL(P,iat);
+    computeGL(P,iat);
   }
 
  void SNAJastrow::restore(int iat){
