@@ -332,6 +332,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   SNAJastrow::GradType SNAJastrow::evalGrad(ParticleSet& P, int iat){
   
     std::vector<std::vector<double>>temp_snad(snad);
+    GradType grad_iat;
 
     for (int part = 0; part < Nelec+Nions; part++) 
       for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
@@ -345,7 +346,6 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
       compute_d_dr_bispectrum(par,temp_snad);
     }
 
-    GradType grad_iat;
     for (int dim=0; dim < 3; dim++){
      int row = (3*iat) + dim;
      for (int k = 0; k < ncoeff ; k++){
@@ -511,12 +511,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     const double radi = radelem[itype];
     bool elec = (itype <2);
     int num_neigh = 0;// TODO: temporary fix for not treating cutoff
-    if (elec){
-        for (int j = 0; j < Nelec; j++){
-            if (iat != j){
+    if (elec){ // if up or down elec
+        for (int j = 0; j < Nelec; j++){ // loop through all other elecs
+            if (iat != j){ // skip current elec
+               // by default displacement will be lower trangular of ee table
                const auto disp_ref = iat < j  ? VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
-               if (j == VP.refPtcl)
-                 const auto disp_ref = VP.getDistTableAB(ee_Table_ID_).getDisplRow(j)[r];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
+               if (j == VP.refPtcl)// if the neighboring electron is the virtual particle that is being moved around...
+                 const auto disp_ref = VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[iat];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
               else if (iat == VP.refPtcl)
                  const auto disp_ref = -1.0*VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[j];
               
@@ -550,10 +551,11 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
         }
     }
     else{// ion
-        for (int j = 0; j< Nelec; j++){
+        for (int j = 0; j< Nelec; j++){ // for all neighboring electrons of this ion
+           
                const auto disp_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec]; // iat is global particle index, shift for just ion
                if (j == VP.refPtcl)
-                 const auto disp_ref = VP.getDistTableAB(ei_Table_ID_).getDisplRow(j)[r-Nelec];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
+                 const auto disp_ref = VP.getDistTableAB(ei_Table_ID_).getDisplRow(r)[iat-Nelec];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
               int jtype = type_map[j];
               int jelem = 0;
               sna_desc.rij[num_neigh][0] = -disp_ref[0];
