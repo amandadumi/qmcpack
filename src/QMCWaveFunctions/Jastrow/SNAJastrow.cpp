@@ -62,7 +62,6 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
     rcut = input_rcut;
     snap_type = input_snap_type;
    // create object for 2snap descriptor
-    int wjkkk;
     //TODO: set this to ddefault value for everythin
     rcutij = std::vector<std::vector<double>>(Nions+Nelec,std::vector<double>(Nions+Nelec,7.0));
     radelem = std::vector<double>(ntypes,7.0);
@@ -330,14 +329,20 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     return log_value_;
   }
 
-    SNAJastrow::GradType SNAJastrow::evalGrad(ParticleSet& P, int iat){
+  SNAJastrow::GradType SNAJastrow::evalGrad(ParticleSet& P, int iat){
+  
+    std::vector<std::vector<double>>temp_snad(snad);
+
+    for (int part = 0; part < Nelec+Nions; part++) 
+      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+        temp_snad[part][entry] = 0.0;
     
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par,true);  
       for (int i = 0; i < Nelec+Nions-1; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
-      compute_d_dr_bispectrum(par,snad);
+      compute_d_dr_bispectrum(par,temp_snad);
     }
 
     GradType grad_iat;
@@ -346,12 +351,12 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
      for (int k = 0; k < ncoeff ; k++){
        for (int n = 0; n < ntypes; n++){
          int col = (n * (3*ncoeff) ) + (dim*ncoeff) + k;
-         grad_iat[dim] += snap_beta[n][k]*snad[iat][col];
+         grad_iat[dim] += snap_beta[n][k]*temp_snad[iat][col];
        }
      }
     }
     return grad_iat;
-    }
+  }
 
 
   void SNAJastrow::evaluateDerivatives(ParticleSet& P, const opt_variables_type& optvars, Vector<ValueType>& dlogpsi, Vector<ValueType>& dhpsioverpsi)
