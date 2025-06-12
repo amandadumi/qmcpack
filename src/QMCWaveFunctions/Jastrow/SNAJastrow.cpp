@@ -797,7 +797,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
            else{
               int internal_ntype = ntype-VP.getRefPS().groups();
               for (int iat = Ions.first(internal_ntype); iat < Ions.last(internal_ntype); iat++) { // loop over elements in each group
-                 dlogpsi_nlpp_ref[k] += -sna[VP.getRefPS().getTotalNum()+iat][coeff];
+                 dlogpsi_nlpp_virt[k] += -sna[VP.getRefPS().getTotalNum()+iat][coeff];
               }
              //app_debug() << "SNAJastrow::evaluateDerivRatios after dlogpsi_nlpp_virt update ion" << std::endl;
            }
@@ -898,6 +898,11 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_debug() << "inside ratiograd" << std::endl;
     double Enew, Eold;
     int row, col;
+    std::vector<std::vector<double>>temp_snad(snad);
+    for (int part = 0; part < Nelec+Nions; part++) 
+      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+        temp_snad[part][entry] = 0.0;
+
     calculate_ESNA(P, snap_beta, Enew,true);
     //TODO: add update to snad here.
     for (int e=0 ; e< Nelec; e++){
@@ -905,13 +910,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
       for (int i = 0; i < Nions+Nelec-1; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
-      compute_d_dr_bispectrum(e,snad);
+      compute_d_dr_bispectrum(e,temp_snad);
     }
     for (int dim = 0; dim < 3; dim++){
       for (int k = 0; k < ncoeff ; k++){
         for (int n = 0; n < ntypes; n++){
           int col = (n*(3*ncoeff)) + (dim*ncoeff)+k;
-          grad_iat[dim] += snap_beta[n][k]*snad[iat][col];
+          grad_iat[dim] += snap_beta[n][k]*temp_snad[iat][col];
         }
       }
     }
