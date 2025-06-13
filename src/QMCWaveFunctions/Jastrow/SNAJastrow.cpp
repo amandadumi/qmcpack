@@ -771,7 +771,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
           int internal_ntype = ntype-VP.getRefPS().groups();
           for (int iat = Ions.first(internal_ntype); iat < Ions.last(internal_ntype); iat++) { // loop over elements in each group
                //app_debug() << "SNAJastrow::evaluateDerivRatios ions iat " <<iat << "coeff" <<coeff << std::endl;
-               dlogpsi_nlpp_ref[k] += -sna[VP.getRefPS().getTotalNum()+iat][coeff];
+               dlogpsi_nlpp_ref[k] += -sna[Nelec+iat][coeff];
             }
          }
          //app_debug() << "SNAJastrow::evaluateDerivRatios after dlogpsi_nlpp_ref calc" << std::endl;
@@ -797,7 +797,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
            else{
               int internal_ntype = ntype-VP.getRefPS().groups();
               for (int iat = Ions.first(internal_ntype); iat < Ions.last(internal_ntype); iat++) { // loop over elements in each group
-                 dlogpsi_nlpp_virt[k] += -sna[VP.getRefPS().getTotalNum()+iat][coeff];
+                 dlogpsi_nlpp_virt[k] += -sna[Nelec+iat][coeff];
               }
              //app_debug() << "SNAJastrow::evaluateDerivRatios after dlogpsi_nlpp_virt update ion" << std::endl;
            }
@@ -862,6 +862,9 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   /////////////////////////////////// MC Related functions /////////
   void SNAJastrow::acceptMove(ParticleSet& P, int iat, bool safe_to_delay){
     app_debug() << "inside accept" << std::endl;
+    for (int part = 0; part < Nelec+Nions; part++) 
+      for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
+        snad[part][entry] = 0.0;
     for (int e=0 ; e< Nelec; e++){
       update_sna_rij(P, e, false);  
       for (int i = 0; i < Nions+Nelec-1; i ++)
