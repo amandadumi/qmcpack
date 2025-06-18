@@ -865,12 +865,12 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     for (int part = 0; part < Nelec+Nions; part++) 
       for (int entry = 0; entry < 3*ntypes*ncoeff; entry++)
         snad[part][entry] = 0.0;
-    for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e, false);  
+    for (int par = 0; par < Nions + Nelec; par++){
+      update_sna_rij(P, par, false);  
       for (int i = 0; i < Nions+Nelec-1; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
-      compute_d_dr_bispectrum(e,snad);
+      compute_d_dr_bispectrum(par,snad);
     }
     double esnap;
     calculate_ESNA(P, snap_beta, esnap,false);
@@ -908,12 +908,12 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
 
     calculate_ESNA(P, snap_beta, Enew,true);
     //TODO: add update to snad here.
-    for (int e=0 ; e< Nelec; e++){
-      update_sna_rij(P, e, true);  
+    for (int par = 0; par < Nions + Nelec; par++){
+      update_sna_rij(P, par, true);  
       for (int i = 0; i < Nions+Nelec-1; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
-      compute_d_dr_bispectrum(e,temp_snad);
+      compute_d_dr_bispectrum(par,temp_snad);
     }
     for (int dim = 0; dim < 3; dim++){
       for (int k = 0; k < ncoeff ; k++){
