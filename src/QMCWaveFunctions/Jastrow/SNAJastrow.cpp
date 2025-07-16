@@ -230,9 +230,6 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     compute_d_dr_bispectrum(par, temp_snad);
   }
   G_finite_diff_forward = this_coeff * temp_snad[iat][col];
-  // back to normal sign for next bispectrum
-
-
 
 
   //backward direction
@@ -452,13 +449,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
      for (int iat = Ions.first(ntype-P.groups()); iat < Ions.last(ntype-P.groups()); iat++) // loop over elements in each group
        dLogPsi[coeff_idx] += -sna[P.getTotalNum()+iat][coeff];
     }
-     for (int iel =0; iel < Nelec; iel++){
-       for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
-        int col = (ntype*(3*ncoeff))+(dim*ncoeff)+coeff;
-        gradLogPsi[coeff_idx][iel][dim] += snad[iel][col];
-        lapLogPsi[coeff_idx][iel] += FD_Lap(P, iel, dim, coeff, ntype);
-       }
-     }
+    for (int iel =0; iel < Nelec; iel++){
+      for (int dim = 0; dim < OHMMS_DIM; dim++){ // loop over dim to get grad vec.
+       int col = (ntype*(3*ncoeff))+(dim*ncoeff)+coeff;
+       gradLogPsi[coeff_idx][iel][dim] += snad[iel][col];
+       lapLogPsi[coeff_idx][iel] += FD_Lap(P, iel, dim, coeff, ntype);
+      }
+    }
     }
 
 
@@ -514,11 +511,14 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     if (elec){ // if up or down elec
         for (int j = 0; j < Nelec; j++){ // loop through all other elecs
             if (iat != j){ // skip current elec
-               // by default displacement will be lower trangular of ee table
+               // Displacements stored in lower triangular of ee table
                const auto disp_ref = iat < j  ? VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
                if (j == VP.refPtcl)// if the neighboring electron is the virtual particle that is being moved around...
+                 // get the dispalcement between the virtual particlle and the target particle
+                 // we need the distance from i to r, which is this value no sign change
                  const auto disp_ref = VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[iat];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
-              else if (iat == VP.refPtcl)
+              else if (iat == VP.refPtcl) // if the target is the ref particle...
+                 // then it is the distance between target and neighbor j 
                  const auto disp_ref = -1.0*VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[j];
               
               int jtype = type_map[j];
@@ -552,15 +552,14 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     }
     else{// ion
         for (int j = 0; j< Nelec; j++){ // for all neighboring electrons of this ion
-           
                const auto disp_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec]; // iat is global particle index, shift for just ion
                if (j == VP.refPtcl)
                  const auto disp_ref = VP.getDistTableAB(ei_Table_ID_).getDisplRow(r)[iat-Nelec];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
               int jtype = type_map[j];
               int jelem = 0;
-              sna_desc.rij[num_neigh][0] = -disp_ref[0];
-              sna_desc.rij[num_neigh][1] = -disp_ref[1];
-              sna_desc.rij[num_neigh][2] = -disp_ref[2];
+              sna_desc.rij[num_neigh][0] = disp_ref[0];
+              sna_desc.rij[num_neigh][1] = disp_ref[1];
+              sna_desc.rij[num_neigh][2] = disp_ref[2];
               sna_desc.inside[num_neigh] = j;
               sna_desc.wj[num_neigh] = 1;
               sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
@@ -755,7 +754,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
          int coeff = k%ncoeff; 
          //calculate reference deriv
          // are all particles up to date?
-         for (int i = 0 ; i < Nelec+Nions; i ++){
+         for (int i = 0; i < Nelec+Nions; i++){
            update_sna_rij(VP.getRefPS(), i, false); 
            compute_bispectrum(i);
          }
@@ -816,7 +815,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     double Eold, Enew;
     Eold = current_esnap;
     for (int r = 0; r < ratios.size(); r++){
-       for (int i = 0 ; i < Nelec+Nions; i ++){
+       for (int i = 0 ; i < Nelec+Nions; i++){
          update_sna_rij_vp(VP, i, r); 
          compute_bispectrum(i);
        }
