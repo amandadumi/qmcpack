@@ -30,6 +30,7 @@
 #include "QMCHamiltonians/BareForce.h"
 #include "QMCHamiltonians/ForceCeperley.h"
 #include "QMCHamiltonians/ACForce.h"
+#include "QMCHamiltonians/StressPBC.h"
 #if defined(HAVE_LIBFFTW)
 #include "QMCHamiltonians/MPC.h"
 #endif
@@ -222,6 +223,19 @@ void HamiltonianFactory::addForceHam(xmlNodePtr cur)
     std::unique_ptr<ACForce> acforce = std::make_unique<ACForce>(*source, *target, psi, *targetH);
     acforce->put(cur);
     targetH->addOperator(std::move(acforce), title, false);
+  }
+  else if (mode == "stress")
+  {
+    app_log() << "Adding stress mode force.\n";
+    auto psi_it(psiPool.find(PsiName));
+    if (psi_it == psiPool.end())
+    {
+      APP_ABORT("Unknown psi \"" + PsiName + "\" for zero-variance force.");
+    }
+    TrialWaveFunction& psi           = *psi_it->second;
+    std::unique_ptr<StressPBC> stress = std::make_unique<StressPBC>(*source, *target, psi);
+    stress->put(cur);
+    targetH->addOperator(std::move(stress), title, false);
   }
   else
   {
