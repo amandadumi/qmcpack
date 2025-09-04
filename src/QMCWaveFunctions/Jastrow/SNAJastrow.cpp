@@ -571,7 +571,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
               int jtype = type_map[Nelec+j];
               int jelem = 0;
               int j_sna = Nelec+j;
-              const auto disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : 1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
+              const auto disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
               sna_desc.rij[num_neigh][0] = disp_ref[0];
               sna_desc.rij[num_neigh][1] = disp_ref[1];
               sna_desc.rij[num_neigh][2] = disp_ref[2];
@@ -658,7 +658,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
               int jtype = type_map[Nelec+j];
               int jelem = 0;
               int j_sna = Nelec+j;
-              disp_ref = iat-Nelec < j  ? Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
+              disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
               sna_desc.rij[num_neigh][0] = disp_ref[0];
               sna_desc.rij[num_neigh][1] = disp_ref[1];
               sna_desc.rij[num_neigh][2] = disp_ref[2];
