@@ -60,6 +60,7 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
       ncoeff = (m*(m+1)*(2*m))/3;
     }
     rcut = input_rcut;
+    num_neigh= Nions+Nelec-1;
     snap_type = input_snap_type;
    // create object for 2snap descriptor
     //TODO: set this to ddefault value for everythin
@@ -146,14 +147,14 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par, false);// update sna_rij  
       if (par == iat) // if the rij we are creating is from par == iat, shift all of rij
-        for (int j= 0; j < Nions+Nelec-1; j++)
+        for (int j= 0; j < num_neigh; j++)
           sna_desc.rij[j][dim] += dist_delta;
       else // if rij par !=iat then we just need to update the row corresponding to iat.
-        for (int j= 0; j < Nions+Nelec-1; j++)
+        for (int j= 0; j < num_neigh; j++)
             if (sna_desc.inside[j] == iat)
               sna_desc.rij[j][dim] -= dist_delta; // switch sign to go from other perspective.
       // change the sign for rij for the snad contribution.
-      for (int i = 0; i < Nelec+Nions-1; i ++)
+      for (int i = 0; i < num_neigh; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par, temp_snad_forward);
@@ -162,14 +163,14 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par,false); // update sna_rij  
       if (par == iat) // if the rij we are creating is from par == iat, shift all of rij
-        for (int j= 0; j < Nions+Nelec-1; j++)
+        for (int j= 0; j < num_neigh; j++)
           sna_desc.rij[j][dim] -= dist_delta;
       else // if rij par !=iat then we just need to update the row corresponding to iat.
-        for (int j= 0; j < Nions+Nelec-1; j++)
+        for (int j= 0; j < num_neigh; j++)
             if (sna_desc.inside[j] == iat)
               sna_desc.rij[j][dim] += dist_delta; // switch sign to go from other perspective.
       // change the sign for rij for the snad contribution.
-      for (int i = 0; i < Nelec+Nions-1; i++)
+      for (int i = 0; i < num_neigh; i++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par, temp_snad_backward);
@@ -217,14 +218,14 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   for (int par = 0; par < Nions + Nelec; par++){
     update_sna_rij(P, par, false);// update sna_rij  
     if (par == iat) // if the rij we are creating is from par == iat, shift all of rij
-      for (int j= 0; j < Nions+Nelec-1; j++)
+      for (int j= 0; j < num_neigh; j++)
         sna_desc.rij[j][dim] += dist_delta;
     else // if rij par !=iat then we just need to update the row corresponding to iat.
-      for (int j= 0; j < Nions+Nelec-1; j++)
+      for (int j= 0; j < num_neigh; j++)
           if (sna_desc.inside[j] == iat)
             sna_desc.rij[j][dim] -= dist_delta; // switch sign to go from other perspective.
     // change the sign for rij for the snad contribution.
-    for (int i = 0; i < Nelec+Nions-1; i ++)
+    for (int i = 0; i < num_neigh; i ++)
       for (int j = 0; j < 3; j ++)
         sna_desc.rij[i][j]*=-1.0;
     compute_d_dr_bispectrum(par, temp_snad);
@@ -240,14 +241,14 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   for (int par = 0; par < Nions + Nelec; par++){
     update_sna_rij(P, par,false); // update sna_rij  
     if (par == iat) // if the rij we are creating is from par == iat, shift all of rij
-      for (int j= 0; j < Nions+Nelec-1; j++)
+      for (int j= 0; j < num_neigh; j++)
         sna_desc.rij[j][dim] -= dist_delta;
     else // if rij par !=iat then we just need to update the row corresponding to iat.
-      for (int j= 0; j < Nions+Nelec-1; j++)
+      for (int j= 0; j < num_neigh; j++)
           if (sna_desc.inside[j] == iat)
             sna_desc.rij[j][dim] += dist_delta; // switch sign to go from other perspective.
     // change the sign for rij for the snad contribution.
-    for (int i = 0; i < Nelec+Nions-1; i++)
+    for (int i = 0; i < num_neigh; i++)
       for (int j = 0; j < 3; j ++)
         sna_desc.rij[i][j]*=-1.0;
     compute_d_dr_bispectrum(par,temp_snad);
@@ -312,7 +313,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     //update all of snad
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par,false);  
-      for (int i = 0; i < Nelec+Nions-1; i ++)
+      for (int i = 0; i < num_neigh; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par,snad);
@@ -337,7 +338,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par,true);  
-      for (int i = 0; i < Nelec+Nions-1; i ++)
+      for (int i = 0; i < num_neigh; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par,temp_snad);
@@ -399,7 +400,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par,false);  
       compute_bispectrum(par);
-      for (int i = 0; i < Nelec+Nions-1; i ++)
+      for (int i = 0; i < num_neigh; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par,snad);
@@ -507,79 +508,99 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     const int itype = type_map[iat];
     const double radi = radelem[itype];
     bool elec = (itype <2);
-    int num_neigh = 0;// TODO: temporary fix for not treating cutoff
+    PosType disp_ref;
+    RealType dist_ref;
     if (elec){ // if up or down elec
         for (int j = 0; j < Nelec; j++){ // loop through all other elecs
             if (iat != j){ // skip current elec
                // Displacements stored in lower triangular of ee table
-               const auto disp_ref = iat < j  ? VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
-               if (j == VP.refPtcl)// if the neighboring electron is the virtual particle that is being moved around...
+               disp_ref = iat < j  ? VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*VP.getRefPS().getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+               dist_ref = iat < j  ? VP.getRefPS().getDistTableAA(ee_Table_ID_).getDistRow(j)[iat] : VP.getRefPS().getDistTableAA(ee_Table_ID_).getDistRow(iat)[j];
+               if (j == VP.refPtcl){// if the neighboring electron is the virtual particle that is being moved around...
                  // get the dispalcement between the virtual particlle and the target particle
                  // we need the distance from i to r, which is this value no sign change
-                 const auto disp_ref = VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[iat];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
-              else if (iat == VP.refPtcl) // if the target is the ref particle...
+                 disp_ref = VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[iat];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
+                 dist_ref = VP.getDistTableAB(ee_Table_ID_).getDistRow(r)[iat];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
+               }
+              else if (iat == VP.refPtcl){ // if the target is the ref particle...
                  // then it is the distance between target and neighbor j 
-                 const auto disp_ref = -1.0*VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[j];
-              
-              int jtype = type_map[j];
-              int jelem = 0;
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+                 disp_ref = -1.0*VP.getDistTableAB(ee_Table_ID_).getDisplRow(r)[j];
+                 dist_ref = VP.getDistTableAB(ee_Table_ID_).getDistRow(r)[j];
+              }
+              if (dist_ref < rcut){
+                int jtype = type_map[j];
+                int jelem = 0;
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+              }
             }
         }
         for (int j = 0; j< Nions; j++){
-              const auto disp_ref = -1.0*VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
-              if (iat == VP.refPtcl)
-                 const auto disp_ref = -1.0*VP.getDistTableAB(ei_Table_ID_).getDisplRow(r)[j];
-              int j_sna = Nelec+j;
-              int jtype = type_map[j_sna];
-              int jelem = 0;
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j_sna;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+              disp_ref = -1.0*VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
+              dist_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDistRow(iat)[j];
+              if (iat == VP.refPtcl){
+                disp_ref = -1.0*VP.getDistTableAB(ei_Table_ID_).getDisplRow(r)[j];
+                dist_ref = VP.getDistTableAB(ei_Table_ID_).getDistRow(r)[j];
+              }
+              if (dist_ref < rcut){
+                int j_sna = Nelec+j;
+                int jtype = type_map[j_sna];
+                int jelem = 0;
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j_sna;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+              }
         }
     }
     else{// ion
         for (int j = 0; j< Nelec; j++){ // for all neighboring electrons of this ion
-               const auto disp_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec]; // iat is global particle index, shift for just ion
-               if (j == VP.refPtcl)
-                 const auto disp_ref = VP.getDistTableAB(ei_Table_ID_).getDisplRow(r)[iat-Nelec];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
-              int jtype = type_map[j];
-              int jelem = 0;
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+                disp_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec]; // iat is global particle index, shift for just ion
+                dist_ref = VP.getRefPS().getDistTableAB(ei_Table_ID_).getDistRow(j)[iat-Nelec]; // iat is global particle index, shift for just ion
+              if (j == VP.refPtcl){
+                 disp_ref = VP.getDistTableAB(ei_Table_ID_).getDisplRow(r)[iat-Nelec];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
+                 dist_ref = VP.getDistTableAB(ei_Table_ID_).getDistRow(r)[iat-Nelec];// sign change here since we are looking from perspective of i but grabbing displacement from perspective of refptcl j
+              }
+              if (dist_ref < rcut){
+                int jtype = type_map[j];
+                int jelem = 0;
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+          }
         }
         for (int j = 0; j< Nions; j++){
           if (iat-Nelec != j){
               int jtype = type_map[Nelec+j];
               int jelem = 0;
               int j_sna = Nelec+j;
-              const auto disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j_sna;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+              disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
+              dist_ref = iat-Nelec < j  ? Ions.getDistTableAA(ii_Table_ID_).getDistRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDistRow(iat-Nelec)[j];
+              if (dist_ref < rcut){
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j_sna;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+              }
           }
         }
 
@@ -593,65 +614,81 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     bool elec = (itype <2);
     int num_neigh = 0;// TODO: temporary fix for not treating cutoff
     PosType disp_ref;
+    RealType dist_ref;
     if (elec){
         for (int j = 0; j < Nelec; j++){
             if (iat != j){
               disp_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+              dist_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDistRow(j)[iat] : P.getDistTableAA(ee_Table_ID_).getDistRow(iat)[j];
               if (proposed){
                 if (iat == P.getActivePtcl()){
                   disp_ref = -1*P.getDistTableAA(ee_Table_ID_).getTempDispls()[j] ;
+                  dist_ref = P.getDistTableAA(ee_Table_ID_).getTempDists()[j] ;
                 }
                 else if (j == P.getActivePtcl()){
                   disp_ref = P.getDistTableAA(ee_Table_ID_).getTempDispls()[iat] ;
+                  dist_ref = P.getDistTableAA(ee_Table_ID_).getTempDists()[iat] ;
                 }
               }
-              int jtype = type_map[j];
-              int jelem = 0;
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+              if (dist_ref< rcut){
+                int jtype = type_map[j];
+                int jelem = 0;
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+              }
             }
         }
         for (int j = 0; j< Nions; j++){
               disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
+              dist_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDistRow(iat)[j];
               if (proposed)
-                if (iat == P.getActivePtcl())
+                if (iat == P.getActivePtcl()){
                   disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getTempDispls()[j] ;
-              int j_sna = Nelec+j;
-              int jtype = type_map[j_sna];
-              int jelem = 0;
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j_sna;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+                  dist_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getTempDists()[j] ;
+                }
+              if (dist_ref < rcut){
+                int j_sna = Nelec+j;
+                int jtype = type_map[j_sna];
+                int jelem = 0;
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j_sna;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+              }
         }
     }
     else{// ion
         for (int j = 0; j< Nelec; j++){
               disp_ref = P.getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec];
+              dist_ref = P.getDistTableAB(ei_Table_ID_).getDistRow(j)[iat-Nelec];
               if (proposed)
-                if (j == P.getActivePtcl())
+                if (j == P.getActivePtcl()){
                   disp_ref = P.getDistTableAB(ei_Table_ID_).getTempDispls()[iat-Nelec] ;
+                  dist_ref = P.getDistTableAB(ei_Table_ID_).getTempDists()[iat-Nelec] ;
+                }
 
               int jtype = type_map[j];
               int jelem = 0;
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+              if (dist_ref < rcut){
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+              }
         }
         for (int j = 0; j< Nions; j++){
           if (iat-Nelec != j){
@@ -659,14 +696,17 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
               int jelem = 0;
               int j_sna = Nelec+j;
               disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
-              sna_desc.rij[num_neigh][0] = disp_ref[0];
-              sna_desc.rij[num_neigh][1] = disp_ref[1];
-              sna_desc.rij[num_neigh][2] = disp_ref[2];
-              sna_desc.inside[num_neigh] = j_sna;
-              sna_desc.wj[num_neigh] = 1;
-              sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
-              sna_desc.element[num_neigh] = jelem;
-              num_neigh +=1;
+              dist_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDistRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDistRow(iat-Nelec)[j];
+              if (dist_ref < rcut){
+                sna_desc.rij[num_neigh][0] = disp_ref[0];
+                sna_desc.rij[num_neigh][1] = disp_ref[1];
+                sna_desc.rij[num_neigh][2] = disp_ref[2];
+                sna_desc.inside[num_neigh] = j_sna;
+                sna_desc.wj[num_neigh] = 1;
+                sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
+                sna_desc.element[num_neigh] = jelem;
+                num_neigh +=1;
+              }
           }
         }
 
@@ -677,7 +717,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     //TODO
     // will be responsible for looping over particles and updatin g the bispectrum of a particular component.
     
-    int ninside = Nelec + Nions-1; // just do alll particlles for now.
+    int ninside = num_neigh;
     int ielem = 0;
     sna_desc.compute_ui(ninside, ielem);
     sna_desc.compute_zi();
@@ -699,7 +739,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   int ielem = 0;
   const int typeoffset = 3*ncoeff*itype;
 
-  int ninside = Nions+Nelec-1;
+  int ninside = num_neigh;
   sna_desc.compute_ui(ninside, ielem);
   sna_desc.compute_zi();
   for (int jj = 0; jj < ninside; jj++) { //TODO: implement cutoff, currently going over all particles.
@@ -866,7 +906,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
         snad[part][entry] = 0.0;
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par, false);  
-      for (int i = 0; i < Nions+Nelec-1; i ++)
+      for (int i = 0; i < num_neigh; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par,snad);
@@ -909,7 +949,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     //TODO: add update to snad here.
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par, true);  
-      for (int i = 0; i < Nions+Nelec-1; i ++)
+      for (int i = 0; i < num_neigh; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par,temp_snad);
