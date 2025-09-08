@@ -132,9 +132,11 @@ SymTensor<StressPBC::RealType, OHMMS_DIM> StressPBC::evaluateSR_AB(ParticleSet& 
 SymTensor<StressPBC::RealType, OHMMS_DIM> StressPBC::evaluateSR_AA(ParticleSet& P, int itabSelf)
 {
   const auto& d_aa = P.getDistTableAA(itabSelf);
+  int NumSpecies = P.getSpeciesSet().TotalNum;
+  int NumPtcl = P.getTotalNum();
 
   SymTensor<RealType, OHMMS_DIM> stress_aa;
-  for (int ipart = 0; ipart < NptclB; ipart++)
+  for (int ipart = 0; ipart < NumPtcl; ipart++)
   {
     SymTensor<RealType, OHMMS_DIM> esum = 0.0;
     const auto& drijs                   = d_aa.getDisplRow(ipart);
