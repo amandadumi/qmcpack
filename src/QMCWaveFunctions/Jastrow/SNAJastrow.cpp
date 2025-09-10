@@ -510,6 +510,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     bool elec = (itype <2);
     PosType disp_ref;
     RealType dist_ref;
+    int num_neigh = 0;// TODO: temporary fix for not treating cutoff
     if (elec){ // if up or down elec
         for (int j = 0; j < Nelec; j++){ // loop through all other elecs
             if (iat != j){ // skip current elec
