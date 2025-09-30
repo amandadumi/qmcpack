@@ -6648,7 +6648,7 @@ class Crystal(Structure):
             self.error('the '+lattice+' lattice depends on the constants '+str(self.lattice_constants[lattice])+'\n you provided '+str(len(constants))+': '+str(constants))
         #end if
         if isinstance(atoms,str):
-            if basis!=None:
+            if basis is not None:
                 atoms = len(basis)*[atoms]
             else:
                 atoms=[atoms]
