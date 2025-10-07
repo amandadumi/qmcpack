@@ -128,7 +128,7 @@ public:
     int ncoeff;
     int ntypes;
     int twojmax=2;
-    int num_neigh; // keeps track of how many neighbors are in the current rij list
+    int num_neigh=0; // keeps track of how many neighbors are in the current rij list
     double rcut=7;
     double rcutfac=1.0;
     double rfac0=0.99363;

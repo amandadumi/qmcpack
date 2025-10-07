@@ -362,32 +362,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_debug() << "in evalderivative"<<std::endl;
     ScopedTimer local_timer(timers_.eval_wf_grad_timer);
     evaluateDerivativesWF(P, optvars, dlogpsi);
-    bool recalculate(false);
-    std::vector<bool> rcsingles(myVars.size(), false);
     for (int k = 0; k < myVars.size(); ++k)
     {
-      int k_global = myVars.where(k);
-      if (k_global < 0)
-       continue;
-      if (optvars.recompute(k_global))
-        recalculate = true;
-      rcsingles[k] = true;
-    }
-    if (recalculate)
-    {
-      for (int k = 0; k < myVars.size(); ++k)
-      {
         int k_global = myVars.where(k);
-        if (k_global < 0)
-          continue;
-        if (rcsingles[k])
-        {
           dhpsioverpsi[k_global] = -RealType(0.5) * RealType(Sum(lapLogPsi[k]));
           for (int i = 0; i < Nelec; i++){
             dhpsioverpsi[k_global] -= RealType(dot(P.G[i], gradLogPsi[k][i]));
           }
-        }
-      }
     }
   }
 
@@ -405,36 +386,19 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par,snad);
     }
-    bool recalculate(false);
     resizeWFOptVectors();
-    std::vector<bool> rcsingles(myVars.size(), false);
-    for (int k = 0; k < myVars.size(); ++k)
-    {
-      int k_global = myVars.where(k);
-      if (k_global < 0)
-        continue;
-      if (optvars.recompute(k_global))
-        recalculate = true;
-      rcsingles[k] = true;
+    const size_t NumVars = myVars.size();
+    for (int p = 0; p < NumVars; p++){
+      gradLogPsi[p] = 0.0;
+      lapLogPsi[p] = 0.0;
     }
-    if (recalculate){
-      const size_t NumVars = myVars.size();
-      for (int p = 0; p < NumVars; p++){
-        gradLogPsi[p] = 0.0;
-        lapLogPsi[p] = 0.0;
-      }
-      dLogPsi = 0.0;
+    dLogPsi = 0.0;
     
-      for (int k = 0; k < myVars.size(); k++){
+    for (int k = 0; k < myVars.size(); k++){
         int k_global = myVars.where(k);
-        if (k_global < 0)
-          continue;
-        if (rcsingles[k]){
-          evaluate_linear_derivs(P, k);
-          dlogpsi[k_global] = ValueType(dLogPsi[k]);
-        }
-      } 
-    }
+        evaluate_linear_derivs(P, k);
+        dlogpsi[k_global] = ValueType(dLogPsi[k]);
+    } 
   }
 
   void SNAJastrow::evaluate_linear_derivs(ParticleSet& P, int coeff_idx){
@@ -510,7 +474,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     bool elec = (itype <2);
     PosType disp_ref;
     RealType dist_ref;
-    int num_neigh = 0;// TODO: temporary fix for not treating cutoff
+    int num_neigh = 0;
     if (elec){ // if up or down elec
         for (int j = 0; j < Nelec; j++){ // loop through all other elecs
             if (iat != j){ // skip current elec
@@ -631,6 +595,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                   dist_ref = P.getDistTableAA(ee_Table_ID_).getTempDists()[iat] ;
                 }
               }
+        //std::cout << "x component of disp ref is" <<disp_ref[0] <<std::endl;
               if (dist_ref< rcut){
                 int jtype = type_map[j];
                 int jelem = 0;
@@ -644,8 +609,8 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                 num_neigh +=1;
               }
             }
-        }
-        for (int j = 0; j< Nions; j++){
+            }
+            for (int j = 0; j< Nions; j++){
               disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
               dist_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDistRow(iat)[j];
               if (proposed)
@@ -732,7 +697,6 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
 
   void SNAJastrow::compute_d_dr_bispectrum( int iat, std::vector<std::vector<double>>& a_snad){
   app_debug() << "SNAJastrow::compute_d_dr_bispectrum "<< std::endl;
-  int ntotal = Nions + Nelec;
 
 
   int inum = iat;
@@ -763,7 +727,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
       a_snad[j][typeoffset + icoeff + zoffset] -= sna_desc.dblist[icoeff][2];
     }
   }// end neighbor loop
-}//TODO}
+}
 
 
 
@@ -774,23 +738,8 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     Vector<RealType> dlogpsi_nlpp_virt;
     dlogpsi_nlpp_virt.resize(myVars.size());
 
-    bool recalculate(false);
-    std::vector<bool> rcsingles(myVars.size(), false);
-    for (int k = 0; k < myVars.size(); ++k){
-      int k_global = myVars.where(k);
-      if (k_global < 0)
-        continue;
-      if (optvars.recompute(k_global))
-        recalculate = true;
-      rcsingles[k] = true;
-     }
-
-    if (recalculate){
      for (int k = 0; k < myVars.size(); k++){ // local index
-       int k_global = myVars.where(k); //global index
-       if (k_global < 0)
-         continue;
-        if (rcsingles[k]){
+         int k_global = myVars.where(k);
          int ntype = int(k/ncoeff); 
          int coeff = k%ncoeff; 
          //calculate reference deriv
@@ -844,10 +793,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
            dratios[r][k_global] =  dlogpsi_nlpp_virt[k] - dlogpsi_nlpp_ref[k];
            //app_debug() << "SNAJastrow::evaluateDerivRatios after dratio update " << std::endl;
          } //end ratio loop
-        }// end rcsingles
      } // end loop over internal coeffss
-    } // end recalculate
-   //app_debug() << "SNAJastrow::evaluateDerivRatios at end of function" << std::endl;
   }
 
   void SNAJastrow::evaluateRatios(const VirtualParticleSet& VP, std::vector<ValueType>& ratios){
