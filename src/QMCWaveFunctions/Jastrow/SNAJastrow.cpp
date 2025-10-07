@@ -714,6 +714,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                                 sna_desc.rcutij[jj], jj, sna_desc.element[jj]);
     sna_desc.compute_dbidrj();
     // Accumulate -dBi/dRi, -dBi/dRj
+    app_debug() << "SNAJastrow::compute_d_dr_bispectrum after derivative of descriptor build"<< std::endl;
 
     int yoffset = ncoeff;
     int zoffset = 2*ncoeff;
@@ -726,6 +727,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
       a_snad[j][typeoffset + icoeff + yoffset] -= sna_desc.dblist[icoeff][1];
       a_snad[j][typeoffset + icoeff + zoffset] -= sna_desc.dblist[icoeff][2];
     }
+    app_debug() << "SNAJastrow::compute_d_dr_bispectrum after internal build of derivative object"<< std::endl;
   }// end neighbor loop
 }
 
