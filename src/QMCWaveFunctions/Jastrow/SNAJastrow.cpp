@@ -65,7 +65,7 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
    // create object for 2snap descriptor
     //TODO: set this to ddefault value for everythin
     rcutij = std::vector<std::vector<double>>(Nions+Nelec,std::vector<double>(Nions+Nelec,7.0));
-    radelem = std::vector<double>(ntypes,7.0);
+    radelem = std::vector<double>(ntypes,rcut);
     element = std::vector<int>(Nions+Nelec,0);
     type_map = std::vector<int>(Nions+Nelec,0);
     for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
@@ -577,14 +577,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     const int itype = type_map[iat];
     const double radi = radelem[itype];
     bool elec = (itype <2);
-    int num_neigh = 0;// TODO: temporary fix for not treating cutoff
+    num_neigh = 0;
     PosType disp_ref;
     RealType dist_ref;
+
     if (elec){
         for (int j = 0; j < Nelec; j++){
             if (iat != j){
-              disp_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
-              dist_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDistRow(j)[iat] : P.getDistTableAA(ee_Table_ID_).getDistRow(iat)[j];
               if (proposed){
                 if (iat == P.getActivePtcl()){
                   disp_ref = -1*P.getDistTableAA(ee_Table_ID_).getTempDispls()[j] ;
@@ -594,6 +593,9 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                   disp_ref = P.getDistTableAA(ee_Table_ID_).getTempDispls()[iat] ;
                   dist_ref = P.getDistTableAA(ee_Table_ID_).getTempDists()[iat] ;
                 }
+              } else{
+                disp_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+                dist_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDistRow(j)[iat] : P.getDistTableAA(ee_Table_ID_).getDistRow(iat)[j];
               }
         //std::cout << "x component of disp ref is" <<disp_ref[0] <<std::endl;
               if (dist_ref< rcut){
@@ -612,12 +614,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
             }
             for (int j = 0; j< Nions; j++){
               disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDisplRow(iat)[j];
-              dist_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getDistRow(iat)[j];
-              if (proposed)
+              dist_ref = P.getDistTableAB(ei_Table_ID_).getDistRow(iat)[j];
+              if (proposed) {
                 if (iat == P.getActivePtcl()){
                   disp_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getTempDispls()[j] ;
-                  dist_ref = -1.0*P.getDistTableAB(ei_Table_ID_).getTempDists()[j] ;
+                  dist_ref = P.getDistTableAB(ei_Table_ID_).getTempDists()[j] ;
                 }
+              }
               if (dist_ref < rcut){
                 int j_sna = Nelec+j;
                 int jtype = type_map[j_sna];
@@ -637,12 +640,12 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
         for (int j = 0; j< Nelec; j++){
               disp_ref = P.getDistTableAB(ei_Table_ID_).getDisplRow(j)[iat-Nelec];
               dist_ref = P.getDistTableAB(ei_Table_ID_).getDistRow(j)[iat-Nelec];
-              if (proposed)
+              if (proposed){
                 if (j == P.getActivePtcl()){
                   disp_ref = P.getDistTableAB(ei_Table_ID_).getTempDispls()[iat-Nelec] ;
                   dist_ref = P.getDistTableAB(ei_Table_ID_).getTempDists()[iat-Nelec] ;
                 }
-
+              }
               int jtype = type_map[j];
               int jelem = 0;
               if (dist_ref < rcut){
@@ -662,7 +665,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
               int jelem = 0;
               int j_sna = Nelec+j;
               disp_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDisplRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDisplRow(iat-Nelec)[j];
-              dist_ref = iat-Nelec < j  ? -1.0*Ions.getDistTableAA(ii_Table_ID_).getDistRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDistRow(iat-Nelec)[j];
+              dist_ref = iat-Nelec < j  ? Ions.getDistTableAA(ii_Table_ID_).getDistRow(j)[iat-Nelec] : Ions.getDistTableAA(ii_Table_ID_).getDistRow(iat-Nelec)[j];
               if (dist_ref < rcut){
                 sna_desc.rij[num_neigh][0] = disp_ref[0];
                 sna_desc.rij[num_neigh][1] = disp_ref[1];
@@ -672,7 +675,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                 sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
                 sna_desc.element[num_neigh] = jelem;
                 num_neigh +=1;
-              }
+             }
           }
         }
 
@@ -707,7 +710,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   int ninside = num_neigh;
   sna_desc.compute_ui(ninside, ielem);
   sna_desc.compute_zi();
-  for (int jj = 0; jj < ninside; jj++) { //TODO: implement cutoff, currently going over all particles.
+  for (int jj = 0; jj < ninside; jj++) { 
     const int j = sna_desc.inside[jj];
     int jtype = type_map[j];
     sna_desc.compute_duidrj(sna_desc.rij[jj], sna_desc.wj[jj],

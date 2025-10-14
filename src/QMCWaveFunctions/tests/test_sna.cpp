@@ -638,51 +638,75 @@ TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
   REQUIRE(sj->snap_beta[0].size() == 5);
 };
 
-// TEST_CASE("snap_jastrow_molecule", "[wavefunction]"){
-//   Communicate* c = OHMMS::Controller;
-//   std::cout<< "starting test for molecule" <<std::endl;
-//   const SimulationCell simulation_cell;
-//   ParticleSet ions(simulation_cell), electrons(simulation_cell);
-//   electrons.create({1,1});
-//   electrons.setName("e_u");
-//   electrons.R[0][0] = 0.2;
-//   electrons.R[0][1] = 0.2;
-//   electrons.R[0][2] = 0.2;
-//   electrons.R[1][0] = 0.1;
-//   electrons.R[1][1] = 0.1;
-//   electrons.R[1][2] = 0.1;
+TEST_CASE("snap_jastrow_check_bispectrum_cutoff", "[wavefunction]")
+{
+  Communicate* c = OHMMS::Controller;
+  std::cout<< "starting snap_jastrow_check_bispectrum_cutoff" <<std::endl;
+//   // short input xml check that lammps positions are correct.
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+  electrons.setName("e");
+  electrons.create({1,1});
+  SpeciesSet& especies  = electrons.getSpeciesSet();
+  int elec_up  = especies.addSpecies("e_u");
+  int elec_down  = especies.addSpecies("e_d");
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.R[1][0] = 7.0;
+  electrons.R[1][1] = 7.0;
+  electrons.R[1][2] = 7.0;
 
-//   ions.create({1});
-//   ions.setName("ions");
-//   SpeciesSet& tspecies  = ions.getSpeciesSet();
-//   int ion_a  = tspecies.addSpecies("H");
+  ions.create({1});
+  ions.setName("ions");
+  SpeciesSet& tspecies  = ions.getSpeciesSet();
+  int ion_a  = tspecies.addSpecies("H");
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.update();
 
-//   ions.R[0][0] = 0.0;
-//   ions.R[0][1] = 0.0;
-//   ions.R[0][2] = 0.0;
-//   ions.update();
-//   electrons.update();
+  int ee_table = electrons.addTable(electrons);
+  int ei_table = electrons.addTable(ions);
+  electrons.update();
   
-//   const char * xmltext = R"XML(<tmp>
-//   <wavefunction name="psi0" target="e">
-//   <jastrow name="snap" type="snap" function="snap" snap_type="linear" rcut="7">
-//   </jastrow>
-// </wavefunction>
-// </tmp>)XML";
+ std::vector<double> true_bispectrum_e1 = {8.7338, 15.5511, 23.0708, 25.6794, 25.4184};
+ std::vector<double> true_bispectrum_e2= {1.34747, 1.82453, 2.63688, 3.84212, 3.74198};
+ std::vector<double> true_bispectrum_ion = {8.51626, 15.6634, 23.2995, 25.1503, 24.9511
+};
 
-//   Libxml2Document doc;
-//   bool okay;
-//   okay    = doc.parseFromString(xmltext);
-//   REQUIRE(okay);
-//   xmlNodePtr root = doc.getRoot();
-//   xmlNodePtr jas_node = xmlFirstElementChild(root);
-//   xmlNodePtr corr_node = xmlFirstElementChild(jas_node);
-//   SNAJastrowBuilder SJBuilder(c,electrons,ions);
-//   auto sj_uptr = SJBuilder.buildComponent(corr_node);
-//   SNAJastrow* sj = static_cast<SNAJastrow*>(sj_uptr.get());
 
-//   double initial_lmp_x = 0.2*0.529177;
-//   double initial_lmp_y = 0.2*0.529177;
-//   double initial_lmp_z = 0.2*0.529177;
-// }
+
+  auto jas = std::make_unique<SNAJastrow>(std::string("snap"), ions, electrons,std::string("linear"), 2, 7);
+  jas->update_sna_rij(electrons,0,false);
+  double internal_disp_x = -electrons.getDistTableAB(ei_table).getDisplRow(0)[0][0];
+  double internal_dist_0 = electrons.getDistTableAB(ei_table).getDistRow(0)[0];
+  double internal_dist_1 = electrons.getDistTableAB(ei_table).getDistRow(1)[0];
+  std::cout<< "internal_disp_x" << internal_disp_x<<std::endl;
+  std::cout<< "internal_dist_0" << internal_dist_0<<std::endl;
+  std::cout<< "internal_dist_1" << internal_dist_1<<std::endl;
+  // check that the first rij entry in sna_desc.rij is the first ion not the second electron
+  REQUIRE(jas->sna_desc.rij[0][0] == Approx(internal_disp_x));//elec1
+  REQUIRE(jas->sna_desc.rij[0][1] == Approx(internal_disp_x));//elec1
+  REQUIRE(jas->sna_desc.rij[0][2] == Approx(internal_disp_x));//elec1
+  REQUIRE(jas->num_neigh == 1);//elec1
+  std::cout<< "sna_desc.rij size" << jas->sna_desc.rij.size() <<std::endl;
+  std::cout<< "sna_desc.rij for non exsistent neighbor" << jas->sna_desc.rij[1][0] <<std::endl;
+  jas->compute_bispectrum(0);
+  std::cout<< "sna 0 0 " << jas->sna[0][0] <<std::endl;
+  std::cout<< "sna 0 1 " << jas->sna[0][0] <<std::endl;
+  std::cout<< "sna 1 0 " << jas->sna[1][0] <<std::endl;
+  std::cout<< "sna 2 0 " << jas->sna[2][0] <<std::endl;
+  //REQUIRE(jas->sna[0][0] == Approx(true_bispectrum_e1[0]));//elec1
+  jas->update_sna_rij(electrons,1,false);
+  jas->compute_bispectrum(1);
+  std::cout<< "sna 1 0 " << jas->sna[1][0] <<std::endl;
+  //REQUIRE(jas->sna[1][1] == Approx(true_bispectrum_e2[1]));//elec1
+  jas->update_sna_rij(electrons,2,false);
+  jas->compute_bispectrum(2);
+  std::cout<< "sna 2 0 " << jas->sna[2][0] <<std::endl;
+  //REQUIRE(jas->sna[2][2] == Approx(true_bispectrum_ion[2]));//elec1
+  
+
+}
 }
