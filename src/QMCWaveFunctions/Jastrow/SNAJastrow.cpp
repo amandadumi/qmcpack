@@ -65,7 +65,7 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
    // create object for 2snap descriptor
     //TODO: set this to ddefault value for everythin
     rcutij = std::vector<std::vector<double>>(Nions+Nelec,std::vector<double>(Nions+Nelec,7.0));
-    radelem = std::vector<double>(ntypes,rcut);
+    radelem = std::vector<double>(ntypes,rcut/2);
     element = std::vector<int>(Nions+Nelec,0);
     type_map = std::vector<int>(Nions+Nelec,0);
     for (int ig = 0; ig < els.groups(); ig++) { // loop over groups
@@ -85,7 +85,7 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
 
     snap_beta = std::vector<std::vector<double>>(NIonGroups+els.groups(), std::vector<double>(ncoeff,0.0));
     sna = std::vector<std::vector<double>>(Nelec+Nions, std::vector<double>(ncoeff,0.0));
-    snad = std::vector<std::vector<double>>(Nions + Nelec, std::vector<double>(3*ntypes*ncoeff,0.0));
+    snad = std::vector<std::vector<double>>(Nions+Nelec, std::vector<double>(3*ntypes*ncoeff,0.0));
     for (int i=0; i < NIonGroups+els.groups(); i++){
       for (int k = 0; k < ncoeff; k++){
         std::stringstream name;
@@ -150,7 +150,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
         for (int j= 0; j < num_neigh; j++)
           sna_desc.rij[j][dim] += dist_delta;
       else // if rij par !=iat then we just need to update the row corresponding to iat.
-        for (int j= 0; j < num_neigh; j++)
+        for (int j=0; j < num_neigh; j++)
             if (sna_desc.inside[j] == iat)
               sna_desc.rij[j][dim] -= dist_delta; // switch sign to go from other perspective.
       // change the sign for rij for the snad contribution.
@@ -161,7 +161,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     }
 
     for (int par = 0; par < Nions + Nelec; par++){
-      update_sna_rij(P, par,false); // update sna_rij  
+      update_sna_rij(P, par, false); // update sna_rij  
       if (par == iat) // if the rij we are creating is from par == iat, shift all of rij
         for (int j= 0; j < num_neigh; j++)
           sna_desc.rij[j][dim] -= dist_delta;
@@ -312,7 +312,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
         snad[part][entry] = 0.0;
     //update all of snad
     for (int par = 0; par < Nions + Nelec; par++){
-      update_sna_rij(P, par,false);  
+      update_sna_rij(P, par, false);  
       for (int i = 0; i < num_neigh; i ++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
@@ -435,14 +435,15 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     // the global array is summed over groups of atoms of the same type. thus we just need to sum over groups.
     for (int ig = 0; ig < P.groups(); ig++) {
       for (int iat = P.first(ig); iat < P.last(ig); iat++) { // loop over elements in each group
-        //app_debug() << "elec index is" << iat <<std::endl; 
+        app_debug() << "elec index is" << iat <<std::endl; 
         update_sna_rij(P, iat, proposed); 
+        app_debug() << "num neigh is" << num_neigh <<std::endl; 
         compute_bispectrum(iat);
         for (int k = 0; k < ncoeff; k++){
           bispectrum_val = sna[iat][k]; //block of bispectrum + current component to add.
           app_debug() << bispectrum_val << std::endl;
           esnap_elec += coeff[ig][k] * bispectrum_val;
-          //app_debug()<<"snap coefff for group "<<ig<< " coeff "<<k << " is " <<coeff[ig][k] <<std::endl;
+          app_debug()<<"snap coefff for group "<< ig << " coeff "<<k << " is " <<coeff[ig][k] <<std::endl;
         }
       }
     }
@@ -451,14 +452,14 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
 
     for (int ig = 0; ig < Ions.groups(); ig++) {
       for (int iat = Ions.first(ig); iat < Ions.last(ig); iat++) { // loop over elements in each group
-        //app_debug() << "ion index is" << iat <<std::endl; 
+        app_debug() << "ion index is" << iat <<std::endl; 
         update_sna_rij(P, Nelec+iat,proposed); 
         compute_bispectrum(Nelec+iat);
         for (int k =0; k < ncoeff; k++){
           bispectrum_val = sna[Nelec+iat][k];
           app_debug() << bispectrum_val << std::endl;
           esnap_ion += coeff[P.groups()+ig][k] * bispectrum_val;
-          //app_debug()<< "snap coeff for group "<< P.groups()+ig << " coeff " << k << " is " << coeff[P.groups()+ig][k] <<std::endl;
+          app_debug()<< "snap coeff for group "<< P.groups()+ig << " coeff " << k << " is " << coeff[P.groups()+ig][k] <<std::endl;
         }
       }
     }
@@ -675,16 +676,13 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                 sna_desc.rcutij[num_neigh] = (radi + radelem[jtype]) * rcutfac;
                 sna_desc.element[num_neigh] = jelem;
                 num_neigh +=1;
-             }
-          }
+              }
         }
-
+      }
     }
   }
   
   void SNAJastrow::compute_bispectrum(int iat){
-    //TODO
-    // will be responsible for looping over particles and updatin g the bispectrum of a particular component.
     
     int ninside = num_neigh;
     int ielem = 0;
@@ -692,14 +690,12 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     sna_desc.compute_zi();
     sna_desc.compute_bi(ielem);
     for (int icoeff = 0; icoeff < ncoeff; icoeff++){
-    //std::cout<< "desc object value"<<std::endl;
-      //std::cout<< sna_desc.blist[icoeff] <<std::endl;
       sna[iat][icoeff] = sna_desc.blist[icoeff];
     }
   }
 
   void SNAJastrow::compute_d_dr_bispectrum( int iat, std::vector<std::vector<double>>& a_snad){
-  app_debug() << "SNAJastrow::compute_d_dr_bispectrum "<< std::endl;
+  //app_debug() << "SNAJastrow::compute_d_dr_bispectrum "<< std::endl;
 
 
   int inum = iat;
@@ -717,7 +713,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                                 sna_desc.rcutij[jj], jj, sna_desc.element[jj]);
     sna_desc.compute_dbidrj();
     // Accumulate -dBi/dRi, -dBi/dRj
-    app_debug() << "SNAJastrow::compute_d_dr_bispectrum after derivative of descriptor build"<< std::endl;
+    //app_debug() << "SNAJastrow::compute_d_dr_bispectrum after derivative of descriptor build"<< std::endl;
 
     int yoffset = ncoeff;
     int zoffset = 2*ncoeff;
@@ -730,7 +726,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
       a_snad[j][typeoffset + icoeff + yoffset] -= sna_desc.dblist[icoeff][1];
       a_snad[j][typeoffset + icoeff + zoffset] -= sna_desc.dblist[icoeff][2];
     }
-    app_debug() << "SNAJastrow::compute_d_dr_bispectrum after internal build of derivative object"<< std::endl;
+    //app_debug() << "SNAJastrow::compute_d_dr_bispectrum after internal build of derivative object"<< std::endl;
   }// end neighbor loop
 }
 
@@ -923,8 +919,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   SNAJastrow::PsiValue SNAJastrow::ratio(ParticleSet& P, int iat){
     app_debug() << "inside ratio" << std::endl;
     double Enew, Eold;
-    //calculate_ESNA(P, snap_beta, Eold,false);
-    calculate_ESNA( P, snap_beta, Enew,true);
+    calculate_ESNA( P, snap_beta, Enew, true);
     Eold = current_esnap;
     //calculate the ratio
     SNAJastrow::PsiValue ratio = std::exp(static_cast<SNAJastrow::PsiValue>(Enew-Eold));
