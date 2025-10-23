@@ -585,6 +585,8 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     if (elec){
         for (int j = 0; j < Nelec; j++){
             if (iat != j){
+              disp_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
+              dist_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDistRow(j)[iat] : P.getDistTableAA(ee_Table_ID_).getDistRow(iat)[j];
               if (proposed){
                 if (iat == P.getActivePtcl()){
                   disp_ref = -1*P.getDistTableAA(ee_Table_ID_).getTempDispls()[j] ;
@@ -594,11 +596,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
                   disp_ref = P.getDistTableAA(ee_Table_ID_).getTempDispls()[iat] ;
                   dist_ref = P.getDistTableAA(ee_Table_ID_).getTempDists()[iat] ;
                 }
-              } else{
-                disp_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDisplRow(j)[iat] : -1.0*P.getDistTableAA(ee_Table_ID_).getDisplRow(iat)[j];
-                dist_ref = iat < j  ? P.getDistTableAA(ee_Table_ID_).getDistRow(j)[iat] : P.getDistTableAA(ee_Table_ID_).getDistRow(iat)[j];
-              }
-        //std::cout << "x component of disp ref is" <<disp_ref[0] <<std::endl;
+              }        //std::cout << "x component of disp ref is" <<disp_ref[0] <<std::endl;
               if (dist_ref< rcut){
                 int jtype = type_map[j];
                 int jelem = 0;
@@ -920,7 +918,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     app_debug() << "inside ratio" << std::endl;
     double Enew, Eold;
     calculate_ESNA( P, snap_beta, Enew, true);
-    Eold = current_esnap;
+    calculate_ESNA( P, snap_beta, Eold, false);
     //calculate the ratio
     SNAJastrow::PsiValue ratio = std::exp(static_cast<SNAJastrow::PsiValue>(Enew-Eold));
     return ratio;
