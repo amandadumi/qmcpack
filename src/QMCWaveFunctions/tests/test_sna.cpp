@@ -787,12 +787,12 @@ TEST_CASE("snap_jastrow_ratio_check", "[wavefunction]")
   jas->calculate_ESNA(electrons, snap_beta, esnap_after, false); 
   std::cout << "esnap is manually moving particle"<< esnap_after << std::endl;
   // move the particle back 
-  ParticleSet::SingleParticlePos disp(0.2, 0.3, 0.4);
   electrons.R[0][0] = 0.2;
   electrons.R[0][1] = 0.2;
   electrons.R[0][2] = 0.2;
   electrons.update();
   //make a move.
+  ParticleSet::SingleParticlePos disp(0.2, 0.3, 0.4);
   electrons.makeMove(0, disp, true);
   //ensure the energy evaluated for eold is appropriate
   double esnap_move_not_proposed; 
@@ -803,10 +803,117 @@ TEST_CASE("snap_jastrow_ratio_check", "[wavefunction]")
   std::cout << "esnap is after moved by assessing proposed positions" << esnap_move_proposed << std::endl;
   jas->snap_beta = snap_beta;
   SNAJastrow::LogValue esnap_eval_log = jas->evaluateLog(electrons, electrons.G, electrons.L);
+
   double rat_func = jas->ratio(electrons, 0);
-  
   double rat_fd = std::exp(esnap_after - esnap_init) ;
   REQUIRE(rat_func == Approx(rat_fd));
+ 
+
+  //reset elecron one position
+  //move the second electron
+  //compare manually computed 
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.update();
+  
+  electrons.R[1][0] = 0.3;
+  electrons.R[1][1] = 0.4;
+  electrons.R[1][2] = 0.5;
+  electrons.update();
+  
+  double esnap_second_particle_after; 
+  jas->calculate_ESNA(electrons, snap_beta, esnap_second_particle_after, false); 
+  
+
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1;
+  electrons.R[1][2] = 0.1;
+  electrons.update();
+  
+  electrons.makeMove(1, disp, true);
+  double esnap_second_part_proposed;
+  jas->calculate_ESNA(electrons, snap_beta, esnap_second_part_proposed, true); 
+  double rat_func_second = jas->ratio(electrons,1);
+  double rat_fd_second = std::exp(esnap_second_particle_after - esnap_init);
+  REQUIRE(rat_func_second == Approx(rat_fd_second));
 
 }
+
+TEST_CASE("snap_jastrow_update_outside_cutoff", "[wavefunction]")
+{
+  Communicate* c = OHMMS::Controller;
+  std::cout<< "starting snap_jastrow_ratio_check" <<std::endl;
+//   // short input xml check that lammps positions are correct.
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+  electrons.setName("e");
+  electrons.create({1,1});
+  SpeciesSet& especies  = electrons.getSpeciesSet();
+  int elec_up  = especies.addSpecies("e_u");
+  int elec_down  = especies.addSpecies("e_d");
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1 ;
+  electrons.R[1][2] = 0.1;
+
+  ions.create({1});
+  ions.setName("ions");
+  SpeciesSet& tspecies  = ions.getSpeciesSet();
+  int ion_a  = tspecies.addSpecies("H");
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.update();
+
+  int ee_table = electrons.addTable(electrons);
+  int ei_table = electrons.addTable(ions);
+  electrons.update();
+  
+
+  //sna coefficients all equal to one.
+  std::vector<std::vector<double>> snap_beta = std::vector<std::vector<double>>(3, std::vector<double>(5,.1));
+  auto jas = std::make_unique<SNAJastrow>(std::string("snap"), ions, electrons,std::string("linear"), 2, 7);
+  ParticleSet::SingleParticlePos disp(0.2, 0.3, 7.0);
+
+
+  double esnap_init;
+  jas->calculate_ESNA(electrons, snap_beta, esnap_init, false); 
+  std::cout << "esnap is" << esnap_init << std::endl;
+  // manually change one particle position.  
+  electrons.R[1][0] += disp[0];
+  electrons.R[1][1] += disp[1];
+  electrons.R[1][2] += disp[2];
+  electrons.update();
+  double esnap_after; 
+  jas->calculate_ESNA(electrons, snap_beta, esnap_after, false); 
+  std::cout << "esnap is manually moving particle"<< esnap_after << std::endl;
+  // move the particle back 
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1;
+  electrons.R[1][2] = 0.1;
+  electrons.update();
+  //make a move.
+  electrons.makeMove(1, disp, true);
+  //ensure the energy evaluated for eold is appropriate
+  double esnap_move_not_proposed; 
+  jas->calculate_ESNA(electrons, snap_beta, esnap_move_not_proposed, false); 
+  std::cout << "esnap is after moved by assessing not proposed positions" << esnap_move_not_proposed << std::endl;
+  double esnap_move_proposed; 
+  jas->calculate_ESNA(electrons, snap_beta, esnap_move_proposed, true); 
+  std::cout << "esnap is after moved by assessing proposed positions" << esnap_move_proposed << std::endl;
+  jas->snap_beta = snap_beta;
+  SNAJastrow::LogValue esnap_eval_log = jas->evaluateLog(electrons, electrons.G, electrons.L);
+
+  double rat_func = jas->ratio(electrons, 0);
+  double rat_fd = std::exp(esnap_after - esnap_init) ;
+  REQUIRE(rat_func == Approx(rat_fd));
+ 
+
+  
+  
+}
+ 
 }
