@@ -137,7 +137,7 @@ public:
     std::vector<int> type_map;
     std::vector<int> element;
     std::vector<double> radelem; 
-    double dist_delta = 0.000000001;
+    double dist_delta = 0.00001;
     double coeff_delta = 0.0000001;
     const int ee_Table_ID_;
     const int ei_Table_ID_;
