@@ -14,6 +14,7 @@
 #include "Message/Communicate.h"
 #include "Particle/ParticleSet.h"
 #include "Particle/DistanceTable.h"
+#include "Particle/VirtualParticleSet.h"
 #include "QMCWaveFunctions/Jastrow/SNAJastrow.h"
 #include "QMCWaveFunctions/Jastrow/SNAJastrowBuilder.h"
 #include "OhmmsData/Libxml2Doc.h"
@@ -915,5 +916,112 @@ TEST_CASE("snap_jastrow_update_outside_cutoff", "[wavefunction]")
   
   
 }
+
+TEST_CASE("snap_virtual_move", "[wavefunction]")
+{
+  Communicate* c = OHMMS::Controller;
+  std::cout<< "starting snap_jastrow_ratio_check" <<std::endl;
+//   // short input xml check that lammps positions are correct.
+  const SimulationCell simulation_cell;
+  ParticleSet ions(simulation_cell), electrons(simulation_cell);
+  electrons.setName("e");
+  electrons.create({1,1});
+  SpeciesSet& especies  = electrons.getSpeciesSet();
+  int elec_up  = especies.addSpecies("e_u");
+  int elec_down  = especies.addSpecies("e_d");
+  electrons.R[0][0] = 0.2;
+  electrons.R[0][1] = 0.2;
+  electrons.R[0][2] = 0.2;
+  electrons.R[1][0] = 0.1;
+  electrons.R[1][1] = 0.1 ;
+  electrons.R[1][2] = 0.1;
+
+  ions.create({1});
+  ions.setName("ions");
+  SpeciesSet& tspecies  = ions.getSpeciesSet();
+  int ion_a  = tspecies.addSpecies("H");
+  ions.R[0][0] = 0.0;
+  ions.R[0][1] = 0.0;
+  ions.R[0][2] = 0.0;
+  ions.update();
+
+  int ee_table = electrons.addTable(electrons);
+  int ei_table = electrons.addTable(ions);
+  electrons.update();
+  
+
+
+  //Pseudo code:
+  //1. calculate snap at current positions.
+  //2. make a virtual move wth just one point
+  //4. call update_rj_vp and manually check distances
+  //sna coefficients all equal to .1.
+  std::vector<std::vector<double>> snap_beta = std::vector<std::vector<double>>(3, std::vector<double>(5,.1));
+  auto jas = std::make_unique<SNAJastrow>(std::string("snap"), ions, electrons,std::string("linear"), 2, 7);
+  jas->snap_beta = snap_beta;
+
+  double esnap_init;
+  jas->calculate_ESNA(electrons, snap_beta, esnap_init, false); 
+  std::cout << "esnap is" << esnap_init << std::endl;
  
+  //make a virtual particle set that has only one virtuall particle
+  VirtualParticleSet vp(electrons, 1);
+  //actual move the virutal partcle from the position of the first electtron
+  vp.makeMoves(electrons, 0, {{0.2, 0.3, 0.4}});
+  //check that the position after the move is indeed 0.3
+  CHECK(Approx(vp.R[0][0]) == 0.4);
+  CHECK(Approx(vp.R[0][1]) == 0.5);
+  CHECK(Approx(vp.R[0][2]) == 0.6);
+  const DistanceTableAB& dt_vp_ion = vp.getDistTableAB(ei_table);
+  //the distance between the virtual particle and the ion should be 0.5
+  REQUIRE(dt_vp_ion.getDistances().size() == 1);
+  CHECK(Approx(dt_vp_ion.getDistances()[0][0]) == 0.87749);
+   //check for when particle iis ref particle
+  // move particle 0 according to the first ratio (which there is only one in this particlle set.
+  // if done correctlly then particle 0 and the second neighbor, indexed at 1, should be the ion and as such  shoulld be 0.707106 distance
+  int ratio_index = 0;
+  int particle_index = 0;
+  jas->update_sna_rij_vp(vp, particle_index, ratio_index);
+
+  
+  double internal_dist = -vp.getDistTableAB(ei_table).getDisplRow(ratio_index)[0][0];
+  double true_dist= 0.4;
+  REQUIRE(jas->sna_desc.rij[1][0] == Approx(true_dist));//elec1
+  REQUIRE(jas->sna_desc.rij[1][0] == Approx(internal_dist));//elec1
+ 
+  std::vector<double> true_bispectrum_e1 = {25.3282, 49.2049, 70.997, 70.3636, 67.5536};
+  std::vector<double> true_bispectrum_e2= {26.2914, 51.1004, 73.7802, 73.1333, 70.2634};
+  std::vector<double> true_bispectrum_ion = {25.94, 50.4234, 72.8148, 72.1791, 69.3592};
+   //check for when particle isn't ref
+  jas->compute_bispectrum(0);
+  for (int i=0; i< true_bispectrum_e1.size(); i++){
+    REQUIRE(jas->sna[0][i] == Approx(true_bispectrum_e1[i]));//elec1
+  }
+
+  // now test for creating rij for a particle that sn't the refPtcl in the set.
+  jas->update_sna_rij_vp(vp, 1, ratio_index);
+  jas->compute_bispectrum(1);
+  for (int i=0; i< true_bispectrum_e2.size(); i++){
+    REQUIRE(jas->sna[1][i] == Approx(true_bispectrum_e2[i]));//elec1
+  }
+
+
+  // test evaluateRatios
+  std::vector<double> ratios(1,0.0);
+  std::cout<< ratios[0] <<std::endl;
+  jas->evaluateRatios(vp,ratios);
+  std::cout<< ratios[0] <<std::endl;
+  
+  electrons.R[0][0] = 0.4;
+  electrons.R[0][1] = 0.5;
+  electrons.R[0][2] = 0.6;
+  electrons.update();
+  //ensure the energy evaluated for eold is appropriate
+  double esnap_after;
+  jas->calculate_ESNA(electrons, snap_beta, esnap_after, true); 
+  double rat_fd = std::exp(esnap_after - esnap_init) ;
+  std::cout << rat_fd<< std::endl;
+  REQUIRE(ratios[0] == Approx(rat_fd));//elec1
+ } 
+
 }
