@@ -2023,6 +2023,14 @@ class jastrow3(QIxml):
     write_types = obj(print=yesno)
 #end class jastrow3
 
+class sna_jastrow(QIxml):
+    tag = 'jastrow'
+    attributes = ['type','name','twojmax','rcut']
+    elements   = ['correlation']
+    identifier = 'name'
+    write_types = obj(optimize=yesno)
+#dnc class sna_jastrow
+
 class kspace_jastrow(QIxml):
     tag = 'jastrow'
     attributes = ['type','name','source']
@@ -2076,7 +2084,7 @@ class distancetable(QIxml):
 
 jastrow = QIxmlFactory(
     name = 'jastrow',
-    types   = dict(one_body=jastrow1,two_body=jastrow2,jastrow1=jastrow1,jastrow2=jastrow2,eei=jastrow3,jastrow3=jastrow3,kspace=kspace_jastrow,kspace_jastrow=kspace_jastrow,rpa=rpa_jastrow,rpa_jastrow=rpa_jastrow),
+    types   = dict(one_body=jastrow1,two_body=jastrow2,jastrow1=jastrow1,jastrow2=jastrow2,eei=jastrow3,jastrow3=jastrow3,kspace=kspace_jastrow,kspace_jastrow=kspace_jastrow,rpa=rpa_jastrow,rpa_jastrow=rpa_jastrow,sna_jastrow=sna_jastrow),
     typekey = 'type'
     )
 
@@ -2729,7 +2737,7 @@ classes = [   #standard classes
     group,hamiltonian,constant,pseudopotential,coulomb,pseudo,mpc,chiesa,density,
     localenergy,energydensity,spacegrid,origin,axis,wavefunction,
     determinantset,slaterdeterminant,basisset,grid,determinant,occupation,
-    jastrow1,jastrow2,jastrow3,
+    jastrow1,jastrow2,jastrow3,sna_jastrow,
     correlation,coefficients,loop,linear,cslinear,vmc,dmc,vmc_batch,dmc_batch,linear_batch,
     atomicbasisset,basisgroup,init,var,traces,scalar_traces,particle_traces,array_traces,
     reference_points,nearestneighbors,neighbor_trace,dm1b,
@@ -6766,6 +6774,8 @@ def generate_jastrow(descriptor,*args,**kwargs):
         jastrow = generate_jastrow2(*args,**kwargs)
     elif jtype=='J3':
         jastrow = generate_jastrow3(*args,**kwargs)
+    elif jtype=='snap':
+        jastrow = generate_sna_jastrow(*args,**kwargs)
     else:
         QmcpackInput.class_error('jastrow type unrecognized: '+jtype)
     #end if
@@ -6773,6 +6783,17 @@ def generate_jastrow(descriptor,*args,**kwargs):
 #end def generate_jastrow
 
 
+def generate_sna_jastrow(twojmax=2, rcut=7,coeff=None):
+   jsna = sna_jastrow(
+        type         = 'snap',
+        name         = 'snap',
+        twojmax      = twojmax,
+        rcut         = rcut,
+        )
+      #end if
+   #end if
+   return jsna   
+#end def generate_snap_jastrow
 
 def generate_jastrow1(function='bspline',size=8,rcut=None,coeff=None,cusp=0.,ename='e',iname='ion0',elements=None,system=None,opt=None,**elemargs):
     noelements = elements is None
@@ -6867,7 +6888,6 @@ def generate_jastrow1(function='bspline',size=8,rcut=None,coeff=None,cusp=0.,ena
         )
     return j1
 #end def generate_jastrow1
-
 
 
 def generate_bspline_jastrow2(size=8,rcut=None,coeff=None,spins=('u','d'),density=None,system=None,init='rpa',opt=None):

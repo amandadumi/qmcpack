@@ -1900,6 +1900,18 @@ def test_generate_kspace_jastrow():
 #end def test_generate_kspace_jastrow
 
 
+def test_generate_snap_jastrow():
+    from qmcpack_input import generate_sna_jastrow
+    snajas = generate_sna_jastrow(2, 7 )
+    expect = """<jastrow type="snap" name="snap" twojmax="2" rcut="7"/>
+"""
+    print(expect)
+    text = snajas.write()
+    print(text)
+    assert text == expect
+#end def test_generate_snap_jastrow
+
+
 
 def test_excited_state():
     from nexus import generate_physical_system
