@@ -24,19 +24,19 @@
 
 import os
 
-from versions import nexus_version,current_versions,policy_versions,check_versions
+from nexus_version import nexus_version
+from versions      import current_versions,   policy_versions,    check_versions
+from developer     import obj,                error,              log
+from debug         import ci
 
-from generic import obj
-from developer import error,log
-
-from nexus_base      import NexusCore,nexus_core,nexus_noncore,nexus_core_noncore,restore_nexus_core_defaults,nexus_core_defaults
-from machines        import Job,job,Machine,Supercomputer,get_machine
-from simulation      import generate_simulation,input_template,multi_input_template,generate_template_input,generate_multi_template_input,graph_sims
+from nexus_base      import NexusCore,              nexus_core,     nexus_noncore,          nexus_core_noncore,         restore_nexus_core_defaults,    nexus_core_defaults
+from machines        import Job,                    job,            Machine,Supercomputer,  get_machine
+from simulation      import generate_simulation,    input_template, multi_input_template,   generate_template_input,    generate_multi_template_input,  graph_sims
 from project_manager import ProjectManager
 
-from structure       import Structure,generate_structure,generate_cell,read_structure
-from physical_system import PhysicalSystem,generate_physical_system
-from pseudopotential import Pseudopotential,Pseudopotentials,ppset
+from structure       import Structure,          generate_structure,         generate_cell,  read_structure
+from physical_system import PhysicalSystem,     generate_physical_system
+from pseudopotential import Pseudopotential,    Pseudopotentials,           ppset
 from basisset        import BasisSets
 from bundle          import bundle
 
@@ -59,13 +59,11 @@ from pwscf_postprocessors import Bands   , BandsInput   , BandsAnalyzer   , gene
 from pwscf_postprocessors import Projwfc , ProjwfcInput , ProjwfcAnalyzer , generate_projwfc_input , generate_projwfc
 from pwscf_postprocessors import Cppp    , CpppInput    , CpppAnalyzer    , generate_cppp_input    , generate_cppp
 from pwscf_postprocessors import Pwexport, PwexportInput, PwexportAnalyzer, generate_pwexport_input, generate_pwexport
-from pwscf_postprocessors import Hp      , HpInput      ,       HpAnalyzer,       generate_hp_input, generate_hp
+from pwscf_postprocessors import Hp      , HpInput      , HpAnalyzer      , generate_hp_input      , generate_hp
 
 from qmcpack import loop,linear,cslinear,vmc,dmc
 from qmcpack import generate_jastrows,generate_jastrow,generate_jastrow1,generate_jastrow2,generate_jastrow3,generate_opt,generate_opts
 from qmcpack import generate_cusp_correction
-
-from debug import *
 
 
 #set the machine if known, otherwise user will provide
