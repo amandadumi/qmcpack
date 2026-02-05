@@ -1,0 +1,479 @@
+==================================================
+--- Memory usage report : Before running tests ---
+==================================================
+Available memory on node 0, free + buffers :  191647 MiB
+Memory footprint by rank 0 on node 0       :      20 MiB
+==================================================
+  All the species have the same mass 1
+  All the species have the same mass 1
+  Long-range breakup parameters:
+    rc*kc = 25; rc = 2.5; kc = 10; tol = 0.0003
+  Long-range breakup parameters:
+    rc*kc = 25; rc = 2.5; kc = 10; tol = 0.0003
+  KContainer initialised with cutoff 10
+   # of K-shell  = 54
+   # of K points = 2102
+
+
+  Creating Structure Factor for periodic systems 10
+
+  Creating Structure Factor for periodic systems 10
+  ParticleSet::createSK setting mass of  ion to 1.0
+  All the species have the same mass 1
+  All the species have the same mass 1
+
+  Creating CoulombDerivHandler with the 3D Ewald Breakup. 
+  Sigma=1.41421
+IonIon Force
+     -0.1478626893   4.569113237e-18   3.081918034e-18
+      0.1478626893  -3.261837188e-18  -2.473451822e-18
+
+ Force =        3.186558296        3.35258158   1.378535701e-18
+     -0.3950094326       0.142639218  -5.055158816e-18
+
+ Forces_IonIon =      -0.1478626893   4.569113237e-18   3.081918034e-18
+      0.1478626893  -3.261837188e-18  -2.473451822e-18
+
+
+  Creating CoulombHandler with the 3D Ewald Breakup. 
+  Sigma=1.414213562
+   PBCAA self-interaction term -1.595769122
+   PBCAA total constant -1.620901863
+    CoulombPBCAA::initBreakup
+  Setting a linear grid=[0,2.5) number of grid points =1001
+  Clone CoulombDerivHandler. 
+Checking ion-ion Ewald energy against reference...
+  Check passed.
+  Maximum K shell 53
+  Number of k vectors 2102
+  Fixed Coulomb potential for ion
+    e-e Madelung Const. =-0.2837302
+    Vtot     =-0.55105654
+  Clone CoulombHandler. 
+   Constant of PBCAB 0.050265482
+    CoulombPBCAB::initBreakup
+  Setting a linear grid=[0,2.5) number of grid points =1001
+  Clone CoulombDerivHandler. 
+  Rcut                2.5
+  Maximum K shell     53
+  Number of k vectors 2102
+ CoulombElecIon =        3.186558296        3.35258158   1.378535701e-18
+     -0.3950094326       0.142639218  -5.055158816e-18
+
+
+  Creating Structure Factor for periodic systems 10
+  ParticleSet::createSK setting mass of  ion to 1.0
+  All the species have the same mass 1
+  Clone CoulombHandler. 
+   PBCAA self-interaction term -2.393653682
+   PBCAA total constant -2.45020235
+    CoulombPBCAA::initBreakup
+  Setting a linear grid=[0,2.5) number of grid points =1001
+Checking ion-ion Ewald energy against reference...
+  Check passed.
+  Maximum K shell 53
+  Number of k vectors 2102
+  Fixed Coulomb potential for ion
+    e-e Madelung Const. =-0.2837302
+    Vtot     =-0.88907226
+  Clone CoulombHandler. 
+   PBCAA self-interaction term -1.5957691
+   PBCAA total constant -1.6209019
+    CoulombPBCAA::initBreakup
+  Setting a linear grid=[0,2.5) number of grid points =1001
+  Clone CoulombDerivHandler. 
+  Maximum K shell 53
+  Number of k vectors 2102
+  Fixed Coulomb potential for elec
+    e-e Madelung Const. =-0.2837302
+    Vtot     =inf
+  Clone CoulombDerivHandler. 
+  Clone CoulombDerivHandler. 
+1531250 -17226563 61523438 -70495605 
+-17226563 1.9933594e+08 -7.2674561e+08 8.4594727e+08 
+61523438 -7.2674561e+08 2.6916504e+09 -3.1723022e+09 
+-70495605 8.4594727e+08 -3.1723022e+09 3.7765503e+09 
+
+1531250 -17226563 61523438 -70495605 
+-17226563 1.9933594e+08 -7.2674561e+08 8.4594727e+08 
+61523438 -7.2674561e+08 2.6916504e+09 -3.1723022e+09 
+-70495605 8.4594727e+08 -3.1723022e+09 3.7765503e+09 
+
+  All the species have the same mass 1
+  All the species have the same mass 1
+ Force ionion =              -0.25                 0                 0
+              0.25                 0                 0
+
+ Force =         8.99061106       14.86091659                 0
+     -0.2250998297      0.1388117844                 0
+
+  All the species have the same mass 1
+  All the species have the same mass 1
+  All the species have the same mass 1
+  All the species have the same mass 1
+ACForce is using the default algorithm
+ACForce is not using space warp
+ACForce is using the fast force algorithm
+ACForce is not using space warp
+  QMCHamiltonian::addOperator ACForce to auxH 
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.889726135; kc = 21.16708832; tol = 0.0003
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.889726135; kc = 21.16708832; tol = 0.0003
+  KContainer initialised with cutoff 21.16708832
+   # of K-shell  = 137
+   # of K points = 8708
+
+
+  Creating Structure Factor for periodic systems 21.16708832
+  ParticleSet::createSK setting mass of  ion to 1.0
+
+  Creating Structure Factor for periodic systems 21.16708832
+  All the species have the same mass 1
+  All the species have the same mass 1
+  Sigma=2.366552418
+  Sigma=2.366552418
+  Clone CoulombDerivHandler. 
+IonIon Force
+    -0.02283659158    -0.02283659158   4.308676929e-10
+     0.02283659158     0.02283659158  -4.308676922e-10
+
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.889726135; kc = 21.16708832; tol = 0.0003
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.889726135; kc = 21.16708832; tol = 0.0003
+  KContainer initialised with cutoff 21.16708832
+   # of K-shell  = 137
+   # of K points = 8708
+
+
+  Creating Structure Factor for periodic systems 21.16708832
+  ParticleSet::createSK setting mass of  ion to 1.0
+
+  Creating Structure Factor for periodic systems 21.16708832
+  All the species have the same mass 1
+  All the species have the same mass 1
+  Sigma=2.366552418
+  Sigma=2.366552418
+  Clone CoulombDerivHandler. 
+IonIon Force
+    -0.02283659158    -0.02283659158   4.308676929e-10
+     0.02283659158     0.02283659158  -4.308676922e-10
+
+  Clone CoulombDerivHandler. 
+  Clone CoulombDerivHandler. 
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.889726135; kc = 21.16708832; tol = 0.0003
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.889726135; kc = 21.16708832; tol = 0.0003
+  KContainer initialised with cutoff 21.16708832
+   # of K-shell  = 137
+   # of K points = 8708
+
+
+  Creating Structure Factor for periodic systems 21.16708832
+  ParticleSet::createSK setting mass of  ion to 1.0
+
+  Creating Structure Factor for periodic systems 21.16708832
+  All the species have the same mass 1
+  All the species have the same mass 1
+  Sigma=2.366552418
+  Sigma=2.366552418
+  Clone CoulombDerivHandler. 
+IonIon Force
+     -0.3766090081    -0.02283659158   4.308676784e-10
+     0.04012282081     0.06667017306  -1.293424628e-09
+      0.3364861873    -0.04383358148   8.625568912e-10
+
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.62478653; kc = 24.61861867; tol = 0.0003
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.62478653; kc = 24.61861867; tol = 0.0003
+  KContainer initialised with cutoff 24.61861867
+   # of K-shell  = 137
+   # of K points = 8708
+
+  All the species have the same mass 1
+
+  Creating Structure Factor for periodic systems 24.61861867
+  All the species have the same mass 1
+
+  Creating Structure Factor for periodic systems 24.61861867
+  Sigma=2.752445243
+  Sigma=2.752445243
+  Clone CoulombDerivHandler. 
+   PBCAA self-interaction term 
+0 0 0 
+0 0 0 
+0 0 0 
+   PBCAA total constant 
+0.02416927236 0 0 
+0 0.02416927236 0 
+0 0 0.02416927236 
+   PBCAA self-interaction term 
+0 0 0 
+0 0 0 
+0 0 0 
+   PBCAA total constant 
+0.02416927236 0 0 
+0 0.02416927236 0 
+0 0 0.02416927236 
+
+====ion-ion stress ====
+-nan -nan -nan 
+-nan -nan -nan 
+-nan -nan -nan 
+
+ e-e const = -0.0007043437396 -0 -0 
+-0 -0.0007043437396 -0 
+-0 -0 -0.0007043437396 
+
+ e-I const = 0.001408687479 -0 -0 
+-0 0.001408687479 -0 
+-0 -0 0.001408687479 
+in Be stress test
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.841444824; kc = 21.7220736; tol = 0.0003
+  Long-range breakup parameters:
+    rc*kc = 40; rc = 1.841444824; kc = 21.7220736; tol = 0.0003
+  KContainer initialised with cutoff 21.7220736
+   # of K-shell  = 1774
+   # of K points = 18292
+
+  All the species have the same mass 1
+
+  Creating Structure Factor for periodic systems 21.7220736
+  All the species have the same mass 1
+
+  Creating Structure Factor for periodic systems 21.7220736
+  Sigma=2.428601659
+  Sigma=2.428601659
+  Clone CoulombDerivHandler. 
+   PBCAA self-interaction term 
+0 0 0 
+0 0 0 
+0 0 0 
+   PBCAA total constant 
+0.1615143051 0 0 
+0 0.1615143051 0 
+0 0 0.1615143051 
+   PBCAA self-interaction term 
+0 0 0 
+0 0 0 
+0 0 0 
+   PBCAA total constant 
+0.1615143051 0 0 
+0 0.1615143051 0 
+0 0 0.1615143051 
+
+====ion-ion stress ====
+-0.03940535184 -9.565503459e-08 -9.994418987e-18 
+-9.565503459e-08 -0.03940551714 6.312264623e-17 
+-9.994418987e-18 6.312264623e-17 -0.03792145296 
+
+ e-e const = -0.00153050485 -0 -0 
+-0 -0.00153050485 -0 
+-0 -0 -0.00153050485 
+
+ e-I const = 0.003061009701 -0 -0 
+-0 0.003061009701 -0 
+-0 -0 0.003061009701 
+ee_00 stresses before evaluation are 
+0
+ii_00 stresses before evaluation are 
+4.158450083
+I/O warning : failed to load external entity "Na2.structure.xml"
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_hamiltonian_force is a Catch v2.13.10 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+SpaceWarp
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_spacewarp.cpp:38
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_spacewarp.cpp:44: FAILED:
+  REQUIRE( okay )
+with expansion:
+  false
+
+====Ion Derivative Test: Single Slater No Jastrow====
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.wfnoj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:slater_noj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:677
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:702: FAILED:
+  REQUIRE( wfokay )
+with expansion:
+  false
+
+====Ion Derivative Test: Single Slater+Jastrow====
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.wfj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:slater_wj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:836
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:861: FAILED:
+  REQUIRE( wfokay )
+with expansion:
+  false
+
+====Ion Derivative Test: Multislater No Jastrow====
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.msd-wfnoj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:multislater_noj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1001
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1026: FAILED:
+  REQUIRE( wfokay )
+with expansion:
+  false
+
+====Ion Derivative Test: Multislater+Jastrow====
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.msd-wfj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:multislater_wj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1151
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1176: FAILED:
+  REQUIRE( wfokay )
+with expansion:
+  false
+
+========================================================================================
+========================================================================================
+====================Ion Derivative Test:  Prototype Single Slater+ No Jastrow===========
+========================================================================================
+========================================================================================
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.wfnoj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:proto_sd_noj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1290
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1314: FAILED:
+  REQUIRE( okay )
+with expansion:
+  false
+
+========================================================================================
+========================================================================================
+====================Ion Derivative Test:  Prototype Single Slater+Jastrow===========
+========================================================================================
+========================================================================================
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.wfj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:proto_sd_wj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1550
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:1574: FAILED:
+  REQUIRE( okay )
+with expansion:
+  false
+
+========================================================================================
+========================================================================================
+==Ion Derivative Test:  loading wf from cn.msd-1det-wfnoj.xml
+========================================================================================
+========================================================================================
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.msd-1det-wfnoj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:proto_md1_noj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:2125
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:197: FAILED:
+  REQUIRE( okay )
+with expansion:
+  false
+
+========================================================================================
+========================================================================================
+==Ion Derivative Test:  loading wf from cn.msd-wfnoj.xml
+========================================================================================
+========================================================================================
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.msd-wfnoj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:proto_md_noj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:2177
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:197: FAILED:
+  REQUIRE( okay )
+with expansion:
+  false
+
+========================================================================================
+========================================================================================
+==Ion Derivative Test:  loading wf from cn.msd-1det-wfj.xml
+========================================================================================
+========================================================================================
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.msd-1det-wfj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:proto_md1_wj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:2231
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:197: FAILED:
+  REQUIRE( okay )
+with expansion:
+  false
+
+========================================================================================
+========================================================================================
+==Ion Derivative Test:  loading wf from cn.msd-wfj.xml
+========================================================================================
+========================================================================================
+  All the species have the same mass 1
+  All the species have the same mass 1
+I/O warning : failed to load external entity "cn.msd-wfj.xml"
+-------------------------------------------------------------------------------
+Eloc_Derivatives:proto_md_wj
+-------------------------------------------------------------------------------
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:2286
+...............................................................................
+
+/home/aedumi/software/qmcpack/stresses/src/QMCHamiltonians/tests/test_ion_derivs.cpp:197: FAILED:
+  REQUIRE( okay )
+with expansion:
+  false
+
+===============================================================================
+test cases:  21 |  10 passed | 11 failed
+assertions: 197 | 186 passed | 11 failed
+

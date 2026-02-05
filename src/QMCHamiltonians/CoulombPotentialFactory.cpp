@@ -230,7 +230,7 @@ void HamiltonianFactory::addForceHam(xmlNodePtr cur)
     auto psi_it(psiPool.find(PsiName));
     if (psi_it == psiPool.end())
     {
-      APP_ABORT("Unknown psi \"" + PsiName + "\" for zero-variance force.");
+      APP_ABORT("Unknown psi \"" + PsiName + "\" for stress estimator.");
     }
     TrialWaveFunction& psi           = *psi_it->second;
     std::unique_ptr<StressPBC> stress = std::make_unique<StressPBC>(*source, *target, psi);

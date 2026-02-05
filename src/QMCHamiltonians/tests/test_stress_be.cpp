@@ -109,7 +109,7 @@ TEST_CASE("Stress BCC Be Ewald3D", "[hamiltonian]")
   std::cout << "ii_00 stresses before evaluation are "<<std::endl;
   std::cout << est.getStressIonIon()(0,0) <<std::endl;
   
-  est.evaluate(elec);
+  est.evaluate(psi,elec);
 
   // i-i = e-e stress is validated against Quantum Espresso's ewald method
   //  they are alseo double checked using finite-difference

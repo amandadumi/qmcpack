@@ -539,11 +539,19 @@ typename DiracDeterminant<PL, VT, FPVT>::GradType DiracDeterminant<PL, VT, FPVT>
 template<PlatformKind PL, typename VT, typename FPVT>
 void DiracDeterminant<PL, VT, FPVT>::evaluateHessian(ParticleSet& P, HessVector& grad_grad_psi)
 {
-  // Hessian is not often used, so only resize/allocate if used
   grad_grad_source_psiM.resize(psiM.rows(), psiM.cols());
+  ValueMatrix scratch_psiM_temp(psiM_temp.rows(),psiM_temp.cols());
+  GradMatrix scratch_dpsiM(dpsiM.rows(),dpsiM.cols());
+ 
+  // Hessian is not often used, so only resize/allocate if used
+  //grad_grad_source_psiM.resize(psiM.rows(), psiM.cols());
   //IM A HACK.  Assumes evaluateLog has already been executed.
-  phi_.evaluate_notranspose(P, FirstIndex, LastIndex, psiM_temp, dpsiM, grad_grad_source_psiM);
-  invertPsiM(psiM_temp, psiM);
+  //phi_.evaluate_notranspose(P, FirstIndex, LastIndex, psiM_temp, dpsiM, grad_grad_source_psiM);
+  phi_.evaluate_notranspose(P, FirstIndex, LastIndex, scratch_psiM_temp, scratch_dpsiM, grad_grad_source_psiM);
+  //phi_.evaluate_notranspose(P, FirstIndex, LastIndex, psiM_temp, dpsiM, d2psiM);
+  ValueMatrix inv_for_stress(psiM.rows(),psiM.cols());
+  invertPsiM(scratch_psiM_temp, inv_for_stress);
+  //invertPsiM(psiM_temp, psiM);
 
   phi_alpha_Minv      = 0.0;
   grad_phi_Minv       = 0.0;
@@ -553,11 +561,11 @@ void DiracDeterminant<PL, VT, FPVT>::evaluateHessian(ParticleSet& P, HessVector&
 
   for (int i = 0, iat = FirstIndex; i < NumPtcls; i++, iat++)
   {
-    GradType rv = simd::dot(psiM[i], dpsiM[i], NumOrbitals);
+    GradType rv = simd::dot(inv_for_stress[i], scratch_dpsiM[i], NumOrbitals);
     //  HessType hess_tmp=simd::dot(psiM[i],grad_grad_source_psiM[i],NumOrbitals);
     HessType hess_tmp;
     hess_tmp           = 0.0;
-    hess_tmp           = simd::dot(psiM[i], grad_grad_source_psiM[i], NumOrbitals);
+    hess_tmp           = simd::dot(inv_for_stress[i], grad_grad_source_psiM[i], NumOrbitals);
     grad_grad_psi[iat] = hess_tmp - outerProduct(rv, rv);
   }
 }

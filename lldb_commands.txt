@@ -1,0 +1,3 @@
+target create ~/software/qmcpack/stresses/build_clang/src/QMCHamiltonians/tests/test_hamiltonian_force
+settings set target.env-vars OMP_NUM_THREADS=1
+breakpoint set --file test_stress_be.cpp --line 90 

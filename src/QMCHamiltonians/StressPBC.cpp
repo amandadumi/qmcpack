@@ -279,7 +279,7 @@ StressPBC::Return_t StressPBC::evaluate(TrialWaveFunction& psi, ParticleSet& P)
   stress_ee_ += vinv * stress_ee_const;
 
 
-    //stress_kin_ += vinv * evaluateKineticSymTensor(P);
+  stress_kin_ += vinv * evaluateKineticSymTensor(P);
 
   stress_ = stress_ee_ + stress_ei_ + stress_kin_;
   if (add_ion_ion_)
