@@ -102,9 +102,7 @@ SNAJastrow::SNAJastrow(const std::string& obj_name, ParticleSet& ions, ParticleS
 
 }
 
-SNAJastrow::~SNAJastrow(){
-
-}
+SNAJastrow::~SNAJastrow(){}
 
 void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
   if (id_coeffs.size() != ncoeff){
@@ -324,27 +322,27 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     std::vector<std::vector<double>>temp_snad(snad);
     GradType grad_iat;
 
-  for (int par = 0; par < Nions + Nelec; par++)
-    temp_snad[par].assign(temp_snad[par].size(),0.0);
-    
-  for (int par = 0; par < Nions + Nelec; par++){
-    update_sna_rij(P, par,true);  
-    for (int i = 0; i < num_neigh; i ++)
-      for (int j = 0; j < 3; j ++)
-        sna_desc.rij[i][j]*=-1.0;
-    compute_d_dr_bispectrum(par,temp_snad);
-  }
+    for (int par = 0; par < Nions + Nelec; par++)
+      temp_snad[par].assign(temp_snad[par].size(),0.0);
+      
+    for (int par = 0; par < Nions + Nelec; par++){
+      update_sna_rij(P, par, true);  
+      for (int i = 0; i < num_neigh; i ++)
+        for (int j = 0; j < 3; j ++)
+          sna_desc.rij[i][j]*=-1.0;
+      compute_d_dr_bispectrum(par, temp_snad);
+    }
 
-  for (int dim=0; dim < 3; dim++){
-   int row = (3*iat) + dim;
-   for (int k = 0; k < ncoeff ; k++){
-     for (int n = 0; n < ntypes; n++){
-       int col = (n * (3*ncoeff) ) + (dim*ncoeff) + k;
-       grad_iat[dim] += snap_beta[n][k]*temp_snad[iat][col];
+    for (int dim=0; dim < 3; dim++){
+     int row = (3*iat) + dim;
+     for (int k = 0; k < ncoeff ; k++){
+       for (int n = 0; n < ntypes; n++){
+         int col = (n * (3*ncoeff) ) + (dim*ncoeff) + k;
+         grad_iat[dim] += snap_beta[n][k]*temp_snad[iat][col];
+       }
      }
-   }
-  }
-  return grad_iat;
+    }
+    return grad_iat;
   }
 
 
@@ -356,9 +354,9 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     for (int k = 0; k < myVars.size(); ++k)
     {
         int k_global = myVars.where(k);
-          dhpsioverpsi[k_global] = -RealType(0.5) * RealType(Sum(lapLogPsi[k]));
-          for (int i = 0; i < Nelec; i++)
-            dhpsioverpsi[k_global] -= RealType(dot(P.G[i], gradLogPsi[k][i]));
+        dhpsioverpsi[k_global] = -RealType(0.5) * RealType(Sum(lapLogPsi[k]));
+        for (int i = 0; i < Nelec; i++)
+          dhpsioverpsi[k_global] -= RealType(dot(P.G[i], gradLogPsi[k][i]));
     }
   }
 
@@ -374,7 +372,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
       for (int i = 0; i < num_neigh; i++)
         for (int j = 0; j < 3; j ++)
           sna_desc.rij[i][j]*=-1.0;
-      compute_d_dr_bispectrum(par,snad);
+      compute_d_dr_bispectrum(par, snad);
     }
     resizeWFOptVectors();
     const size_t NumVars = myVars.size();
@@ -464,7 +462,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     bool elec = (itype <2);
     PosType disp_ref;
     RealType dist_ref;
-    int num_neigh = 0;
+    num_neigh = 0;
     if (elec){ // if up or down elec
         for (int j = 0; j < Nelec; j++){ // loop through all other elecs
             if (iat != j){ // skip current elec
@@ -748,7 +746,7 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
          //* perform sampling of positions. *//
          for (int r = 0; r < ratios.size(); r++){
             // update the descriptors according to this new particle moving
-            for (int i = 0 ; i < Nelec+Nions; i ++){
+            for (int i = 0 ; i < Nelec+Nions; i++){
                 update_sna_rij_vp(VP,i,r);
                 compute_bispectrum(i);
             }
@@ -826,8 +824,8 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
         snad[par].assign(snad[par].size(),0.0);
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par, false);  
-      for (int i = 0; i < num_neigh; i ++)
-        for (int j = 0; j < 3; j ++)
+      for (int i = 0; i < num_neigh; i++)
+        for (int j = 0; j < 3; j++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par, snad);
     }
@@ -868,8 +866,8 @@ void SNAJastrow::set_coefficients(std::vector<double> id_coeffs, int id){
     //TODO: add update to snad here.
     for (int par = 0; par < Nions + Nelec; par++){
       update_sna_rij(P, par, true);  
-      for (int i = 0; i < num_neigh; i ++)
-        for (int j = 0; j < 3; j ++)
+      for (int i = 0; i < num_neigh; i++)
+        for (int j = 0; j < 3; j++)
           sna_desc.rij[i][j]*=-1.0;
       compute_d_dr_bispectrum(par,temp_snad);
     }

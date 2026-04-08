@@ -1024,4 +1024,5 @@ TEST_CASE("snap_virtual_move", "[wavefunction]")
   REQUIRE(ratios[0] == Approx(rat_fd));//elec1
  } 
 
+
 }

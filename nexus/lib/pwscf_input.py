@@ -60,7 +60,7 @@ from pseudopotential import pp_elem_label
 from simulation import SimulationInput
 from debug import *
 from itertools import combinations
-
+from sys import exit
 def read_str(sv):
     return sv.strip('"').strip("'")
 #end def read_str
