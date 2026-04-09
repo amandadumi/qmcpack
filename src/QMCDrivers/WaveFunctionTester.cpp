@@ -176,11 +176,11 @@ void WaveFunctionTester::runCloneTest()
     W.R        = awalker.R;
     W.update();
     ValueType logpsi1 = Psi.evaluateLog(W);
-    RealType eloc1    = H.evaluate(W);
+    RealType eloc1    = H.evaluate(Psi, W);
     w_clone->R        = awalker.R;
     w_clone->update();
     ValueType logpsi2 = psi_clone->evaluateLog(*w_clone);
-    RealType eloc2    = h_clone->evaluate(*w_clone);
+    RealType eloc2    = h_clone->evaluate(*psi_clone, *w_clone);
     app_log() << "Testing walker-by-walker functions " << std::endl;
     app_log() << "log (original) = " << logpsi1 << " energy = " << eloc1 << std::endl;
     app_log() << "log (clone)    = " << logpsi2 << " energy = " << eloc2 << std::endl;
@@ -193,7 +193,7 @@ void WaveFunctionTester::runCloneTest()
     Psi.copyFromBuffer(W, wbuffer);
     Psi.evaluateLog(W);
     logpsi1 = Psi.updateBuffer(W, wbuffer, false);
-    eloc1   = H.evaluate(W);
+    eloc1   = H.evaluate(Psi, W);
     app_log() << "  Walker Buffer State current=" << wbuffer.current() << " size=" << wbuffer.size() << std::endl;
     wbuffer.clear();
     app_log() << "  Walker Buffer State current=" << wbuffer.current() << " size=" << wbuffer.size() << std::endl;
@@ -202,7 +202,7 @@ void WaveFunctionTester::runCloneTest()
     Psi.copyFromBuffer(W, wbuffer);
     Psi.evaluateLog(W);
     logpsi2 = Psi.updateBuffer(W, wbuffer, false);
-    eloc2   = H.evaluate(*w_clone);
+    eloc2   = H.evaluate(*psi_clone, *w_clone);
     app_log() << "  Walker Buffer State current=" << wbuffer.current() << " size=" << wbuffer.size() << std::endl;
     app_log() << "log (original) = " << logpsi1 << " energy = " << eloc1 << std::endl;
     app_log() << "log (clone)    = " << logpsi2 << " energy = " << eloc2 << std::endl;
@@ -235,9 +235,8 @@ void WaveFunctionTester::printEloc()
   Properties = awalker.Properties;
   W.R        = awalker.R;
   W.update();
-  //ValueType psi = Psi.evaluate(W);
   ValueType logpsi = Psi.evaluateLog(W);
-  RealType eloc    = H.evaluate(W);
+  RealType eloc    = H.evaluate(Psi, W);
   app_log() << "  Logpsi: " << logpsi << std::endl;
   app_log() << "  HamTest "
             << "  Total " << eloc << std::endl;
@@ -277,21 +276,21 @@ void WaveFunctionTester::printEloc()
       W.R[closestElectron[iat]][0] += x;
       W.update();
       Psi.evaluateLog(W);
-      ValueType ene = H.evaluate(W);
+      ValueType ene = H.evaluate(Psi, W);
       out << ene << "  ";
       W.R[closestElectron[iat]] = source.R[iat];
       //        W.R[closestElectron[iat]]=0.0;
       W.R[closestElectron[iat]][1] += x;
       W.update();
       Psi.evaluateLog(W);
-      ene = H.evaluate(W);
+      ene = H.evaluate(Psi, W);
       out << ene << "  ";
       W.R[closestElectron[iat]] = source.R[iat];
       //        W.R[closestElectron[iat]]=0.0;
       W.R[closestElectron[iat]][2] += x;
       W.update();
       Psi.evaluateLog(W);
-      ene = H.evaluate(W);
+      ene = H.evaluate(Psi, W);
       out << ene << "  ";
       W.R[closestElectron[iat]] = tempR;
     }
@@ -1034,18 +1033,15 @@ void WaveFunctionTester::runBasicTest()
   for (int iat = 0; iat < nat; iat++)
   {
     W.update();
-    //ValueType psi_p = log(std::abs(Psi.evaluate(W)));
     RealType psi_p   = Psi.evaluateLog(W);
     RealType phase_p = Psi.getPhase();
     W.makeMove(iat, deltaR[iat]);
-    //W.update();
     ValueType aratio   = Psi.calcRatio(W, iat);
     RealType phaseDiff = Psi.getPhaseDiff();
     W.rejectMove(iat);
     Psi.rejectMove(iat);
     W.R[iat] += deltaR[iat];
     W.update();
-    //ValueType psi_m = log(std::abs(Psi.evaluate(W)));
     RealType psi_m   = Psi.evaluateLog(W);
     RealType phase_m = Psi.getPhase();
 
@@ -1101,9 +1097,9 @@ void WaveFunctionTester::runRatioTest()
     if (checkHam)
       ene = H.registerData(W,tbuffer);
     else
-      ene = H.evaluate(W);
+      ene = H.evaluate(Psi, W);
     (*it)->DataSet=tbuffer;
-    //RealType ene = H.evaluate(W);
+    //RealType ene = H.evaluate(Psi, W);
     (*it)->resetProperty(logpsi,Psi.getPhase(),ene,0.0,0.0,1.0);
     H.saveProperty((*it)->getPropertyBase());
     ++it;
@@ -1171,13 +1167,13 @@ void WaveFunctionTester::runRatioTest()
       if (checkHam)
         ene_up= H.evaluate(W,w_buffer);
       else
-        ene_up = H.evaluate(W);
+        ene_up = H.evaluate(Psi, W);
       Gp=W.G;
       Lp=W.L;
       W.R=thisWalker.R;
       W.update();
       RealType newlogpsi=Psi.updateBuffer(W,w_buffer,false);
-      RealType ene = H.evaluate(W);
+      RealType ene = H.evaluate(Psi, W);
       thisWalker.resetProperty(newlogpsi,Psi.getPhase(),ene);
       //thisWalker.resetProperty(std::log(psi),Psi.getPhase(),ene);
       fout << iter << "  Energy by update = "<< ene_up << " " << ene << " "  << ene_up-ene << std::endl;
@@ -1239,7 +1235,7 @@ void WaveFunctionTester::runRatioTest()
         }
         RealType logpsi_up = Psi.updateBuffer(W,w_buffer,false);
         W.saveWalker(thisWalker);
-        RealType ene = H.evaluate(W);
+        RealType ene = H.evaluate(Psi, W);
         thisWalker.resetProperty(logpsi_up,Psi.getPhase(),ene);
       }
       Gp=W.G;
@@ -1299,9 +1295,8 @@ void WaveFunctionTester::runRatioTest2()
     Psi.copyFromBuffer(W, tbuffer);
     Psi.evaluateLog(W);
     RealType logpsi = Psi.updateBuffer(W, tbuffer, false);
-    RealType ene    = H.evaluate(W);
+    RealType ene    = H.evaluate(Psi, W);
     (*it)->DataSet  = tbuffer;
-    //RealType ene = H.evaluate(W);
     (*it)->resetProperty(logpsi, Psi.getPhase(), ene, 0.0, 0.0, 1.0);
     H.saveProperty((*it)->getPropertyBase());
     app_log() << "  HamTest "
@@ -1378,7 +1373,7 @@ void WaveFunctionTester::runRatioV()
   Tau=0.025;
 
   //create a VP with 8 virtual moves
-  VirtualParticleSet vp(&W,8);
+  VirtualParticleSet vp(W);
   W.enableVirtualMoves();
 
   //cheating
@@ -1459,10 +1454,9 @@ void WaveFunctionTester::runGradSourceTest()
   W.R = awalker.R;
   //W.R += deltaR;
   W.update();
-  //ValueType psi = Psi.evaluate(W);
   ValueType logpsi = Psi.evaluateLog(W);
-  RealType eloc    = H.evaluate(W);
-  H.auxHevaluate(W);
+  RealType eloc    = H.evaluate(Psi, W);
+  H.auxHevaluate(Psi, W);
   app_log() << "  HamTest "
             << "  Total " << eloc << std::endl;
   for (int i = 0; i < H.sizeOfObservables(); i++)
@@ -1609,8 +1603,7 @@ void WaveFunctionTester::runZeroVarianceTest()
   W.update();
   //ValueType psi = Psi.evaluate(W);
   ValueType logpsi = Psi.evaluateLog(W);
-  RealType eloc    = H.evaluate(W);
-  //RealType psi = Psi.evaluateLog(W);
+  RealType eloc    = H.evaluate(Psi, W);
   ParticleSet::ParticleGradient G(nat), G1(nat);
   ParticleSet::ParticleLaplacian L(nat), L1(nat);
   G = W.G;
@@ -1653,7 +1646,7 @@ void WaveFunctionTester::runZeroVarianceTest()
 #else
     ValueType psi = std::cos(Psi.getPhase()) * std::exp(log); //*W.PropertyList[SIGN];
 #endif
-    double E = H.evaluate(W);
+    double E = H.evaluate(Psi, W);
     //double KE = E - W.PropertyList[LOCALPOTENTIAL];
     double KE = -0.5 * (Sum(W.L) + Dot(W.G, W.G));
 #if defined(QMC_COMPLEX)
@@ -1719,7 +1712,7 @@ void WaveFunctionTester::runDerivTest()
   W.update();
   //ValueType psi = Psi.evaluate(W);
   Psi.evaluateLog(W);
-  RealType eloc = H.evaluate(W);
+  RealType eloc = H.evaluate(Psi, W);
   app_log() << "  HamTest "
             << "  Total " << eloc << std::endl;
   for (int i = 0; i < H.sizeOfObservables(); i++)
@@ -1761,7 +1754,7 @@ void WaveFunctionTester::runDerivTest()
   //reuse the sphere
   H.setPrimary(false);
 
-  eloc = H.evaluate(W);
+  eloc = H.evaluate(Psi, W);
   Psi.evaluateDerivatives(W, wfVars, Dsaved, HDsaved);
   RealType FiniteDiff    = 1e-6;
   QMCTraits::RealType dh = 1.0 / (2.0 * FiniteDiff);
@@ -1776,7 +1769,7 @@ void WaveFunctionTester::runDerivTest()
     W.G                 = 0;
     W.L                 = 0;
     RealType logpsiPlus = Psi.evaluateLog(W);
-    H.evaluate(W);
+    H.evaluate(Psi, W);
     RealType elocPlus = H.getLocalEnergy() - H.getLocalPotential();
     wfvar_prime[i]    = wfVars[i] - FiniteDiff;
     //     Psi.checkOutVariables(wfvar_prime);
@@ -1785,7 +1778,7 @@ void WaveFunctionTester::runDerivTest()
     W.G                  = 0;
     W.L                  = 0;
     RealType logpsiMinus = Psi.evaluateLog(W);
-    H.evaluate(W);
+    H.evaluate(Psi, W);
     RealType elocMinus = H.getLocalEnergy() - H.getLocalPotential();
     PGradient[i]       = (logpsiPlus - logpsiMinus) * dh;
     HGradient[i]       = (elocPlus - elocMinus) * dh;
@@ -1826,7 +1819,7 @@ void WaveFunctionTester::runDerivNLPPTest()
   W.update();
   //ValueType psi = Psi.evaluate(W);
   Psi.evaluateLog(W);
-  RealType eloc = H.evaluate(W);
+  RealType eloc = H.evaluate(Psi, W);
 
   app_log() << "  HamTest "
             << "  Total " << eloc << std::endl;
@@ -1874,7 +1867,7 @@ void WaveFunctionTester::runDerivNLPPTest()
   std::vector<RealType> ene(4), ene_p(4), ene_m(4);
   Psi.evaluateDerivatives(W, wfVars, Dsaved, HDsaved);
 
-  ene[0] = H.evaluateValueAndDerivatives(W, wfVars, Dsaved, HDsaved);
+  ene[0] = H.evaluateValueAndDerivatives(Psi, W, wfVars, Dsaved, HDsaved);
   app_log() << "Check the energy " << eloc << " " << H.getLocalEnergy() << " " << ene[0] << std::endl;
 
   RealType FiniteDiff    = 1e-6;
@@ -1889,7 +1882,7 @@ void WaveFunctionTester::runDerivNLPPTest()
     W.G                 = 0;
     W.L                 = 0;
     RealType logpsiPlus = Psi.evaluateLog(W);
-    RealType elocPlus   = H.evaluateVariableEnergy(W, true);
+    RealType elocPlus   = H.evaluateVariableEnergy(Psi, W, true);
 
     //H.evaluate(W);
     //RealType elocPlus=H.getLocalEnergy()-H.getLocalPotential();
@@ -1900,7 +1893,7 @@ void WaveFunctionTester::runDerivNLPPTest()
     W.G                  = 0;
     W.L                  = 0;
     RealType logpsiMinus = Psi.evaluateLog(W);
-    RealType elocMinus   = H.evaluateVariableEnergy(W, true);
+    RealType elocMinus   = H.evaluateVariableEnergy(Psi, W, true);
 
     //H.evaluate(W);
     //RealType elocMinus = H.getLocalEnergy()-H.getLocalPotential();
@@ -1965,10 +1958,10 @@ void WaveFunctionTester::runDerivCloneTest()
   std::vector<RealType> PGradient(Nvars, 0), og_PGradient(Nvars, 0);
   std::vector<RealType> HGradient(Nvars, 0), og_HGradient(Nvars, 0);
   ValueType logpsi2 = psi_clone->evaluateLog(*w_clone);
-  RealType eloc2    = h_clone->evaluate(*w_clone);
+  RealType eloc2    = h_clone->evaluate(*psi_clone, *w_clone);
   psi_clone->evaluateDerivatives(*w_clone, wfvar_prime, Dsaved, HDsaved);
   ValueType logpsi1 = Psi.evaluateLog(W);
-  RealType eloc1    = H.evaluate(W);
+  RealType eloc1    = H.evaluate(Psi, W);
   Psi.evaluateDerivatives(W, wfVars, og_Dsaved, og_HDsaved);
   app_log() << "log (original) = " << logpsi1 << " energy = " << eloc1 << std::endl;
   for (int i = 0; i < H.sizeOfObservables(); i++)
@@ -1990,7 +1983,7 @@ void WaveFunctionTester::runDerivCloneTest()
     w_clone->G          = 0;
     w_clone->L          = 0;
     RealType logpsiPlus = psi_clone->evaluateLog(*w_clone);
-    h_clone->evaluate(*w_clone);
+    h_clone->evaluate(*psi_clone, *w_clone);
     RealType elocPlus = h_clone->getLocalEnergy() - h_clone->getLocalPotential();
     wfvar_prime[i]    = wfVars[i] - FiniteDiff;
     psi_clone->resetParameters(wfvar_prime);
@@ -1998,7 +1991,7 @@ void WaveFunctionTester::runDerivCloneTest()
     w_clone->G           = 0;
     w_clone->L           = 0;
     RealType logpsiMinus = psi_clone->evaluateLog(*w_clone);
-    h_clone->evaluate(*w_clone);
+    h_clone->evaluate(*psi_clone, *w_clone);
     RealType elocMinus = h_clone->getLocalEnergy() - h_clone->getLocalPotential();
     PGradient[i]       = (logpsiPlus - logpsiMinus) * dh;
     HGradient[i]       = (elocPlus - elocMinus) * dh;
@@ -2022,7 +2015,7 @@ void WaveFunctionTester::runDerivCloneTest()
     W.G                 = 0;
     W.L                 = 0;
     RealType logpsiPlus = Psi.evaluateLog(W);
-    H.evaluate(W);
+    H.evaluate(Psi, W);
     RealType elocPlus = H.getLocalEnergy() - H.getLocalPotential();
     wfvar_prime[i]    = wfVars[i] - FiniteDiff;
     Psi.resetParameters(wfvar_prime);
@@ -2030,7 +2023,7 @@ void WaveFunctionTester::runDerivCloneTest()
     W.G                  = 0;
     W.L                  = 0;
     RealType logpsiMinus = Psi.evaluateLog(W);
-    H.evaluate(W);
+    H.evaluate(Psi, W);
     RealType elocMinus = H.getLocalEnergy() - H.getLocalPotential();
     PGradient[i]       = (logpsiPlus - logpsiMinus) * dh;
     HGradient[i]       = (elocPlus - elocMinus) * dh;
