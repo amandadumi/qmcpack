@@ -44,7 +44,7 @@ StressPBC::StressPBC(ParticleSet& ions, ParticleSet& elns, TrialWaveFunction& Ps
   stress_ee_const = 0.0;
   if (firstTimeStress)
   { // calculate constants
-    ions.update();
+    //ions.update();
     CalculateIonIonStress();
     firstTimeStress = false;
   }
@@ -53,6 +53,7 @@ StressPBC::StressPBC(ParticleSet& ions, ParticleSet& elns, TrialWaveFunction& Ps
   app_log() << "\n e-e const = " << stress_ee_const * vinv << std::endl;
   app_log() << "\n e-I const = " << stress_eI_const * vinv << std::endl;
 }
+
 
 void StressPBC::initBreakup(ParticleSet& P)
 {
@@ -324,12 +325,12 @@ bool StressPBC::put(xmlNodePtr cur)
 
 std::unique_ptr<OperatorBase> StressPBC::makeClone(ParticleSet& qp, TrialWaveFunction& psi)
 {
-  std::unique_ptr<StressPBC> tmp = std::make_unique<StressPBC>(PtclA, qp, psi);
-  tmp->firstTimeStress           = firstTimeStress;
-  tmp->stress_ion_ion_           = stress_ion_ion_;
-  tmp->stress_ee_const           = stress_ee_const;
-  tmp->stress_eI_const           = stress_eI_const;
-  tmp->add_ion_ion_              = add_ion_ion_;
-  return tmp;
+  std::unique_ptr<StressPBC> myclone = std::make_unique<StressPBC>(PtclA, qp, psi);
+  myclone->firstTimeStress           = firstTimeStress;
+  myclone->stress_ion_ion_           = stress_ion_ion_;
+  myclone->stress_ee_const           = stress_ee_const;
+  myclone->stress_eI_const           = stress_eI_const;
+  myclone->add_ion_ion_              = add_ion_ion_;
+  return myclone;
 }
 } // namespace qmcplusplus

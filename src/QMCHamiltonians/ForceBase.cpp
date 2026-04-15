@@ -83,6 +83,17 @@ void ForceBase::registerObservablesF(std::vector<ObservableHelper>& h5list, hdf_
   h5o.set_dimensions(ndim, first_force_index_);
 }
 
+void ForceBase::registerObservablesStress(std::vector<ObservableHelper>& h5list, hdf_archive& file) const
+{
+  std::vector<int> ndim(2);
+  ndim[0] = OHMMS_DIM;
+  ndim[1] = OHMMS_DIM;
+
+  h5list.emplace_back(hdf_path{prefix_});
+  auto& h5o = h5list.back();
+  h5o.set_dimensions(ndim, first_force_index_);
+}
+
 void ForceBase::setObservablesF(QMCTraits::PropertySetType& plist)
 {
   int index = first_force_index_;
@@ -126,11 +137,11 @@ void ForceBase::setParticleSetF(QMCTraits::PropertySetType& plist, int offset)
 void ForceBase::setParticleSetStress(QMCTraits::PropertySetType& plist, int offset)
 {
   int index = first_force_index_ + offset;
-  for (int iat = 0; iat < OHMMS_DIM; iat++)
+  for (int i = 0; i < OHMMS_DIM; i++)
   {
-    for (int jat = iat; jat < OHMMS_DIM; jat++)
+    for (int j = i; j< OHMMS_DIM; j++)
     {
-      plist[index] = stress_(iat, jat);
+      plist[index] = stress_(i, j);
       index++;
     }
   }

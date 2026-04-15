@@ -50,6 +50,7 @@ public:
   virtual ~ForceBase();
 
   void registerObservablesF(std::vector<ObservableHelper>& h5list, hdf_archive& file) const;
+  void registerObservablesStress(std::vector<ObservableHelper>& h5list, hdf_archive& file) const;
 
   void addObservablesF(QMCTraits::PropertySetType& plist);
   void addObservablesStress(QMCTraits::PropertySetType& plist);
