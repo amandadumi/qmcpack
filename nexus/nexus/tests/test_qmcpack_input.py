@@ -1,3 +1,9 @@
+try:
+    import pytest
+    from . import NexusTestOrder
+    pytestmark = pytest.mark.order(NexusTestOrder.QMCPACK_INPUT)
+except ImportError:
+    pass
 
 from .. import versions
 from .. import testing
@@ -180,7 +186,7 @@ def generate_serial_references():
         'simulation/qmcsystem/particlesets/ion0/groups/O/valence' : 6,
         'simulation/qmcsystem/particlesets/ion0/groups/V/atomicnumber' : 23,
         'simulation/qmcsystem/particlesets/ion0/groups/V/charge' : 13,
-        'simulation/qmcsystem/particlesets/ion0/groups/V/mass' : 92861.5851912,
+        'simulation/qmcsystem/particlesets/ion0/groups/V/mass' : 92860.6737469,
         'simulation/qmcsystem/particlesets/ion0/groups/V/name' : 'V',
         'simulation/qmcsystem/particlesets/ion0/groups/V/position' : np.array([
             [2.45778327, 8.39460555, 0.22661828],
@@ -543,6 +549,7 @@ def test_files():
     filenames = [
         'VO2_M1_afm.in.xml',
         'CH4_afqmc.in.xml',
+        'OH_mixed_pos.in.xml',
         ]
     files = get_files()
     assert(set(filenames)==set(files.keys()))
@@ -686,7 +693,7 @@ def test_compose():
                                 charge       = 13,
                                 valence      = 13,
                                 atomicnumber = 23,
-                                mass         = 92861.5851912,
+                                mass         = 92860.6737469,
                                 position     = np.array([
                                     [ 2.45778327,  8.39460555,  0.22661828],
                                     [ 8.41192147,  8.75579295, -0.22661828],
@@ -1389,6 +1396,7 @@ def test_generate():
 
 
 def test_read():
+    import numpy as np
     from ..qmcpack_input import QmcpackInput
 
     files = get_files()
@@ -1419,6 +1427,16 @@ def test_read():
     assert(qi.is_afqmc_input())
 
     check_vs_serial_reference(qi,'CH4_afqmc.in.xml read')
+
+
+    # test reading mixed integer/float positions 
+    qi = QmcpackInput(files['OH_mixed_pos.in.xml'])
+    pos = qi.qmcsystem.particlesets.ion0.position
+    assert pos.dtype==float
+    pos_ref = np.array(
+        [[0., 0., 0.               ],
+         [0., 0., 1.8330343408e+00]],dtype=float)
+    assert value_eq(pos,pos_ref)
 
 #end def test_read
 

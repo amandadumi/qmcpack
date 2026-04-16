@@ -137,10 +137,10 @@ import os
 import inspect
 import keyword
 import numpy as np
-from io import StringIO
+from .numpy_extensions import reshape_inplace
 from .xmlreader import XMLreader, XMLelement
 from .developer import DevBase, obj, hidden, error
-from .periodic_table import is_element
+from .periodic_table import Elements
 from .structure import Structure, Jellium, get_kpath
 from .physical_system import PhysicalSystem
 from .simulation import SimulationInput, SimulationInputTemplate
@@ -957,7 +957,7 @@ class QIxml(Names):
             #    self.error(msg,'QmcpackInput',exit=exit,trace=exit)
             ##end if
 
-            print(obj(dict(self.__class__.__dict__)))
+            #print(obj(dict(self.__class__.__dict__)))
 
             self.error(msg,'QmcpackInput',exit=exit,trace=exit)
         #end if
@@ -1581,7 +1581,7 @@ class Param(Names):
     #end def __call__
 
     def read(self,xml):
-        val = ''
+        val = None
         attr = set(xml._attributes.keys())
         other_attr = attr-set(['name'])
         if 'name' in attr and len(other_attr)>0:
@@ -1592,28 +1592,43 @@ class Param(Names):
             self.metadata[xml.name] = oa
         #end if
         if 'text' in xml:
-            token = xml.text.split('\n',1)[0].split(None,1)[0]
+            text = xml.text.strip()
+            # nothing in text
+            if len(text)==0:
+                return text
+            # scalar value
+            if ' ' not in text:
+                try:
+                    val = int(text)
+                except ValueError:
+                    try:
+                        val = float(text)
+                    except ValueError:
+                        val = text
+                return val
+            # array value
+            tokens  = []
+            rowlens = []
+            for line in text.splitlines():
+                if len(line.strip())==0:
+                    continue
+                t = line.split()
+                rowlens.append(len(t))
+                tokens.extend(t)
             try:
-                if is_int(token):
-                    val = np.loadtxt(StringIO(xml.text),int)
-                elif is_float(token):
-                    val = np.loadtxt(StringIO(xml.text),float)
-                else:
-                    val = np.array(xml.text.split())
-                #end if
-            except:
-                if is_int(token):
-                    val = np.array(xml.text.split(),dtype=int)
-                elif is_float(token):
-                    val = np.array(xml.text.split(),dtype=float)
-                else:
-                    val = np.array(xml.text.split())
-                #end if
-            #end try
+                val = np.array(tokens,dtype=int)
+            except ValueError:
+                try:
+                    val = np.array(tokens,dtype=float)
+                except ValueError:
+                    val = np.array(tokens,dtype=object)
+            if len(set(rowlens))==1 and len(rowlens)>1:
+                # rows have identical size: 2d
+                reshape_inplace(val,len(rowlens),rowlens[0])
             if val.size==1:
-                val = val.ravel()[0]
-            #end if
-        #end if
+                self.error('scalar value interpreted as an array.  This is a developer error.')
+        if val is None:
+            val = ''
         return val
     #end def read
 
@@ -1882,6 +1897,15 @@ sposet_builder = QIxmlFactory(
     typekey = 'type'
     )
 
+sposet_collection = QIxmlFactory(
+    name    = 'sposet_collection',
+    types   = dict(bspline=bspline_builder,
+                   einspline=bspline_builder,
+                   heg=heg_builder,
+                   composite=composite_builder,
+                   molecularorbital = molecular_orbital_builder),
+    typekey = 'type'
+    )
 
 
 class wavefunction(QIxml):
@@ -1889,7 +1913,7 @@ class wavefunction(QIxml):
     attributes = ['name','target','id','ref']+['info','type']
     #            afqmc
     parameters = ['filetype','filename','cutoff']
-    elements   = ['sposet_builder','determinantset','jastrow','override_variational_parameters']
+    elements   = ['sposet_builder','determinantset','jastrow','override_variational_parameters','sposet_collection']
     identifier = 'name','id'
 #end class wavefunction
 
@@ -2747,15 +2771,16 @@ classes = [   #standard classes
     afqmcinfo,walkerset,propagator,execute,back_propagation,onerdm
     ]
 types = dict( #simple types and factories
-    #host           = param,
-    #date           = param,
-    #user           = param,
-    pairpot        = pairpot,
-    estimator      = estimator,
-    sposet_builder = sposet_builder,
-    jastrow        = jastrow,
-    qmc            = qmc,
-    optimizer      = optimizer,
+    #host              = param,
+    #date              = param,
+    #user              = param,
+    pairpot           = pairpot,
+    estimator         = estimator,
+    sposet_builder    = sposet_builder,
+    sposet_collection = sposet_collection,
+    jastrow           = jastrow,
+    qmc               = qmc,
+    optimizer         = optimizer,
     )
 plurals = obj(
     particlesets    = 'particleset',
@@ -6303,11 +6328,11 @@ def generate_hamiltonian(name         = 'h0',
                 pseudos = collection()
                 for ion in ions:
                     label = ion.name
-                    iselem,symbol = is_element(ion.name,symbol=True)
+                    iselem, element = Elements.is_element(ion.name, return_element=True)
                     if label in ppfiles:
                         ppfile = ppfiles[label]
-                    elif symbol in ppfiles:
-                        ppfile = ppfiles[symbol]
+                    elif element.symbol in ppfiles:
+                        ppfile = ppfiles[element.symbol]
                     else:
                         QmcpackInput.class_error('pseudos provided to generate_hamiltonian are incomplete\n  a pseudopotential for ion of type {0} is missing\n  pseudos provided:\n{1}'.format(ion.name,str(ppfiles)))
                     #end if
@@ -8207,7 +8232,7 @@ def generate_batched_vmc_calculations(
     optional_vmc_inputs = obj(
         total_walkers = total_walkers,
         walkers_per_rank = walkers_per_rank,
-        #checkpoint       = checkpoint, # no checkpointing support yet
+        checkpoint       = checkpoint,
         maxcpusecs       = maxcpusecs,
         crowds           = crowds,
         spin_mass        = spin_mass,
@@ -8281,8 +8306,8 @@ def generate_batched_dmc_calculations(
         total_walkers    = total_walkers,
         walkers_per_rank = walkers_per_rank,
         crowds           = crowds,
-        spin_mass         = vmc_spin_mass,
-        #checkpoint       = vmc_checkpoint, # not supported yet
+        spin_mass        = vmc_spin_mass,
+        checkpoint       = vmc_checkpoint,
         )
     for name,value in optional_vmc_inputs.items():
         if value is not None:
@@ -8300,7 +8325,6 @@ def generate_batched_dmc_calculations(
                 blocks        = eq_blocks,
                 steps         = eq_steps,
                 timestep      = eq_timestep,
-                #checkpoint    = eq_checkpoint, # not supported yet
                 )
             )
     #end if
@@ -8313,7 +8337,6 @@ def generate_batched_dmc_calculations(
                 blocks        = blocks,
                 steps         = int(sfac*steps),
                 timestep      = tfac*timestep,
-                #checkpoint    = checkpoint,  # not supported yet
                 )
             )
         tfac *= timestep_factor
@@ -8332,6 +8355,7 @@ def generate_batched_dmc_calculations(
         feedback                = feedback,
         sigmabound              = sigmabound,
         spin_mass               = spin_mass,
+        checkpoint              = checkpoint,
         )
     for calc in dmc_calcs:
         if isinstance(calc,dmc):
