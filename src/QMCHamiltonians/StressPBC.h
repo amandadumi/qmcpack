@@ -61,7 +61,7 @@ struct StressPBC : public OperatorBase, public ForceBase
   std::vector<RealType> Qspec;
   //Constructor
   bool firstTimeStress;
-  StressPBC(ParticleSet& ions, ParticleSet& elns);
+  StressPBC(ParticleSet& ions, ParticleSet& elns, bool is_copy = false);
 
   std::string getClassName() const override { return "StressPBC"; }
 

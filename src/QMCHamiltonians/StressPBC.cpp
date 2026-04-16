@@ -25,7 +25,7 @@
 
 namespace qmcplusplus
 {
-StressPBC::StressPBC(ParticleSet& ions, ParticleSet& elns)
+StressPBC::StressPBC(ParticleSet& ions, ParticleSet& elns, bool is_copy)
     : ForceBase(ions, elns),
       PtclTarg(elns),
       PtclA(ions),
@@ -43,7 +43,10 @@ StressPBC::StressPBC(ParticleSet& ions, ParticleSet& elns)
   stress_ee_const = 0.0;
   if (firstTimeStress)
   { // calculate constants
-    //ions.update();
+    if (!is_copy){
+      ions.update();
+    }
+  
     CalculateIonIonStress();
     firstTimeStress = false;
   }
@@ -328,7 +331,7 @@ bool StressPBC::put(xmlNodePtr cur)
 
 std::unique_ptr<OperatorBase> StressPBC::makeClone(ParticleSet& qp, TrialWaveFunction& psi) const
 {
-  std::unique_ptr<StressPBC> tmp = std::make_unique<StressPBC>(PtclA, qp);
+  std::unique_ptr<StressPBC> tmp = std::make_unique<StressPBC>(PtclA, qp, true);
   tmp->firstTimeStress           = firstTimeStress;
   tmp->stress_ion_ion_           = stress_ion_ion_;
   tmp->stress_ee_const           = stress_ee_const;
