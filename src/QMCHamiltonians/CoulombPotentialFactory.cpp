@@ -226,13 +226,7 @@ void HamiltonianFactory::addForceHam(xmlNodePtr cur)
   else if (mode == "stress")
   {
     app_log() << "Adding stress mode force.\n";
-    auto psi_it(psiPool.find(PsiName));
-    if (psi_it == psiPool.end())
-    {
-      APP_ABORT("Unknown psi \"" + PsiName + "\" for stress estimator.");
-    }
-    TrialWaveFunction& psi           = *psi_it->second;
-    std::unique_ptr<StressPBC> stress = std::make_unique<StressPBC>(*source, *target, psi);
+    std::unique_ptr<StressPBC> stress = std::make_unique<StressPBC>(*source, *target);
     stress->put(cur);
     targetH->addOperator(std::move(stress), title, false);
   }
