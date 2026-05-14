@@ -26,6 +26,9 @@ public:
       : QMCCostFunctionBase(w, psi, h, c)
   {}
 
+  void GradCost(std::vector<Return_rt>& PGradient, const std::vector<Return_rt>& PM, Return_rt FiniteDiff = 0) override
+  {}
+
   void resetPsi(bool final_reset = false) override {}
   Return_rt fillOverlapHamiltonianMatrices(Matrix<Return_rt>& Left, Matrix<Return_rt>& Right) override { return 0; }
   void getConfigurations(const std::string& aroot) override {}
@@ -72,8 +75,7 @@ TEST_CASE("updateXmlNodes", "[drivers]")
     )";
 
   Libxml2Document doc;
-  bool okay = doc.parseFromString(wf_xml);
-  REQUIRE(okay);
+  REQUIRE(doc.parseFromString(wf_xml));
   cost.setWaveFunctionNode(doc.getRoot());
 
   cost.callUpdateXmlNodes();
@@ -109,8 +111,7 @@ TEST_CASE("updateXmlNodes with existing element", "[drivers]")
     )";
 
   Libxml2Document doc;
-  bool okay = doc.parseFromString(wf_xml);
-  REQUIRE(okay);
+  REQUIRE(doc.parseFromString(wf_xml));
   cost.setWaveFunctionNode(doc.getRoot());
 
   cost.callUpdateXmlNodes();

@@ -104,7 +104,7 @@ public:
 
   Return_t evaluateValueAndDerivatives(TrialWaveFunction& psi,
                                        ParticleSet& P,
-                                       const opt_variables_type& optvars,
+                                       const OptVariables& optvars,
                                        const Vector<ValueType>& dlogpsi,
                                        Vector<ValueType>& dhpsioverpsi) override;
 
@@ -129,7 +129,7 @@ public:
    */
   void releaseResource(ResourceCollection& collection, const RefVectorWithLeader<OperatorBase>& o_list) const override;
 
-  std::unique_ptr<OperatorBase> makeClone(ParticleSet& qp, TrialWaveFunction& psi) override;
+  std::unique_ptr<OperatorBase> makeClone(ParticleSet& qp, TrialWaveFunction& psi) const override;
 
   void addComponent(int groupID, std::unique_ptr<NonLocalECPComponent>&& pp);
 

@@ -32,7 +32,6 @@ TEST_CASE("Jastrow 2D", "[wavefunction]")
   Communicate* c = OHMMS::Controller;
   Libxml2Document doc;
   xmlNodePtr root, node;
-  bool okay;
 
   // Step 1: create Jastrow
   //   TwoBodyJastrow<BsplineFunctor<RealType>> j2;
@@ -64,8 +63,7 @@ TEST_CASE("Jastrow 2D", "[wavefunction]")
       </group>
     </particleset>
   </tmp>)";
-  okay                      = doc.parseFromString(particle_text);
-  REQUIRE(okay);
+  REQUIRE(doc.parseFromString(particle_text));
   root = doc.getRoot();
   node = xmlFirstElementChild(root);
   XMLParticleParser parse_electrons(elec);
@@ -85,8 +83,7 @@ TEST_CASE("Jastrow 2D", "[wavefunction]")
         </correlation>
       </jastrow>
 </tmp>)";
-  okay                     = doc.parseFromString(jastrow_text);
-  REQUIRE(okay);
+  REQUIRE(doc.parseFromString(jastrow_text));
   root = doc.getRoot();
   node = xmlFirstElementChild(root);
   RadialJastrowBuilder jastrow(c, elec);
@@ -165,7 +162,7 @@ TEST_CASE("Jastrow 2D", "[wavefunction]")
   j2->extractOptimizableObjectRefs(opt_obj_refs);
   REQUIRE(opt_obj_refs.size() == 2);
 
-  opt_variables_type optvars;
+  OptVariables optvars;
   Vector<ValueType> dlogpsi;
   Vector<ValueType> dhpsioverpsi;
 
@@ -181,8 +178,38 @@ TEST_CASE("Jastrow 2D", "[wavefunction]")
   for (int iparam = 0; iparam < NumOptimizables; iparam++)
     app_log() << "param=" << iparam << " : " << dlogpsi[iparam] << "  " << dhpsioverpsi[iparam] << std::endl;
   app_log() << std::endl;
-  const std::vector<RealType> dlogpsi_values = {0, 0, 0, 0, 0, 0, -1.521258e-04, -2.194165e-01, 0, 0, -2.779981e-02, -5.327999e-01, -9.356640e-01, -4.847466e-01, -1.945081e-02, -2.453297e-01};
-  const std::vector<RealType> dhpsi_values   = {0, 0, 0, 0, 0, 0, 5.953288e-03, 8.618836e-03, 0, 0, 2.572195e-02, -5.048126e-02, -3.139861e-02, 2.197638e-02, 4.319522e-02, 3.512834e-02};
+  const std::vector<RealType> dlogpsi_values = {0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                -1.521258e-04,
+                                                -2.194165e-01,
+                                                0,
+                                                0,
+                                                -2.779981e-02,
+                                                -5.327999e-01,
+                                                -9.356640e-01,
+                                                -4.847466e-01,
+                                                -1.945081e-02,
+                                                -2.453297e-01};
+  const std::vector<RealType> dhpsi_values   = {0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                5.953288e-03,
+                                                8.618836e-03,
+                                                0,
+                                                0,
+                                                2.572195e-02,
+                                                -5.048126e-02,
+                                                -3.139861e-02,
+                                                2.197638e-02,
+                                                4.319522e-02,
+                                                3.512834e-02};
   for (int iparam = 0; iparam < NumOptimizables; iparam++)
   {
     CHECK(real(dlogpsi[iparam]) == Approx(dlogpsi_values[iparam]));

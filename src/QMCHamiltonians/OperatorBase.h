@@ -183,7 +183,7 @@ public:
   virtual bool get(std::ostream& os) const = 0;
 
   // TODO: add docs
-  virtual std::unique_ptr<OperatorBase> makeClone(ParticleSet& qp, TrialWaveFunction& psi) = 0;
+  virtual std::unique_ptr<OperatorBase> makeClone(ParticleSet& qp, TrialWaveFunction& psi) const = 0;
 
   //////// VIRTUAL FUNCTIONS ////////////////
 
@@ -282,7 +282,7 @@ public:
   virtual void mw_evaluateWithParameterDerivatives(const RefVectorWithLeader<OperatorBase>& o_list,
                                                    const RefVectorWithLeader<TrialWaveFunction>& wf_list,
                                                    const RefVectorWithLeader<ParticleSet>& p_list,
-                                                   const opt_variables_type& optvars,
+                                                   const OptVariables& optvars,
                                                    const RecordArray<ValueType>& dlogpsi,
                                                    RecordArray<ValueType>& dhpsioverpsi) const;
 
@@ -340,7 +340,7 @@ public:
    */
   virtual Return_t evaluateValueAndDerivatives(TrialWaveFunction& psi,
                                                ParticleSet& P,
-                                               const opt_variables_type& optvars,
+                                               const OptVariables& optvars,
                                                const Vector<ValueType>& dlogpsi,
                                                Vector<ValueType>& dhpsioverpsi);
 
@@ -448,7 +448,7 @@ public:
    * @param psi 
    * @param targetH 
    */
-  virtual void add2Hamiltonian(ParticleSet& qp, TrialWaveFunction& psi, QMCHamiltonian& targetH);
+  virtual void add2Hamiltonian(ParticleSet& qp, TrialWaveFunction& psi, QMCHamiltonian& targetH) const;
 
 #if !defined(REMOVE_TRACEMANAGER)
   /**
@@ -622,7 +622,7 @@ class OperatorDependsOnlyOnParticleSet : public OperatorBase
 {
 public:
   virtual Return_t evaluate(ParticleSet& pset)                       = 0;
-  virtual std::unique_ptr<OperatorBase> makeClone(ParticleSet& pset) = 0;
+  virtual std::unique_ptr<OperatorBase> makeClone(ParticleSet& pset) const = 0;
   bool dependsOnWaveFunction() const final { return false; }
 
   virtual void mw_evaluate(const RefVectorWithLeader<OperatorBase>& o_list,
@@ -643,7 +643,7 @@ public:
 
 private:
   inline Return_t evaluate(TrialWaveFunction& psi, ParticleSet& pset) final { return evaluate(pset); }
-  inline std::unique_ptr<OperatorBase> makeClone(ParticleSet& pset, TrialWaveFunction& psi) final
+  inline std::unique_ptr<OperatorBase> makeClone(ParticleSet& pset, TrialWaveFunction& psi) const final
   {
     return makeClone(pset);
   }

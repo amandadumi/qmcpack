@@ -21,8 +21,7 @@
 #include "QMCDrivers/QMCDriverNew.h"
 #include "QMCDrivers/QMCDriverInput.h"
 #include "QMCDrivers/VMC/VMCDriverInput.h"
-#include "Optimize/NRCOptimization.h"
-#include "Optimize/NRCOptimizationFunctionWrapper.h"
+#include "NRCOptimizationFunctionWrapper.h"
 #ifdef HAVE_LMY_ENGINE
 #include "formic/utils/matrix.h"
 #include "formic/utils/lmyengine/engine.h"
@@ -82,7 +81,7 @@ public:
 
 #ifdef HAVE_LMY_ENGINE
   using ValueType = QMCTraits::ValueType;
-  void engine_start(cqmc::engine::LMYEngine<ValueType>* EngineObj,
+  void engine_start(cqmc::engine::LMYEngine<ValueType>& EngineObj,
                     DescentEngine& descentEngineObj,
                     std::string MinMethod);
 #endif
@@ -145,7 +144,7 @@ private:
 
 #ifdef HAVE_LMY_ENGINE
   formic::VarDeps vdeps;
-  cqmc::engine::LMYEngine<ValueType>* EngineObj;
+  std::unique_ptr<cqmc::engine::LMYEngine<ValueType>> EngineObj;
 #endif
 
   //engine for running various gradient descent based algorithms for optimization

@@ -35,7 +35,7 @@ void SOECPComponent::add(int l, RadialPotentialType* pp)
   sopp_m_.push_back(pp);
 }
 
-SOECPComponent* SOECPComponent::makeClone(const ParticleSet& qp)
+SOECPComponent* SOECPComponent::makeClone(const ParticleSet& qp) const
 {
   SOECPComponent* myclone = new SOECPComponent(*this);
   for (int i = 0; i < sopp_m_.size(); i++)
@@ -378,7 +378,7 @@ SOECPComponent::RealType SOECPComponent::evaluateValueAndDerivatives(ParticleSet
                                                                      int iel,
                                                                      RealType r,
                                                                      const PosType& dr,
-                                                                     const opt_variables_type& optvars,
+                                                                     const OptVariables& optvars,
                                                                      const Vector<ValueType>& dlogpsi,
                                                                      Vector<ValueType>& dhpsioverpsi)
 {
@@ -438,7 +438,7 @@ SOECPComponent::RealType SOECPComponent::evaluateValueAndDerivativesExactSpinInt
     int iel,
     RealType r,
     const PosType& dr,
-    const opt_variables_type& optvars,
+    const OptVariables& optvars,
     const Vector<ValueType>& dlogpsi,
     Vector<ValueType>& dhpsioverpsi)
 {

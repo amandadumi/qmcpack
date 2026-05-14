@@ -104,7 +104,7 @@ void OperatorBase::mw_evaluatePerParticle(const RefVectorWithLeader<OperatorBase
 void OperatorBase::mw_evaluateWithParameterDerivatives(const RefVectorWithLeader<OperatorBase>& o_list,
                                                        const RefVectorWithLeader<TrialWaveFunction>& wf_list,
                                                        const RefVectorWithLeader<ParticleSet>& p_list,
-                                                       const opt_variables_type& optvars,
+                                                       const OptVariables& optvars,
                                                        const RecordArray<ValueType>& dlogpsi,
                                                        RecordArray<ValueType>& dhpsioverpsi) const
 {
@@ -151,7 +151,7 @@ void OperatorBase::mw_evaluatePerParticleWithToperator(
 
 OperatorBase::Return_t OperatorBase::evaluateValueAndDerivatives(TrialWaveFunction& psi,
                                                                  ParticleSet& P,
-                                                                 const opt_variables_type& optvars,
+                                                                 const OptVariables& optvars,
                                                                  const Vector<ValueType>& dlogpsi,
                                                                  Vector<ValueType>& dhpsioverpsi)
 {
@@ -186,7 +186,7 @@ void OperatorBase::releaseResource(ResourceCollection& collection,
 
 void OperatorBase::setRandomGenerator(RandomBase<FullPrecRealType>* rng) {}
 
-void OperatorBase::add2Hamiltonian(ParticleSet& qp, TrialWaveFunction& psi, QMCHamiltonian& targetH)
+void OperatorBase::add2Hamiltonian(ParticleSet& qp, TrialWaveFunction& psi, QMCHamiltonian& targetH) const
 {
   std::unique_ptr<OperatorBase> myclone = makeClone(qp, psi);
   if (myclone)
