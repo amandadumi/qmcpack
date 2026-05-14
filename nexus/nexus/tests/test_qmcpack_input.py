@@ -1911,8 +1911,8 @@ def test_generate_kspace_jastrow():
 
 
 def test_generate_snap_jastrow():
-    from qmcpack_input import generate_sna_jastrow
-    snajas = generate_sna_jastrow(2, 7 )
+    from ..qmcpack_input import generate_snap_jastrow
+    snajas = generate_snap_jastrow(2, 7 )
     expect = """<jastrow type="snap" name="snap" twojmax="2" rcut="7"/>
 """
     print(expect)
