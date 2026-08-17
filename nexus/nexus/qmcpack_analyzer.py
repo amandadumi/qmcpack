@@ -70,7 +70,7 @@ class QmcpackAnalyzerCapabilities(QAobject):
 
         self.methods=set(['opt','vmc','dmc','rmc'])
         self.data_sources = set(['scalar','stat','dmc','storeconfig','opt','traces'])
-        self.scalars=set(['localenergy','localpotential','kinetic','elecelec','localecp','nonlocalecp','ionion','localenergy_sq','acceptratio','blockcpu','blockweight','mpc','kecorr'])
+        self.scalars=set(['localenergy','localpotential','kinetic','elecelec','localecp','nonlocalecp','ionion','localenergy_sq','acceptratio','blockcpu','blockweight','mpc','kecorr', 'ACStress_hf_0_0', 'ACStress_pulay_0_0', 'ACStress_Ewfgrad_0_0',  'ACStress_wfgrad_0_0', 'ACStress_hf_1_1', 'ACStress_pulay_1_1', 'ACStress_Ewfgrad_1_1', 'ACStress_wfgrad_1_1', 'ACStress_hf_2_2', 'ACStress_pulay_2_2', 'ACStress_Ewfgrad_2_2', 'ACStress_wfgrad_2_2', 'ACStress_hf_0_1', 'ACStress_pulay_0_1', 'ACStress_Ewfgrad_0_1', 'ACStress_wfgrad_0_1', 'ACStress_hf_0_2', 'ACStress_pulay_0_2', 'ACStress_Ewfgrad_0_2', 'ACStress_wfgrad_02'])
         self.fields=set(['energydensity','density','dm1b','spindensity','structurefactor'])
 
         hdf_data_sources = set(['stat','storeconfig','traces'])
