@@ -100,7 +100,7 @@ def __nexus_showwarning(message, category, filename, lineno, file=None, line=Non
     if os.path.exists(filename):
         filename = os.path.realpath(filename)
 
-    msg = (indent*2)+msg.strip().replace("\n", "\n"+(indent*2))
+    #msg = (indent*2)+msg.strip().replace("\n", "\n"+(indent*2))
 
     file.write(
         f"{indent}{filename}:{lineno}:{cls} {category.__name__}:\n"
